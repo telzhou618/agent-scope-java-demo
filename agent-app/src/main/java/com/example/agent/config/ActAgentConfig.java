@@ -40,14 +40,14 @@ public class ActAgentConfig {
 
 
     public HarnessAgent harnessAgent() {
-        // MCP
+        // MCP连接
         McpClientWrapper mcpClientWrapper = McpClientBuilder.create("http-mcp")
                 .streamableHttpTransport(mcpServerUrl + mcpEndpoint)
                 .header("Authorization", "Bearer " + mcpToken)
                 .timeout(Duration.ofSeconds(30))
                 .buildAsync()
                 .block();
-        // MCP
+        // 注册工具和 MCP
         Toolkit toolkit = new Toolkit();
         toolkit.registerMcpClient(mcpClientWrapper).block();
 
@@ -63,7 +63,7 @@ public class ActAgentConfig {
                                 .thinkingBudget(2048)
                                 .build())
                 .build();
-        // 压缩模型，用轻量级低成本的
+        // 压缩模型，用轻量级低成本的, 推荐 flash 模型
         DashScopeChatModel compactionModel = DashScopeChatModel.builder()
                 .apiKey(dashScopeApiKey)
                 .modelName("qwen3.6-flash")
@@ -71,6 +71,7 @@ public class ActAgentConfig {
                 .build();
 
         return HarnessAgent.builder()
+                // harness 默认工作空间, 存储永久记忆等。
                 .workspace(Path.of(System.getProperty("user.home") + "/.agentscope"))
                 .stateStore(new InMemoryAgentStateStore())
                 .name("actAgent")
@@ -78,12 +79,12 @@ public class ActAgentConfig {
                 .model(model)
                 .toolkit(toolkit)
 
-                // 工具权限一律不验证
+                // 工具权限一律不验证，危险，生产环境不建议
                 .permissionContext(PermissionContextState.builder()
                         .mode(PermissionMode.BYPASS)
                         .build())
-                .maxIters(5)  // 最大迭代
-                .maxRetries(1) // 工具最大重试次数
+                .maxIters(5)    // 最大迭代
+                .maxRetries(1)  // 工具最大重试次数
                 .defaultSessionId("default-session-id")
 
                 // 压缩
@@ -92,7 +93,8 @@ public class ActAgentConfig {
                         .triggerMessages(30)     // 30 条触发
                         .keepMessages(10)        // 压缩后保留最近 10 条原文
                         .build())
-                // 大工具结果卸载
+
+                // 大工具结果卸载压缩
                 .toolResultEviction(ToolResultEvictionConfig.defaults())
 
                 .disableMemoryHooks()            // 停掉 flush + 后台 consolidation，不生成 memory/*.md / MEMORY.md
