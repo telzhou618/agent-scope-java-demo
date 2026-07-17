@@ -5,3 +5,15 @@ spring:
   application:
     name: agent-app
 
+  ai:
+    dashscope:
+      api-key: ${DASHSCOPE_API_KEY}
+      chat:
+        model: qwen3.7-plus
+
+# MCP Server 连接配置
+mcp:
+  server:
+    url: http://localhost:8081
+    endpoint: /mcp
+    token: mcp_xxxxx
