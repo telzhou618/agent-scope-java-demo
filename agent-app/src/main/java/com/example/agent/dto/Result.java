@@ -67,9 +67,12 @@ public class Result<T> implements Serializable {
         return new Result<T>().setCode(code).setMsg("系统开小差了，请稍后再试");
     }
 
-    public static <T> Result<T> notUnauthorized(String msg) {
+    public static <T> Result<T> unauthorized(String msg) {
         int code = ErrorCode.UNAUTHORIZED;
-        return new Result<T>().setCode(code).setMsg("无权限");
+        if (msg == null || msg.isBlank()) {
+            msg = "无权限";
+        }
+        return new Result<T>().setCode(code).setMsg(msg);
     }
 
     public static <T> Result<T> error(int code, String msg) {

@@ -16,7 +16,7 @@ mcp:
   server:
     url: http://localhost:8081
     endpoint: /mcp
-    token: mcp_xxxxx
+    token: ${MCP_SERVER_TOKEN:}
 
 
 # 接口分组配置

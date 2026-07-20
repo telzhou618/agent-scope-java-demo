@@ -17,6 +17,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.util.StringUtils;
 
 import java.nio.file.Path;
 import java.time.Duration;
@@ -44,19 +45,21 @@ public class AgentConfig {
     @Bean
     public AgentStateStore agentStateStore() {
         return new JsonFileAgentStateStore(Path.of(
-                System.getProperty("user.home") + "/.act/agent/state"
+                System.getProperty("user.home") + "/.agentscope/agent/state"
         ));
     }
 
     @Bean
     public HarnessAgent harnessAgent() {
         // MCP连接
-        McpClientWrapper mcpClientWrapper = McpClientBuilder.create("http-mcp")
+        var mcpClientBuilder = McpClientBuilder.create("http-mcp")
                 .streamableHttpTransport(mcpServerUrl + mcpEndpoint)
-                .header("Authorization", "Bearer " + mcpToken)
-                .timeout(Duration.ofSeconds(30))
-                .buildAsync()
-                .block();
+                .timeout(Duration.ofSeconds(30));
+        // token 为空时不附加 Authorization 头
+        if (StringUtils.hasText(mcpToken)) {
+            mcpClientBuilder.header("Authorization", "Bearer " + mcpToken);
+        }
+        McpClientWrapper mcpClientWrapper = mcpClientBuilder.buildAsync().block();
         // 注册工具和 MCP
         Toolkit toolkit = new Toolkit();
         toolkit.registerMcpClient(mcpClientWrapper).block();

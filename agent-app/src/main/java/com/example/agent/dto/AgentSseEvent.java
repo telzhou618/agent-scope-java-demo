@@ -10,7 +10,7 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 public class AgentSseEvent {
-    private String type;       // thinking | reasoning | text_block | data_block | tool_call | tool_result | answer | done
+    private String type;       // agent_start | thinking | text_block | tool_call | tool_result | agent_result | agent_end
     private String content;    // 文本增量或完整文本
     private String role;
     private ToolCallInfo toolCall;  // 工具调用信息
