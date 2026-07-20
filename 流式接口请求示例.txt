@@ -1,0 +1,78 @@
+
+流式接口请求参数
+
+{
+    "message": "查询一下杭州的天气",
+    "sessionId": "43",
+    "userId": "25"
+}
+
+返回示例：
+
+
+data:{"content":"","type":"agent_start"}
+
+data:{"content":"用户","type":"thinking"}
+
+data:{"content":"想","type":"thinking"}
+
+data:{"content":"查询杭州的天气","type":"thinking"}
+
+data:{"content":"，","type":"thinking"}
+
+data:{"content":"我可以直接调用 query","type":"thinking"}
+
+data:{"content":"Weather 工具来","type":"thinking"}
+
+data:{"content":"查询。","type":"thinking"}
+
+data:{"toolCall":{"toolCallId":"call_b301d5aba02e43f8ac78685a","toolName":"queryWeather","toolParams":"{\"city\": \"杭州\"}"},"type":"tool_call"}
+
+data:{"toolCall":{"toolCallId":"call_b301d5aba02e43f8ac78685a","toolName":"queryWeather","toolResults":"城市杭州天气信息，温度为25度，湿度为60%，天气状况为晴天。"},"type":"tool_result"}
+
+data:{"content":"杭州","type":"thinking"}
+
+data:{"content":"的天气","type":"thinking"}
+
+data:{"content":"查询结果已","type":"thinking"}
+
+data:{"content":"返回，","type":"thinking"}
+
+data:{"content":"我来整理一下告诉","type":"thinking"}
+
+data:{"content":"用户。","type":"thinking"}
+
+data:{"content":"杭州的天气情况","type":"text_block"}
+
+data:{"content":"如下：\n\n-","type":"text_block"}
+
+data:{"content":" 🌡️","type":"text_block"}
+
+data:{"content":" **温度**","type":"text_block"}
+
+data:{"content":"：25°C","type":"text_block"}
+
+data:{"content":"\n- 💧","type":"text_block"}
+
+data:{"content":" **湿度**：","type":"text_block"}
+
+data:{"content":"6","type":"text_block"}
+
+data:{"content":"0%\n-","type":"text_block"}
+
+data:{"content":" ☀️ **","type":"text_block"}
+
+data:{"content":"天气状况**：","type":"text_block"}
+
+data:{"content":"晴天\n\n","type":"text_block"}
+
+data:{"content":"天气不错，适合","type":"text_block"}
+
+data:{"content":"外出活动！还有什么","type":"text_block"}
+
+data:{"content":"需要了解的吗？😊","type":"text_block"}
+
+data:{"content":"[io.agentscope.core.message.ThinkingBlock@379c365f, 杭州的天气情况如下：\n\n- 🌡️ **温度**：25°C\n- 💧 **湿度**：60%\n- ☀️ **天气状况**：晴天\n\n天气不错，适合外出活动！还有什么需要了解的吗？😊]","type":"agent_result"}
+
+data:{"content":"","type":"agent_end"}
+
