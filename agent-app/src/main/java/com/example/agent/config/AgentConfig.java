@@ -3,7 +3,8 @@ package com.example.agent.config;
 import io.agentscope.core.model.GenerateOptions;
 import io.agentscope.core.permission.PermissionContextState;
 import io.agentscope.core.permission.PermissionMode;
-import io.agentscope.core.state.InMemoryAgentStateStore;
+import io.agentscope.core.state.AgentStateStore;
+import io.agentscope.core.state.JsonFileAgentStateStore;
 import io.agentscope.core.tool.Toolkit;
 import io.agentscope.core.tool.mcp.McpClientBuilder;
 import io.agentscope.core.tool.mcp.McpClientWrapper;
@@ -14,6 +15,7 @@ import io.agentscope.harness.agent.memory.compaction.CompactionConfig;
 import io.agentscope.harness.agent.memory.compaction.ToolResultEvictionConfig;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 import java.nio.file.Path;
@@ -21,7 +23,7 @@ import java.time.Duration;
 
 @Slf4j
 @Configuration
-public class ActAgentConfig {
+public class AgentConfig {
 
     @Value("${mcp.server.url}")
     private String mcpServerUrl;
@@ -39,6 +41,14 @@ public class ActAgentConfig {
     private String dashScopeApiKey;
 
 
+    @Bean
+    public AgentStateStore agentStateStore() {
+        return new JsonFileAgentStateStore(Path.of(
+                System.getProperty("user.home") + "/.act/agent/state"
+        ));
+    }
+
+    @Bean
     public HarnessAgent harnessAgent() {
         // MCP连接
         McpClientWrapper mcpClientWrapper = McpClientBuilder.create("http-mcp")
@@ -73,7 +83,8 @@ public class ActAgentConfig {
         return HarnessAgent.builder()
                 // harness 默认工作空间, 存储永久记忆等。
                 .workspace(Path.of(System.getProperty("user.home") + "/.agentscope"))
-                .stateStore(new InMemoryAgentStateStore())
+                // 存储历史消息、上下文
+                .stateStore(agentStateStore())
                 .name("actAgent")
                 .sysPrompt("你是一个有用的助手")
                 .model(model)

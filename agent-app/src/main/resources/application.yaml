@@ -17,3 +17,12 @@ mcp:
     url: http://localhost:8081
     endpoint: /mcp
     token: mcp_xxxxx
+
+
+# 接口分组配置
+springdoc:
+  group-configs:
+    - group: 'agent'
+      display-name: 'Agent'
+      paths-to-match: '/**'
+      packages-to-scan: 'com.example.agent.controller'
