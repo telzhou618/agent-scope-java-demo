@@ -184,6 +184,13 @@ public class AgentScopeController {
                         .reversed()).toList();
         return Result.okData(agentSessions);
     }
+
+    @GetMapping("/delSession")
+    @Operation(summary = "删除会话")
+    public Result<Void> delSessions(String userId, String sessionId) {
+        agentStateStore.delete(userId, sessionId);
+        return Result.ok();
+    }
 }
 
 
