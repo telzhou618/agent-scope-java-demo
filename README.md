@@ -2,6 +2,8 @@
 
 Agent + MCP 演示工程：基于 [AgentScope Java](https://github.com/agentscope-ai/agentscope-java) Harness 构建智能体服务，通过 MCP（Streamable HTTP）调用工具服务。
 
+![img.png](imgs/img.png)
+
 ## 模块说明
 
 | 模块 | 端口 | 说明 |
@@ -43,7 +45,104 @@ mvn -pl agent-app spring-boot:run
 ```bash
 curl -N -X POST http://localhost:8082/agent/scope/chat_sse \
   -H "Content-Type: application/json" \
-  -d '{"userId":"u1","sessionId":"s1","message":"现在几点"}'
+  -d '{"userId":"1","sessionId":"11","message":"查询一下杭州今天的天气"}'
+```
+返回结果:
+``` text
+data:{"content":"","type":"agent_start"}
+
+data:{"content":"The","type":"thinking"}
+
+data:{"content":" user wants to check","type":"thinking"}
+
+data:{"content":" the weather in Hang","type":"thinking"}
+
+data:{"content":"zhou today","type":"thinking"}
+
+data:{"content":". Let me first","type":"thinking"}
+
+data:{"content":" get the","type":"thinking"}
+
+data:{"content":" current date/time and","type":"thinking"}
+
+data:{"content":" then query the weather","type":"thinking"}
+
+data:{"content":" for Hangzhou.","type":"thinking"}
+
+data:{"toolCall":{"toolCallId":"call_fff3b2bcfc62485485078ba0","toolName":"get_current_datetime","toolParams":"{}"},"type":"tool_call"}
+
+data:{"toolCall":{"toolCallId":"call_fe8265ffb6554f449ea452c8","toolName":"queryWeather","toolParams":"{\"city\": \"杭州\"}"},"type":"tool_call"}
+
+data:{"toolCall":{"toolCallId":"call_fff3b2bcfc62485485078ba0","toolName":"get_current_datetime","toolResults":"2026-07-22 17:40:07"},"type":"tool_result"}
+
+data:{"toolCall":{"toolCallId":"call_fe8265ffb6554f449ea452c8","toolName":"queryWeather","toolResults":"城市杭州天气信息，温度为25度，湿度为60%，天气状况为晴天。"},"type":"tool_result"}
+
+data:{"content":"The","type":"thinking"}
+
+data:{"content":" user asked","type":"thinking"}
+
+data:{"content":" about the weather","type":"thinking"}
+
+data:{"content":" in Hangzhou today","type":"thinking"}
+
+data:{"content":". I have the","type":"thinking"}
+
+data:{"content":" results now.\n","type":"thinking"}
+
+data:{"content":"以下是杭州今天（","type":"text_block"}
+
+data:{"content":"202","type":"text_block"}
+
+data:{"content":"6年7月","type":"text_block"}
+
+data:{"content":"22日","type":"text_block"}
+
+data:{"content":"）的天气信息：","type":"text_block"}
+
+data:{"content":"\n\n|","type":"text_block"}
+
+data:{"content":" 项目 | ","type":"text_block"}
+
+data:{"content":"详情","type":"text_block"}
+
+data:{"content":" |\n|------","type":"text_block"}
+
+data:{"content":"|------|\n","type":"text_block"}
+
+data:{"content":"| 🌡","type":"text_block"}
+
+data:{"content":"️ 温度 |","type":"text_block"}
+
+data:{"content":" **","type":"text_block"}
+
+data:{"content":"25°C**","type":"text_block"}
+
+data:{"content":" |\n|","type":"text_block"}
+
+data:{"content":" 💧 湿度 |","type":"text_block"}
+
+data:{"content":" **60%**","type":"text_block"}
+
+data:{"content":" |\n|","type":"text_block"}
+
+data:{"content":" ☀️ 天气","type":"text_block"}
+
+data:{"content":"状况 | **","type":"text_block"}
+
+data:{"content":"晴天** |\n\n","type":"text_block"}
+
+data:{"content":"今天杭州天气晴朗","type":"text_block"}
+
+data:{"content":"，温度","type":"text_block"}
+
+data:{"content":"适宜，非常适合外出","type":"text_block"}
+
+data:{"content":"活动！😊","type":"text_block"}
+
+data:{"content":"[io.agentscope.core.message.ThinkingBlock@12ed8199, 以下是杭州今天（2026年7月22日）的天气信息：\n\n| 项目 | 详情 |\n|------|------|\n| 🌡️ 温度 | **25°C** |\n| 💧 湿度 | **60%** |\n| ☀️ 天气状况 | **晴天** |\n\n今天杭州天气晴朗，温度适宜，非常适合外出活动！😊]","type":"agent_result"}
+
+data:{"content":"","type":"agent_end"}
+
 ```
 
 历史消息：`GET /agent/scope/getMessages?userId=u1&sessionId=s1`
