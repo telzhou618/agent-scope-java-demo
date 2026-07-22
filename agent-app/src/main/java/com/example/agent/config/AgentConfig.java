@@ -1,5 +1,6 @@
 package com.example.agent.config;
 
+import com.example.agent.middleware.ToolCallBeforeMiddleware;
 import io.agentscope.core.model.GenerateOptions;
 import io.agentscope.core.permission.PermissionContextState;
 import io.agentscope.core.permission.PermissionMode;
@@ -92,6 +93,9 @@ public class AgentConfig {
                 .sysPrompt("你是一个有用的助手")
                 .model(model)
                 .toolkit(toolkit)
+
+                // middleware
+                .middleware(new ToolCallBeforeMiddleware())
 
                 // 工具权限一律不验证，危险，生产环境不建议
                 .permissionContext(PermissionContextState.builder()
