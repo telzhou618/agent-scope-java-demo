@@ -6,6 +6,7 @@ import com.example.agent.dto.AgentChatRequest;
 import com.example.agent.dto.AgentSession;
 import com.example.agent.dto.AgentSseEvent;
 import com.example.agent.dto.Result;
+import io.agentscope.core.ReActAgent;
 import io.agentscope.core.agent.RuntimeContext;
 import io.agentscope.core.event.*;
 import io.agentscope.core.message.Msg;
@@ -189,6 +190,17 @@ public class AgentScopeController {
     @Operation(summary = "删除会话")
     public Result<Void> delSessions(String userId, String sessionId) {
         agentStateStore.delete(userId, sessionId);
+        return Result.ok();
+    }
+
+    @GetMapping("/interrupt")
+    @Operation(summary = "中断会话")
+    public Result<Void> interrupt(String userId, String sessionId) {
+        RuntimeContext target = RuntimeContext.builder()
+                .userId(userId)
+                .sessionId(sessionId)
+                .build();
+        harnessAgent.getDelegate().interrupt(target, new UserMessage("用户已取消操作"));
         return Result.ok();
     }
 }
