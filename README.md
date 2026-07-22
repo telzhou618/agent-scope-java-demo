@@ -149,6 +149,8 @@ data:{"content":"","type":"agent_end"}
 
 会话列表：`GET /agent/scope/getSessions?userId=u1`
 
+中断会话：`GET /agent/scope/interrupt?userId=u1&sessionId=s1`
+
 API 文档：启动 agent-app 后访问 `http://localhost:8082/doc.html`（Knife4j）。
 
 ## 说明
