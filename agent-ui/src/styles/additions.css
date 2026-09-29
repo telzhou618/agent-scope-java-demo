@@ -272,3 +272,44 @@
     scrollbar-color: var(--border-strong) transparent;
   }
 }
+
+/* ---------- 顶栏「更多操作」菜单 ---------- */
+.more-wrap {
+  position: relative;
+  display: flex;
+}
+
+.more-menu {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  z-index: 30;
+  min-width: 172px;
+  padding: 5px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  box-shadow: var(--shadow-2);
+}
+
+.more-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 8px 9px;
+  border-radius: var(--radius-sm);
+  font-size: 13.5px;
+  color: var(--fg);
+  text-align: left;
+  transition: background var(--dur) var(--ease);
+}
+
+.more-item:hover:not([disabled]) {
+  background: var(--bg-subtle);
+}
+
+.more-item[disabled] {
+  opacity: .45;
+  cursor: default;
+}
