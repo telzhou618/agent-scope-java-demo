@@ -7,8 +7,8 @@ const { state, setUserId } = useChat()
 
 /* ---- 演示数据：后端暂无用量相关接口，先按原型填充 ---- */
 const profile = {
-  name: '周高俊',
-  email: 'zhougaojun@example.com',
+  name: '张三',
+  email: 'zhangsan@example.com',
   plan: 'Pro 计划',
   joined: '2025 年 3 月加入',
   period: '2026 年 9 月',
@@ -82,7 +82,7 @@ function applyUserId() {
 <template>
   <div class="profile-inner">
     <div class="identity">
-      <span class="identity-avatar" aria-hidden="true">周</span>
+      <span class="identity-avatar" aria-hidden="true">张</span>
       <div class="identity-main">
         <h1 class="identity-name">{{ profile.name }}</h1>
         <div class="identity-email">{{ profile.email }}</div>

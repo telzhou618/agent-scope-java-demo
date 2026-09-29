@@ -83,9 +83,9 @@ function confirmRemove(sessionId: string, summary: string) {
         :aria-current="chat.state.view === 'profile'"
         @click="chat.setView('profile')"
       >
-        <span class="avatar" aria-hidden="true">周</span>
+        <span class="avatar" aria-hidden="true">张</span>
         <span class="account-text">
-          <span class="account-name">周高俊</span>
+          <span class="account-name">张三</span>
           <span class="account-plan">Pro 计划</span>
         </span>
         <AppIcon name="chevron" :size="14" />
