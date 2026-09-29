@@ -254,3 +254,21 @@
 }
 
 .icon-btn[disabled]:active { transform: none; }
+
+/* ---------- 会话列表滚动条：默认不显示，鼠标进入侧栏才出现 ---------- */
+/* 轨道空间一直保留（thin 宽度），所以显示/隐藏时列表不会左右跳动 */
+.session-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: transparent transparent;
+}
+
+.session-scroll:hover {
+  scrollbar-color: var(--border-strong) transparent;
+}
+
+/* 触屏没有 hover，常驻显示，否则看不出还能滚动 */
+@media (hover: none) {
+  .session-scroll {
+    scrollbar-color: var(--border-strong) transparent;
+  }
+}
