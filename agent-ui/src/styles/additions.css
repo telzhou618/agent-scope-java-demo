@@ -313,3 +313,11 @@
   opacity: .45;
   cursor: default;
 }
+
+/* ---------- 宽屏下收起侧栏 ---------- */
+/* 窄屏的收起走 body[data-drawer]（原型里已有），这里只补宽屏：整列折叠，
+   顶栏汉堡按钮重新展开 */
+@media (min-width: 901px) {
+  body[data-sidebar="collapsed"] .sidebar { display: none; }
+  body[data-sidebar="collapsed"] .menu-btn { display: grid; }
+}

@@ -2,9 +2,11 @@
 import { computed } from 'vue'
 import AppIcon from './AppIcon.vue'
 import { useChat } from '../stores/chat'
+import { useSidebar } from '../composables/useSidebar'
 import { groupLabel, relativeTime } from '../utils/format'
 
 const chat = useChat()
+const sidebar = useSidebar()
 
 const groups = computed(() => {
   const result: { label: string; items: typeof chat.state.sessions }[] = []
@@ -30,8 +32,14 @@ function confirmRemove(sessionId: string, summary: string) {
         <span class="brand-mark" aria-hidden="true">A</span>
         <span class="brand-name">Agent</span>
       </div>
-      <button class="icon-btn" type="button" aria-label="设置" title="设置（暂未开放）" disabled>
-        <AppIcon name="settings" :size="16" />
+      <button
+        class="icon-btn"
+        type="button"
+        aria-label="收起侧栏"
+        title="收起侧栏"
+        @click="sidebar.collapse()"
+      >
+        <AppIcon name="sidebarCollapse" :size="16" />
       </button>
     </div>
 

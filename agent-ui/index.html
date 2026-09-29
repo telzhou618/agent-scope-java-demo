@@ -15,8 +15,17 @@
 })();
 </script>
 </head>
-<body data-drawer="closed" data-view="chat">
+<body data-drawer="closed" data-view="chat" data-sidebar="open">
 <div id="app"></div>
+<script>
+/* 与主题同理：首次绘制前定好侧栏是否收起，刷新时不会闪一下 */
+(() => {
+  try {
+    document.body.dataset.sidebar =
+      localStorage.getItem("agent-ui:sidebar") === "collapsed" ? "collapsed" : "open";
+  } catch (_) {}
+})();
+</script>
 <script type="module" src="/src/main.ts"></script>
 </body>
 </html>

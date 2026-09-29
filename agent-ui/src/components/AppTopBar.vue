@@ -4,11 +4,13 @@ import AppIcon from './AppIcon.vue'
 import { useChat } from '../stores/chat'
 import { useTheme } from '../composables/useTheme'
 import { useWide } from '../composables/useWide'
+import { useSidebar } from '../composables/useSidebar'
 import { downloadText, exportFilename, turnsToMarkdown } from '../utils/export'
 
-const { state, title, toggleDrawer } = useChat()
+const { state, title } = useChat()
 const theme = useTheme()
 const wide = useWide()
+const sidebar = useSidebar()
 
 const menuOpen = ref(false)
 const menuRoot = ref<HTMLElement | null>(null)
@@ -55,8 +57,8 @@ onBeforeUnmount(() => {
       type="button"
       aria-label="打开会话列表"
       aria-controls="sessionList"
-      :aria-expanded="state.drawerOpen"
-      @click="toggleDrawer()"
+      :aria-expanded="sidebar.visible.value"
+      @click="sidebar.toggle()"
     >
       <AppIcon name="menu" :size="18" />
     </button>
