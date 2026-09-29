@@ -26,25 +26,50 @@ export function createLiveTurn(id: string): LiveTurn {
   })
 
   const tools = new Map<string, ToolBlockModel>()
-  let thinking: ThinkingBlockModel | null = null
-  let thinkingStartedAt = 0
-  let textBlock: TextBlockModel | null = null
+  /**
+   * 当前正在累积的块。只有紧跟其后的同类型增量才追加进去；
+   * 一旦来了别的类型（或流结束），这一段就收尾，之后再收到该类型时另起一个条目。
+   */
+  let run:
+    | { kind: 'thinking'; block: ThinkingBlockModel; startedAt: number }
+    | { kind: 'text'; block: TextBlockModel }
+    | null = null
   let closed = false
 
-  function ensureThinking(): ThinkingBlockModel {
-    if (!thinking) {
-      thinking = reactive<ThinkingBlockModel>({ kind: 'thinking', text: '', open: true })
-      thinkingStartedAt = Date.now()
-      turn.blocks.push(thinking)
+  function endRun() {
+    const current = run
+    run = null
+    if (current?.kind !== 'thinking') return
+    if (current.block.open) {
+      current.block.open = false
+      current.block.seconds = Math.max(1, Math.round((Date.now() - current.startedAt) / 1000))
     }
-    return thinking
   }
 
-  function freezeThinking() {
-    if (thinking && thinking.open) {
-      thinking.open = false
-      thinking.seconds = Math.max(1, Math.round((Date.now() - thinkingStartedAt) / 1000))
+  function appendThinking(delta: string) {
+    const current = run
+    if (current?.kind === 'thinking') {
+      current.block.text += delta
+      return
     }
+    endRun()
+    const block = reactive<ThinkingBlockModel>({ kind: 'thinking', text: '', open: true })
+    turn.blocks.push(block)
+    run = { kind: 'thinking', block, startedAt: Date.now() }
+    block.text += delta
+  }
+
+  function appendText(delta: string) {
+    const current = run
+    if (current?.kind === 'text') {
+      current.block.markdown += delta
+      return
+    }
+    endRun()
+    const block = reactive<TextBlockModel>({ kind: 'text', markdown: '' })
+    turn.blocks.push(block)
+    run = { kind: 'text', block }
+    block.markdown += delta
   }
 
   function addTool(id: string, name: string, args: string): ToolBlockModel {
@@ -68,22 +93,18 @@ export function createLiveTurn(id: string): LiveTurn {
     switch (event.type) {
       case 'thinking': {
         if (!event.content) return
-        ensureThinking().text += event.content
+        appendThinking(event.content)
         break
       }
       case 'text_block': {
         if (!event.content) return
-        freezeThinking()
-        if (!textBlock) {
-          textBlock = reactive<TextBlockModel>({ kind: 'text', markdown: '' })
-          turn.blocks.push(textBlock)
-        }
-        textBlock.markdown += event.content
+        appendText(event.content)
         break
       }
       case 'tool_call': {
         const call = event.toolCall
         if (!call) return
+        endRun()
         const existing = tools.get(call.toolCallId)
         if (existing) {
           existing.name = call.toolName ?? existing.name
@@ -96,6 +117,7 @@ export function createLiveTurn(id: string): LiveTurn {
       case 'tool_result': {
         const call = event.toolCall
         if (!call) return
+        endRun()
         const tool = tools.get(call.toolCallId) ?? addTool(call.toolCallId, call.toolName ?? 'tool', '')
         tool.output += call.toolResults ?? ''
         break
@@ -111,7 +133,7 @@ export function createLiveTurn(id: string): LiveTurn {
 
   function fail(message: string) {
     if (closed) return
-    freezeThinking()
+    endRun()
     for (const tool of tools.values()) {
       if (tool.status === 'running') tool.status = tool.output ? 'ok' : 'error'
     }
@@ -122,7 +144,7 @@ export function createLiveTurn(id: string): LiveTurn {
 
   function finish() {
     if (closed) return
-    freezeThinking()
+    endRun()
     for (const tool of tools.values()) {
       if (tool.status === 'running') tool.status = 'ok'
     }
