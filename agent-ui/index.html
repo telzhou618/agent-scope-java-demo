@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Agent — 对话</title>
+<script>
+/* 在首次绘制前定好主题：深色用户刷新时不会先闪一下白屏 */
+(() => {
+  let choice = "auto";
+  try { choice = localStorage.getItem("agent-ui:theme") || "auto"; } catch (_) {}
+  const dark = choice === "dark" ||
+    (choice === "auto" && window.matchMedia("(prefers-color-scheme: dark)").matches);
+  document.documentElement.dataset.theme = dark ? "dark" : "light";
+})();
+</script>
+</head>
+<body data-drawer="closed" data-view="chat">
+<div id="app"></div>
+<script type="module" src="/src/main.ts"></script>
+</body>
+</html>

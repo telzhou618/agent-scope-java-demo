@@ -1,0 +1,245 @@
+/* ============================================================
+   接入真实数据后补充的样式
+   上面是原型 CSS（原样保留），这一节只在原型没有覆盖到的地方追加
+   ============================================================ */
+
+/* ---------- 思考正文保留换行 ---------- */
+.thinking-inner p { white-space: pre-wrap; }
+
+/* ---------- Markdown 正文补齐：表格、标题、引用、分隔线 ---------- */
+.prose h1,
+.prose h2,
+.prose h4 {
+  font-size: 15px;
+  font-weight: 650;
+  margin: 22px 0 10px;
+  letter-spacing: -.01em;
+}
+
+.prose h4 { font-size: 14px; }
+
+.prose table {
+  width: 100%;
+  margin: 0 0 14px;
+  border-collapse: collapse;
+  font-size: 13.5px;
+}
+
+.prose th,
+.prose td {
+  border: 1px solid var(--border);
+  padding: 6px 10px;
+  text-align: left;
+  vertical-align: top;
+}
+
+.prose th {
+  background: var(--bg-subtle);
+  font-weight: 600;
+}
+
+.prose blockquote {
+  margin: 0 0 14px;
+  padding: 2px 0 2px 12px;
+  border-left: 2px solid var(--border-strong);
+  color: var(--fg-muted);
+}
+
+.prose hr {
+  margin: 18px 0;
+  border: 0;
+  border-top: 1px solid var(--border);
+}
+
+.prose img { max-width: 100%; border-radius: var(--radius); }
+
+.prose pre {
+  margin: 0 0 14px;
+  padding: 11px 12px;
+  overflow: auto;
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  background: var(--bg-code);
+  font-family: var(--font-mono);
+  font-size: 12.5px;
+  line-height: 1.7;
+}
+
+.prose pre code {
+  padding: 0;
+  border: 0;
+  background: none;
+  font-size: inherit;
+}
+
+/* 代码卡片（Markdown 围栏代码块）与原型 .code 结构一致，无需额外样式 */
+
+/* ---------- highlight.js 主题映射到原型的设计令牌 ---------- */
+.code pre code.hljs,
+.prose pre code.hljs { background: none; padding: 0; }
+
+.hljs-comment,
+.hljs-quote { color: var(--tok-com); font-style: italic; }
+
+.hljs-keyword,
+.hljs-selector-tag,
+.hljs-literal,
+.hljs-section,
+.hljs-doctag,
+.hljs-name,
+.hljs-meta { color: var(--tok-kw); }
+
+.hljs-string,
+.hljs-regexp,
+.hljs-addition,
+.hljs-attribute,
+.hljs-meta .hljs-string { color: var(--tok-str); }
+
+.hljs-title,
+.hljs-title.function_,
+.hljs-function .hljs-title { color: var(--tok-fn); }
+
+.hljs-number,
+.hljs-symbol,
+.hljs-bullet,
+.hljs-link { color: var(--tok-num); }
+
+.hljs-type,
+.hljs-class .hljs-title,
+.hljs-built_in,
+.hljs-builtin-name,
+.hljs-params,
+.hljs-attr,
+.hljs-property,
+.hljs-variable,
+.hljs-template-variable { color: var(--tok-typ); }
+
+.hljs-deletion { color: var(--err); }
+.hljs-emphasis { font-style: italic; }
+.hljs-strong { font-weight: 650; }
+
+/* ---------- 会话项：hover 出现删除按钮 ---------- */
+.session-item {
+  position: relative;
+  padding-right: 34px;
+  cursor: pointer;
+}
+
+.session-del {
+  position: absolute;
+  top: 50%;
+  right: 6px;
+  transform: translateY(-50%);
+  width: 24px;
+  height: 24px;
+  display: grid;
+  place-items: center;
+  border-radius: 6px;
+  color: var(--fg-icon);
+  opacity: 0;
+  transition: opacity var(--dur) var(--ease), background var(--dur) var(--ease),
+    color var(--dur) var(--ease);
+}
+
+.session-item:hover .session-del,
+.session-item:focus-within .session-del { opacity: 1; }
+
+.session-del:hover {
+  background: var(--err-soft);
+  color: var(--err);
+}
+
+@media (hover: none) {
+  .session-del { opacity: 1; }
+}
+
+/* ---------- 回合级错误提示 ---------- */
+.turn-error {
+  display: flex;
+  align-items: flex-start;
+  gap: 7px;
+  padding: 9px 12px;
+  border: 1px solid var(--err-border);
+  border-radius: var(--radius);
+  background: var(--err-soft);
+  color: var(--err);
+  font-size: 13px;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.thread-error {
+  max-width: var(--read-inner);
+  margin: 12px auto;
+}
+
+.thread-loading {
+  max-width: var(--read-inner);
+  margin: 20px auto;
+  color: var(--fg-muted);
+  font-size: 13.5px;
+}
+
+/* ---------- 个人主页：用户 ID 切换 ---------- */
+.settings-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 14px;
+  padding: 12px 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+
+.settings-label {
+  font-size: 13px;
+  color: var(--fg-muted);
+}
+
+.settings-input {
+  width: 120px;
+  padding: 6px 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg);
+  color: var(--fg);
+  font-size: 13.5px;
+  font-family: inherit;
+  outline: none;
+}
+
+.settings-input:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--ring);
+}
+
+.settings-note {
+  font-size: 12px;
+  color: var(--fg-muted);
+}
+
+.badge-demo {
+  background: var(--accent-soft);
+  color: var(--accent);
+  border-color: transparent;
+}
+
+/* ---------- 未开放的占位控件 ---------- */
+.icon-btn[disabled],
+.act-btn[disabled],
+.btn-ghost[disabled],
+.model-chip[disabled] {
+  opacity: .45;
+  cursor: default;
+}
+
+.icon-btn[disabled]:hover,
+.act-btn[disabled]:hover,
+.model-chip[disabled]:hover {
+  background: none;
+  color: var(--fg-icon);
+}
+
+.icon-btn[disabled]:active { transform: none; }

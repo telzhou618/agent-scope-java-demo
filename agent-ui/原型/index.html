@@ -1,0 +1,2182 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Agent — 对话</title>
+<script>
+/* 在首次绘制前定好主题：深色用户刷新时不会先闪一下白屏 */
+(() => {
+  let choice = "auto";
+  try { choice = localStorage.getItem("agent-ui:theme") || "auto"; } catch (_) {}
+  const dark = choice === "dark" ||
+    (choice === "auto" && window.matchMedia("(prefers-color-scheme: dark)").matches);
+  document.documentElement.dataset.theme = dark ? "dark" : "light";
+})();
+</script>
+<style>
+/* ============================================================
+   设计令牌
+   浅色中性灰 + 链接蓝。所有正文文字对比度 ≥ 4.5:1（WCAG AA）
+   ============================================================ */
+:root {
+  color-scheme: light;
+
+  --bg:            #ffffff;
+  --bg-sidebar:    #f8fafc;
+  --bg-subtle:     #f1f5f9;
+  --bg-code:       #f8fafc;
+  --surface:       #ffffff;  /* 抬升表面：卡片、输入框、选中项 */
+  --surface-press: #e2e8f0;  /* 图标按钮按下态 */
+
+  --border:        #e2e8f0;
+  --border-strong: #cbd5e1;
+
+  --fg:            #1e293b;  /* 13.9:1 */
+  --fg-muted:      #64748b;  /*  4.8:1 */
+  --fg-icon:       #94a3b8;  /* 仅用于图标/装饰，不用于文字 */
+
+  --accent:        #2563eb;  /*  5.2:1 */
+  --accent-soft:   #eff6ff;
+  --on-accent:     #ffffff;  /* 强调色之上的文字 */
+  --ok:            #15803d;  /*  5.0:1 */
+  --ok-soft:       #f0fdf4;
+  --err:           #b91c1c;  /* 6.5:1（白底）/ 6.0:1（粉底） */
+  --err-soft:      #fef2f2;
+  --err-border:    #fecaca;
+
+  /* 语法高亮：One Light */
+  --tok-kw:  #a626a4;
+  --tok-str: #4d7c0f;
+  --tok-com: #6b7280;
+  --tok-fn:  #2563eb;
+  --tok-num: #b45309;
+  --tok-typ: #0e7490;
+
+  --ring:      rgba(37, 99, 235, .13);
+  --scrim:     rgba(15, 23, 42, .45);
+  --topbar-bg: rgba(255, 255, 255, .85);
+
+  --radius-sm: 8px;
+  --radius:    10px;
+  --radius-lg: 14px;
+  --radius-xl: 18px;
+
+  --shadow-1: 0 1px 2px rgba(15, 23, 42, .04);
+  --shadow-2: 0 1px 2px rgba(15, 23, 42, .05), 0 4px 12px rgba(15, 23, 42, .05);
+
+  --ease: cubic-bezier(.32, .72, 0, 1);
+  --dur: 200ms;
+
+  --sidebar-w: 260px;
+  --read-w: 720px;
+  --read-wide: 1080px;                        /* 宽屏模式的容器宽度 */
+  --thread-w: var(--read-w);                  /* 当前生效的容器宽度 */
+  --read-inner: calc(var(--thread-w) - 48px); /* 与消息内容左右边缘对齐 */
+
+  --font: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC",
+          "Hiragino Sans GB", "Microsoft YaHei", Inter, Roboto, sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas,
+               "Liberation Mono", monospace;
+}
+
+/* ============================================================
+   深色主题
+   挂在 html 上而不是 body，因为 color-scheme 要用它一起切换
+   滚动条、输入光标和原生控件。
+   ============================================================ */
+html[data-theme="dark"] {
+  color-scheme: dark;
+
+  --bg:            #0f172a;
+  --bg-sidebar:    #0b1120;
+  --bg-subtle:     #1e293b;
+  --bg-code:       #0b1120;
+  --surface:       #1b2536;
+  --surface-press: #26344a;
+
+  --border:        #1e293b;
+  --border-strong: #334155;
+
+  --fg:            #e6edf6;
+  --fg-muted:      #94a3b8;
+  --fg-icon:       #64748b;
+
+  --accent:        #60a5fa;
+  --accent-soft:   #172554;
+  --on-accent:     #0b1120;
+  --ok:            #4ade80;
+  --ok-soft:       #0a2e1a;
+  --err:           #f87171;
+  --err-soft:      #3b1218;
+  --err-border:    #7f1d1d;
+
+  /* 语法高亮：One Dark（One Light 那套在深底上不可读） */
+  --tok-kw:  #c678dd;
+  --tok-str: #98c379;
+  --tok-com: #7f8ea3;
+  --tok-fn:  #61afef;
+  --tok-num: #d19a66;
+  --tok-typ: #56b6c2;
+
+  --ring:      rgba(96, 165, 250, .28);
+  --scrim:     rgba(0, 0, 0, .65);
+  --topbar-bg: rgba(15, 23, 42, .85);
+
+  --shadow-1: 0 1px 2px rgba(0, 0, 0, .5);
+  --shadow-2: 0 1px 2px rgba(0, 0, 0, .5), 0 4px 12px rgba(0, 0, 0, .45);
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+
+html, body {
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  font-family: var(--font);
+  font-size: 15px;
+  line-height: 1.6;
+  color: var(--fg);
+  background: var(--bg);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+button, input, textarea {
+  font: inherit;
+  color: inherit;
+}
+
+button {
+  background: none;
+  border: 0;
+  padding: 0;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+
+[hidden] { display: none !important; }
+
+.sr-only {
+  position: absolute;
+  width: 1px; height: 1px;
+  padding: 0; margin: -1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+svg { display: block; flex: none; }
+
+/* ============================================================
+   外壳布局
+   ============================================================ */
+.app {
+  display: flex;
+  height: 100dvh;
+  overflow: hidden;
+}
+
+/* ---------- 侧栏 ---------- */
+.sidebar {
+  width: var(--sidebar-w);
+  flex: 0 0 var(--sidebar-w);
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-sidebar);
+  border-right: 1px solid var(--border);
+}
+
+.sidebar-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 14px 14px 10px;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  min-width: 0;
+  flex: 1;
+}
+
+.brand-mark {
+  width: 26px; height: 26px;
+  flex: none;
+  display: grid;
+  place-items: center;
+  border-radius: 7px;
+  background: var(--fg);
+  color: var(--on-accent);
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: -.02em;
+  user-select: none;
+}
+
+.brand-name {
+  font-size: 14.5px;
+  font-weight: 600;
+  letter-spacing: -.01em;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.icon-btn {
+  width: 32px; height: 32px;
+  flex: none;
+  display: grid;
+  place-items: center;
+  border-radius: var(--radius-sm);
+  color: var(--fg-muted);
+  transition: background var(--dur) var(--ease), color var(--dur) var(--ease);
+}
+
+.icon-btn:hover { background: var(--bg-subtle); color: var(--fg); }
+.icon-btn:active { background: var(--surface-press); }
+
+/* 新对话按钮 */
+.new-chat {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 4px 14px 12px;
+  padding: 9px 12px;
+  min-height: 40px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  box-shadow: var(--shadow-1);
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--fg);
+  transition: border-color var(--dur) var(--ease), box-shadow var(--dur) var(--ease),
+              transform var(--dur) var(--ease);
+}
+
+.new-chat:hover {
+  border-color: var(--border-strong);
+  box-shadow: var(--shadow-2);
+}
+
+.new-chat:active { transform: scale(.985); }
+.new-chat .kbd-hint {
+  margin-left: auto;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--fg-muted);
+}
+
+/* 会话列表 */
+.session-scroll {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 0 8px 8px;
+  overscroll-behavior: contain;
+}
+
+.session-group-label {
+  padding: 12px 8px 5px;
+  font-size: 11.5px;
+  font-weight: 600;
+  letter-spacing: .04em;
+  color: var(--fg-muted);
+}
+
+.session-item {
+  width: 100%;
+  display: block;
+  text-align: left;
+  padding: 8px 10px;
+  margin-bottom: 1px;
+  border-radius: var(--radius-sm);
+  border: 1px solid transparent;
+  transition: background var(--dur) var(--ease), border-color var(--dur) var(--ease);
+}
+
+.session-item:hover { background: var(--bg-subtle); }
+
+.session-item[aria-current="true"] {
+  background: var(--surface);
+  border-color: var(--border);
+  box-shadow: var(--shadow-1);
+}
+
+.session-title {
+  font-size: 14px;
+  line-height: 1.45;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.session-item[aria-current="true"] .session-title { font-weight: 500; }
+
+.session-meta {
+  margin-top: 2px;
+  font-size: 12px;
+  color: var(--fg-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sidebar-empty {
+  padding: 16px 10px;
+  font-size: 13px;
+  color: var(--fg-muted);
+}
+
+/* 侧栏底部账号区（进入个人主页的入口） */
+.sidebar-foot {
+  border-top: 1px solid var(--border);
+  padding: 8px;
+}
+
+.account-btn {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  color: var(--fg-muted);
+  text-align: left;
+  transition: background var(--dur) var(--ease), border-color var(--dur) var(--ease);
+}
+
+.account-btn:hover { background: var(--bg-subtle); }
+
+.account-btn[aria-current="true"] {
+  background: var(--surface);
+  border-color: var(--border);
+  box-shadow: var(--shadow-1);
+}
+
+.avatar {
+  width: 28px; height: 28px;
+  flex: none;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--bg-subtle);
+  border: 1px solid var(--border);
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--fg-muted);
+}
+
+.account-text { flex: 1; min-width: 0; }
+
+.account-name {
+  display: block;
+  font-size: 13.5px;
+  font-weight: 500;
+  color: var(--fg);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.account-plan {
+  display: block;
+  font-size: 11.5px;
+  color: var(--fg-muted);
+}
+
+/* ---------- 主区 ---------- */
+.main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.topbar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  height: 56px;
+  flex: none;
+  padding: 0 14px 0 18px;
+  border-bottom: 1px solid var(--border);
+  background: var(--topbar-bg);
+  backdrop-filter: saturate(180%) blur(12px);
+}
+
+.topbar-title {
+  font-size: 14.5px;
+  font-weight: 600;
+  letter-spacing: -.01em;
+  margin: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+}
+
+.topbar-spacer { flex: 1; }
+
+.menu-btn { display: none; }
+
+/* 宽屏模式切换（≤900px 时隐藏，见下方媒体查询） */
+.wide-btn[aria-pressed="true"] {
+  color: var(--accent);
+  background: var(--accent-soft);
+}
+
+/* 模型选择器（展示用） */
+.model-chip {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 9px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  font-size: 12.5px;
+  color: var(--fg-muted);
+  transition: background var(--dur) var(--ease), border-color var(--dur) var(--ease);
+}
+
+.model-chip:hover { background: var(--bg-subtle); border-color: var(--border-strong); }
+.model-chip .dot {
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  background: var(--ok);
+}
+
+/* 滚动区 */
+.scroll {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  scroll-behavior: smooth;
+  overscroll-behavior: contain;
+  display: flex;
+  flex-direction: column;
+}
+
+.thread {
+  flex: 0 0 auto;
+  width: 100%;
+  max-width: var(--thread-w);
+  margin: 0 auto;
+  padding: 26px 24px 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 26px;
+}
+
+/* ============================================================
+   消息流
+   ============================================================ */
+
+/* 用户消息：右对齐气泡 */
+.msg-user {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.bubble {
+  max-width: 85%;
+  padding: 10px 15px;
+  border-radius: var(--radius-xl);
+  border-bottom-right-radius: 6px;
+  background: var(--bg-subtle);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+/* 助手消息：无气泡，正文直接铺满列宽 */
+.msg-assistant {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.prose { overflow-wrap: anywhere; }
+.prose > *:first-child { margin-top: 0; }
+.prose > *:last-child { margin-bottom: 0; }
+.prose p { margin: 0 0 14px; }
+.prose h3 {
+  font-size: 15px;
+  font-weight: 650;
+  margin: 22px 0 10px;
+  letter-spacing: -.01em;
+}
+.prose ul, .prose ol { margin: 0 0 14px; padding-left: 22px; }
+.prose li { margin-bottom: 5px; }
+.prose strong { font-weight: 650; }
+.prose a { color: var(--accent); text-underline-offset: 2px; }
+.prose code {
+  font-family: var(--font-mono);
+  font-size: .875em;
+  padding: 1.5px 5px;
+  border-radius: 5px;
+  background: var(--bg-subtle);
+  border: 1px solid var(--border);
+}
+
+/* 消息悬停时出现的操作条 */
+.msg-actions {
+  display: flex;
+  gap: 2px;
+  margin-top: -6px;
+  opacity: 0;
+  transition: opacity var(--dur) var(--ease);
+}
+
+.msg-assistant:hover .msg-actions,
+.msg-assistant:focus-within .msg-actions { opacity: 1; }
+
+@media (hover: none) {
+  .msg-actions { opacity: 1; }
+}
+
+.act-btn {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  height: 28px;
+  padding: 0 8px;
+  border-radius: 7px;
+  font-size: 12.5px;
+  color: var(--fg-muted);
+  transition: background var(--dur) var(--ease), color var(--dur) var(--ease);
+}
+
+.act-btn:hover { background: var(--bg-subtle); color: var(--fg); }
+
+.act-btn[aria-pressed="true"] {
+  color: var(--accent);
+  background: var(--accent-soft);
+}
+
+/* ---------- 思考过程 ---------- */
+.thinking {
+  border-left: 2px dashed var(--border-strong);
+  padding-left: 13px;
+}
+
+.thinking-toggle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: 26px;
+  font-size: 12.5px;
+  color: var(--fg-muted);
+  transition: color var(--dur) var(--ease);
+}
+
+.thinking-toggle:hover { color: var(--fg); }
+
+.thinking-body {
+  display: grid;
+  grid-template-rows: 1fr;
+  transition: grid-template-rows 260ms var(--ease), opacity 200ms var(--ease);
+}
+
+.thinking[data-collapsed="true"] .thinking-body {
+  grid-template-rows: 0fr;
+  opacity: 0;
+}
+
+.thinking-body > div { overflow: hidden; }
+
+.thinking-inner {
+  padding: 4px 0 2px;
+  font-size: 13.5px;
+  line-height: 1.65;
+  color: var(--fg-muted);
+}
+
+.thinking-inner p { margin: 0 0 10px; }
+.thinking-inner p:last-child { margin-bottom: 0; }
+
+.chevron {
+  transition: transform 220ms var(--ease);
+}
+
+[aria-expanded="false"] .chevron { transform: rotate(-90deg); }
+
+/* ---------- 工具调用卡片 ---------- */
+.tool {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg-code);
+  overflow: hidden;
+  transition: border-color var(--dur) var(--ease);
+}
+
+.tool:hover { border-color: var(--border-strong); }
+.tool[data-status="error"] { border-color: var(--err-border); background: var(--err-soft); }
+
+.tool-head {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 40px;
+  padding: 7px 11px;
+  text-align: left;
+}
+
+.tool-icon {
+  color: var(--fg-muted);
+  flex: none;
+}
+
+.tool[data-status="error"] .tool-icon { color: var(--err); }
+
+/* 粉色底比白底暗，--fg-muted 在上面对比度只有 4.35:1，这里提到 --fg */
+.tool[data-status="error"] .tool-args { color: var(--fg); }
+
+.tool-name {
+  font-family: var(--font-mono);
+  font-size: 12.5px;
+  font-weight: 600;
+  flex: none;
+  letter-spacing: -.01em;
+}
+
+.tool-args {
+  font-family: var(--font-mono);
+  font-size: 12.5px;
+  color: var(--fg-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+  flex: 1;
+}
+
+.tool-status {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  flex: none;
+  font-size: 12px;
+  color: var(--fg-muted);
+}
+
+.tool[data-status="ok"] .tool-status  { color: var(--ok); }
+.tool[data-status="error"] .tool-status { color: var(--err); }
+
+.tool-body {
+  display: grid;
+  grid-template-rows: 1fr;
+  transition: grid-template-rows 260ms var(--ease), opacity 200ms var(--ease);
+}
+
+.tool[data-collapsed="true"] .tool-body {
+  grid-template-rows: 0fr;
+  opacity: 0;
+}
+
+.tool-body > div { overflow: hidden; }
+
+.tool-output {
+  margin: 0 11px 11px;
+  padding: 9px 11px;
+  max-height: 190px;
+  overflow: auto;
+  border-radius: 7px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  line-height: 1.7;
+  color: var(--fg-muted);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.tool[data-status="error"] .tool-output {
+  border-color: var(--err-border);
+  color: var(--err);
+}
+
+@keyframes spin { to { transform: rotate(360deg); } }
+.spinner {
+  animation: spin .9s linear infinite;
+  color: var(--accent);
+}
+
+/* ---------- 代码块 ---------- */
+.code {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg-code);
+  overflow: hidden;
+}
+
+.code-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 34px;
+  padding: 0 8px 0 12px;
+  border-bottom: 1px solid var(--border);
+}
+
+.code-lang {
+  flex: 1;
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  color: var(--fg-muted);
+  letter-spacing: .03em;
+}
+
+.code pre {
+  margin: 0;
+  padding: 12px 14px;
+  overflow-x: auto;
+  font-family: var(--font-mono);
+  font-size: 12.5px;
+  line-height: 1.75;
+  tab-size: 2;
+}
+
+.code pre code { font: inherit; }
+
+/* 语法高亮（浅色 = One Light；深色值见 html[data-theme="dark"]） */
+.tok-kw  { color: var(--tok-kw); }
+.tok-str { color: var(--tok-str); }
+.tok-com { color: var(--tok-com); font-style: italic; }
+.tok-fn  { color: var(--tok-fn); }
+.tok-num { color: var(--tok-num); }
+.tok-typ { color: var(--tok-typ); }
+.tok-del { color: var(--err); background: var(--err-soft); display: inline-block; width: 100%; }
+.tok-add { color: var(--ok);  background: var(--ok-soft); display: inline-block; width: 100%; }
+
+/* ============================================================
+   输入区
+   ============================================================ */
+.composer-wrap {
+  flex: none;
+  padding: 10px 24px 16px;
+  background: linear-gradient(to bottom, transparent, var(--bg) 20px);
+}
+
+.composer {
+  max-width: var(--read-inner);
+  margin: 0 auto;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  box-shadow: var(--shadow-2);
+  transition: border-color var(--dur) var(--ease), box-shadow var(--dur) var(--ease);
+}
+
+.composer:focus-within {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--ring), var(--shadow-2);
+}
+
+.composer textarea {
+  display: block;
+  width: 100%;
+  padding: 13px 15px 4px;
+  border: 0;
+  background: none;
+  resize: none;
+  outline: none;
+  font-size: 15px;
+  line-height: 1.6;
+  max-height: 200px;
+  overflow-y: auto;
+  field-sizing: content;
+}
+
+.composer textarea::placeholder { color: var(--fg-muted); }
+
+.composer-bar {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 8px 8px 10px;
+}
+
+.composer-bar .spacer { flex: 1; }
+
+.send-btn {
+  width: 34px; height: 34px;
+  display: grid;
+  place-items: center;
+  border-radius: 9px;
+  background: var(--accent);
+  color: var(--on-accent);
+  transition: opacity var(--dur) var(--ease), transform var(--dur) var(--ease);
+}
+
+.send-btn:hover { opacity: .9; }
+.send-btn:active { transform: scale(.94); }
+
+.send-btn:disabled {
+  background: var(--bg-subtle);
+  color: var(--fg-icon);
+  cursor: not-allowed;
+  opacity: .7;
+}
+
+.composer-hint {
+  max-width: var(--read-inner);
+  margin: 8px auto 0;
+  text-align: center;
+  font-size: 11.5px;
+  color: var(--fg-muted);
+}
+
+.composer-hint kbd {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  padding: 1px 4px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: var(--bg-sidebar);
+}
+
+/* ============================================================
+   空态
+   ============================================================ */
+.empty {
+  flex: 1 0 auto;
+  min-height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  padding: 32px 24px 60px;
+  text-align: center;
+}
+
+.empty-mark {
+  width: 42px; height: 42px;
+  display: grid;
+  place-items: center;
+  border-radius: 12px;
+  background: var(--bg-subtle);
+  border: 1px solid var(--border);
+  color: var(--fg-muted);
+  margin-bottom: 16px;
+}
+
+.empty h2 {
+  margin: 0 0 6px;
+  font-size: 19px;
+  font-weight: 650;
+  letter-spacing: -.02em;
+}
+
+.empty p {
+  margin: 0 0 26px;
+  font-size: 14px;
+  color: var(--fg-muted);
+  max-width: 380px;
+}
+
+.suggestions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  width: 100%;
+  max-width: var(--read-inner);
+}
+
+.suggestion {
+  text-align: left;
+  padding: 12px 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  transition: border-color var(--dur) var(--ease), background var(--dur) var(--ease),
+              transform var(--dur) var(--ease);
+}
+
+.suggestion:hover {
+  border-color: var(--border-strong);
+  background: var(--bg-sidebar);
+}
+
+.suggestion:active { transform: scale(.985); }
+
+.suggestion strong {
+  display: block;
+  font-size: 13.5px;
+  font-weight: 550;
+  margin-bottom: 2px;
+}
+
+.suggestion span {
+  font-size: 12.5px;
+  color: var(--fg-muted);
+  line-height: 1.5;
+}
+
+/* ============================================================
+   个人主页
+   与对话区互斥，靠 body[data-view] 切换
+   ============================================================ */
+.profile {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  display: none;
+}
+
+body[data-view="profile"] .profile { display: block; }
+
+body[data-view="profile"] .scroll,
+body[data-view="profile"] .composer-wrap,
+body[data-view="profile"] .model-chip,
+body[data-view="profile"] .wide-btn { display: none; }
+
+.profile-inner {
+  max-width: 860px;
+  margin: 0 auto;
+  padding: 28px 24px 56px;
+}
+
+/* ---------- 身份卡 ---------- */
+.identity {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding-bottom: 24px;
+  border-bottom: 1px solid var(--border);
+}
+
+.identity-avatar {
+  width: 48px; height: 48px;
+  flex: none;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--bg-subtle);
+  border: 1px solid var(--border);
+  font-size: 17px;
+  font-weight: 600;
+  color: var(--fg-muted);
+}
+
+.identity-main { flex: 1; min-width: 0; }
+
+.identity-name {
+  margin: 0 0 3px;
+  font-size: 17px;
+  font-weight: 650;
+  letter-spacing: -.02em;
+}
+
+.identity-email {
+  font-size: 13px;
+  color: var(--fg-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.identity-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 7px;
+  font-size: 12.5px;
+  color: var(--fg-muted);
+}
+
+.badge {
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-size: 12px;
+  font-weight: 550;
+}
+
+.btn-ghost {
+  flex: none;
+  padding: 7px 13px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  font-size: 13px;
+  color: var(--fg);
+  transition: background var(--dur) var(--ease), border-color var(--dur) var(--ease);
+}
+
+.btn-ghost:hover { background: var(--bg-subtle); border-color: var(--border-strong); }
+
+/* ---------- 区块标题 ---------- */
+.section-head {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  margin: 30px 0 14px;
+}
+
+.section-title {
+  margin: 0;
+  font-size: 14.5px;
+  font-weight: 650;
+  letter-spacing: -.01em;
+}
+
+.section-sub {
+  margin-left: auto;
+  font-size: 12.5px;
+  color: var(--fg-muted);
+}
+
+/* ---------- 用量汇总 ---------- */
+.stats {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.stat {
+  padding: 13px 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg-sidebar);
+}
+
+.stat-label { font-size: 12.5px; color: var(--fg-muted); }
+
+.stat-value {
+  margin-top: 4px;
+  font-size: 22px;
+  font-weight: 650;
+  letter-spacing: -.02em;
+  font-variant-numeric: tabular-nums;
+}
+
+.stat-note { margin-top: 3px; font-size: 11.5px; color: var(--fg-muted); }
+
+/* ---------- 按模型拆分 ---------- */
+.table-wrap {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+
+table.usage {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13.5px;
+}
+
+table.usage th,
+table.usage td {
+  padding: 10px 14px;
+  text-align: right;
+  white-space: nowrap;
+}
+
+table.usage th:first-child,
+table.usage td:first-child { text-align: left; }
+
+table.usage thead th {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--fg-muted);
+  background: var(--bg-sidebar);
+  border-bottom: 1px solid var(--border);
+}
+
+table.usage tbody tr + tr td { border-top: 1px solid var(--border); }
+
+table.usage .num { font-variant-numeric: tabular-nums; }
+table.usage .model-name { font-weight: 500; }
+
+table.usage tfoot td {
+  border-top: 1px solid var(--border-strong);
+  font-weight: 600;
+  background: var(--bg-sidebar);
+}
+
+/* ---------- 每日用量柱状图 ----------
+   用 CSS 柱子而不是 SVG：SVG 等比缩放会让柱子和文字一起缩或变形，
+   flex + 高度百分比天生自适应。 */
+.chart {
+  padding: 16px 14px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg-sidebar);
+}
+
+.chart-bars {
+  display: flex;
+  align-items: flex-end;
+  gap: 3px;
+  height: 132px;
+  border-bottom: 1px solid var(--border-strong);
+}
+
+.bar {
+  flex: 1;
+  min-width: 0;
+  border-radius: 2px 2px 0 0;
+  background: var(--accent);
+  opacity: .8;
+  transition: opacity var(--dur) var(--ease);
+}
+
+.bar:hover { opacity: 1; }
+
+.chart-axis {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 8px;
+  font-size: 11.5px;
+  color: var(--fg-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.chart-note { margin: 10px 0 0; font-size: 11.5px; color: var(--fg-muted); }
+
+/* ============================================================
+   响应式
+   ============================================================ */
+.scrim {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  background: var(--scrim);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--dur) var(--ease);
+}
+
+/* ============================================================
+   宽屏模式
+   容器变宽，但正文和气泡保持可读行宽。
+   ≤900px 时侧栏已经变抽屉、宽度本来就紧张，整个模式不生效。
+   ============================================================ */
+@media (min-width: 901px) {
+  body[data-wide="on"] {
+    --thread-w: var(--read-wide);
+    --read-inner: calc(var(--read-wide) - 48px);
+  }
+
+  body[data-wide="on"] .prose,
+  body[data-wide="on"] .thinking {
+    max-width: var(--read-w);
+  }
+
+  /* 85% 的 1080px 会撑到 918px，太长了 */
+  body[data-wide="on"] .bubble {
+    max-width: min(85%, var(--read-w));
+  }
+
+  /* 横向空间多了，推荐卡片排成一行 */
+  body[data-wide="on"] .suggestions {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+/* <= 900px：侧栏改为抽屉 */
+@media (max-width: 900px) {
+  .sidebar {
+    position: fixed;
+    z-index: 50;
+    inset: 0 auto 0 0;
+    transform: translateX(-100%);
+    transition: transform 260ms var(--ease);
+    box-shadow: var(--shadow-2);
+  }
+
+  body[data-drawer="open"] .sidebar { transform: none; }
+  body[data-drawer="open"] .scrim { opacity: 1; pointer-events: auto; }
+
+  .menu-btn { display: grid; }
+  .wide-btn { display: none; }
+  .topbar { padding-left: 10px; }
+}
+
+/* <= 640px：收紧留白，正文提升到 16px */
+@media (max-width: 640px) {
+  body { font-size: 16px; }
+  .thread { padding: 18px 16px 4px; gap: 22px; }
+  .composer-wrap { padding: 8px 14px 12px; }
+  .bubble { max-width: 92%; }
+  .suggestions { grid-template-columns: minmax(0, 1fr); }
+  .model-chip { display: none; }
+  .profile-inner { padding: 20px 16px 48px; }
+  .stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .identity { flex-wrap: wrap; }
+  .table-wrap { overflow-x: auto; }
+  .chart-bars { height: 108px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: .001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: .001ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+</style>
+</head>
+<body data-drawer="closed" data-view="chat">
+<div class="scrim" data-close-drawer></div>
+
+<div class="app">
+
+  <!-- ============ 侧栏 ============ -->
+  <aside class="sidebar" aria-label="会话列表">
+    <div class="sidebar-head">
+      <div class="brand">
+        <span class="brand-mark" aria-hidden="true">A</span>
+        <span class="brand-name">Agent</span>
+      </div>
+      <button class="icon-btn" type="button" aria-label="设置">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="3"/>
+          <path d="M19.4 15a1.6 1.6 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.6 1.6 0 0 0-2.7 1.1V21a2 2 0 1 1-4 0v-.1A1.6 1.6 0 0 0 7 19.4a1.6 1.6 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1A1.6 1.6 0 0 0 3 14.2H3a2 2 0 1 1 0-4h.1A1.6 1.6 0 0 0 4.6 7a1.6 1.6 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1A1.6 1.6 0 0 0 9.8 3a2 2 0 1 1 4 0v.1a1.6 1.6 0 0 0 1 1.5h.1a1.6 1.6 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.6 1.6 0 0 0-.3 1.8v.1a1.6 1.6 0 0 0 1.5 1h.1a2 2 0 1 1 0 4H21a1.6 1.6 0 0 0-1.5 1z"/>
+        </svg>
+      </button>
+    </div>
+
+    <button class="new-chat" type="button" id="newChat">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" aria-hidden="true">
+        <path d="M12 5v14M5 12h14"/>
+      </svg>
+      新对话
+      <span class="kbd-hint" aria-hidden="true">Ctrl K</span>
+    </button>
+
+    <div class="session-scroll" id="sessionList"></div>
+
+    <div class="sidebar-foot">
+      <button class="account-btn" type="button" id="profileBtn" aria-current="false">
+        <span class="avatar" aria-hidden="true">周</span>
+        <span class="account-text">
+          <span class="account-name">周高俊</span>
+          <span class="account-plan">Pro 计划</span>
+        </span>
+        <span class="sr-only">— 打开个人主页</span>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="m9 6 6 6-6 6"/>
+        </svg>
+      </button>
+    </div>
+  </aside>
+
+  <!-- ============ 主区 ============ -->
+  <main class="main">
+    <header class="topbar">
+      <button class="icon-btn menu-btn" type="button" id="menuBtn" aria-label="打开会话列表" aria-controls="sessionList" aria-expanded="false">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" aria-hidden="true">
+          <path d="M3 6h18M3 12h18M3 18h18"/>
+        </svg>
+      </button>
+      <h1 class="topbar-title" id="threadTitle">对话</h1>
+      <div class="topbar-spacer"></div>
+      <button class="model-chip" type="button">
+        <span class="dot" aria-hidden="true"></span>
+        Agent Pro
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="m6 9 6 6 6-6"/>
+        </svg>
+      </button>
+      <button class="icon-btn wide-btn" type="button" id="wideBtn" aria-pressed="false"
+              aria-label="切换宽屏模式" title="宽屏模式">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M9 4H6a2 2 0 0 0-2 2v3M15 4h3a2 2 0 0 1 2 2v3M9 20H6a2 2 0 0 1-2-2v-3M15 20h3a2 2 0 0 0 2-2v-3"/>
+        </svg>
+      </button>
+      <button class="icon-btn theme-btn" type="button" id="themeBtn"
+              aria-label="主题：跟随系统" title="主题：跟随系统">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <rect x="2" y="4" width="20" height="13" rx="2"/><path d="M8 21h8M12 17v4"/>
+        </svg>
+      </button>
+      <button class="icon-btn" type="button" aria-label="更多操作">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+          <circle cx="12" cy="5" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="12" cy="19" r="1.5"/>
+        </svg>
+      </button>
+    </header>
+
+    <div class="scroll" id="scroll">
+      <div class="thread" id="thread"></div>
+
+      <div class="empty" id="empty" hidden>
+        <span class="empty-mark" aria-hidden="true">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 3v18M3 12h18"/>
+          </svg>
+        </span>
+        <h2>开始一个新对话</h2>
+        <p>描述你想做的事，Agent 会自己读代码、跑命令、验证结果。</p>
+        <div class="suggestions" id="suggestions">
+          <button class="suggestion" type="button" data-fill="登录接口在 Safari 上偶发 401，Chrome 正常，帮我定位原因">
+            <strong>排查一个 bug</strong><span>描述现象，Agent 读代码并复现</span>
+          </button>
+          <button class="suggestion" type="button" data-fill="把 src/components/Avatar.tsx 从 inline style 改成 Tailwind 类名">
+            <strong>改造一段代码</strong><span>统一写法、补类型、换风格</span>
+          </button>
+          <button class="suggestion" type="button" data-fill="读完 src/auth 目录，用几句话讲清楚登录态的流转">
+            <strong>读懂一个模块</strong><span>让 Agent 读完再讲给你听</span>
+          </button>
+          <button class="suggestion" type="button" data-fill="给 src/auth/session.ts 补齐单元测试">
+            <strong>补齐测试</strong><span>针对现有实现生成用例</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div class="profile" id="profile">
+      <div class="profile-inner" id="profileInner"></div>
+    </div>
+
+    <div class="composer-wrap">
+      <form class="composer" id="composer">
+        <label class="sr-only" for="input">消息输入框</label>
+        <textarea id="input" rows="1" placeholder="给 Agent 发消息…"></textarea>
+        <div class="composer-bar">
+          <button class="icon-btn" type="button" aria-label="添加附件">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21.4 11.05 12.3 20.2a5.5 5.5 0 0 1-7.8-7.8l9.2-9.2a3.7 3.7 0 0 1 5.2 5.2l-9.2 9.2a1.8 1.8 0 0 1-2.6-2.6l8.5-8.5"/>
+            </svg>
+          </button>
+          <button class="icon-btn" type="button" aria-label="选择工具">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M14.7 6.3a4 4 0 0 0 5.3 5.3l-6.4 6.4a2 2 0 0 1-2.8-2.8z"/><path d="M6.3 3.7 3.7 6.3l3 3 2.6-2.6z"/>
+            </svg>
+          </button>
+          <span class="spacer"></span>
+          <button class="send-btn" type="submit" id="send" aria-label="发送" disabled>
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M12 19V5M6 11l6-6 6 6"/>
+            </svg>
+          </button>
+        </div>
+      </form>
+      <p class="composer-hint">
+        <kbd>Enter</kbd> 发送 · <kbd>Shift</kbd> + <kbd>Enter</kbd> 换行
+      </p>
+    </div>
+  </main>
+</div>
+
+<script>
+(() => {
+  "use strict";
+
+  const $ = (sel, root = document) => root.querySelector(sel);
+  const esc = (s) => String(s).replace(/[&<>"']/g, (c) => (
+    { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]
+  ));
+
+  /* ---------- 图标：统一 24 网格 / 1.5 描边 ---------- */
+  const P = {
+    chevron: '<path d="m6 9 6 6 6-6"/>',
+    sparkle: '<path d="M12 3.5 13.7 9 19 10.7 13.7 12.4 12 18l-1.7-5.6L5 10.7 10.3 9z"/>',
+    search: '<circle cx="11" cy="11" r="7"/><path d="m20 20-3.6-3.6"/>',
+    file: '<path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/>',
+    terminal: '<path d="m5 8 4 4-4 4"/><path d="M12 16h7"/>',
+    edit: '<path d="M4 20h4l10-10-4-4L4 16z"/><path d="M14 6l4 4"/>',
+    check: '<path d="m5 13 4 4L19 7"/>',
+    x: '<path d="M18 6 6 18M6 6l12 12"/>',
+    loader: '<path d="M12 3v4M12 17v4M5.6 5.6l2.8 2.8M15.6 15.6l2.8 2.8M3 12h4M17 12h4M5.6 18.4l2.8-2.8M15.6 8.4l2.8-2.8"/>',
+    copy: '<rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/>',
+    refresh: '<path d="M20 11a8 8 0 1 0-.6 4"/><path d="M20 5v6h-6"/>',
+    up: '<path d="M7 21V10l4.5-7a2 2 0 0 1 2.9 2.4L13 10h5.2a2 2 0 0 1 2 2.4l-1.5 7a2 2 0 0 1-2 1.6z"/><path d="M7 10H4v11h3"/>',
+    down: '<path d="M17 3v11l-4.5 7a2 2 0 0 1-2.9-2.4L11 14H5.8a2 2 0 0 1-2-2.4l1.5-7a2 2 0 0 1 2-1.6z"/><path d="M17 14h3V3h-3"/>',
+    expand: '<path d="M9 4H6a2 2 0 0 0-2 2v3M15 4h3a2 2 0 0 1 2 2v3M9 20H6a2 2 0 0 1-2-2v-3M15 20h3a2 2 0 0 0 2-2v-3"/>',
+    collapse: '<path d="M4 9h3a2 2 0 0 0 2-2V4M20 9h-3a2 2 0 0 1-2-2V4M4 15h3a2 2 0 0 1 2 2v3M20 15h-3a2 2 0 0 0-2 2v3"/>',
+    sun: '<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>',
+    moon: '<path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/>',
+    monitor: '<rect x="2" y="4" width="20" height="13" rx="2"/><path d="M8 21h8M12 17v4"/>'
+  };
+
+  const icon = (name, size = 16, cls = "") =>
+    '<svg width="' + size + '" height="' + size + '" viewBox="0 0 24 24" fill="none" ' +
+    'stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" ' +
+    (cls ? 'class="' + cls + '" ' : "") + 'aria-hidden="true">' + P[name] + '</svg>';
+
+  const STATUS = {
+    ok:      { icon: "check",  label: "成功" },
+    error:   { icon: "x",      label: "失败" },
+    running: { icon: "loader", label: "运行中" }
+  };
+
+  /* ============================================================
+     演示数据
+     ============================================================ */
+  const sessions = [
+    {
+      id: "s1",
+      group: "今天",
+      title: "Safari 上偶发 401 排查",
+      meta: "刚刚",
+      messages: [
+        { type: "user", text: "登录接口在 Safari 上偶发 401，Chrome 上完全正常。帮我看看问题出在哪。" },
+
+        { type: "thinking", open: false, label: "思考了 12 秒", html:
+          "<p>只说「Safari 偶发 401」，最可能的差异点是 cookie 属性：Safari 的 ITP 对 <code>SameSite</code> 缺失的处理比 Chrome 严格得多。</p>" +
+          "<p>先定位 session cookie 是在哪里下发的，确认它带没带 <code>sameSite</code> 和 <code>secure</code>。</p>"
+        },
+
+        { type: "tool", icon: "search", name: "search_code", status: "ok", open: true,
+          args: 'session|auth 目录下搜索 "getSession"',
+          output: "src/auth/session.ts:42   export function getSession(req)\n" +
+                  "src/api/login.ts:18      const s = getSession(req)\n" +
+                  "src/api/refresh.ts:9     getSession(req)\n\n" +
+                  "3 处匹配，2 个文件，耗时 0.21s"
+        },
+
+        { type: "tool", icon: "file", name: "read_file", status: "ok", open: false,
+          args: "src/auth/session.ts（38–56 行）",
+          output: "38  export function setSessionCookie(res, token, maxAge) {\n" +
+                  "39    res.cookie(SESSION_COOKIE, token, {\n" +
+                  "40      httpOnly: true,\n" +
+                  "41      secure: true,\n" +
+                  "42      sameSite: 'lax',\n" +
+                  "43      maxAge,\n" +
+                  "44    });\n" +
+                  "45  }"
+        },
+
+        { type: "tool", icon: "terminal", name: "run_command", status: "error", open: true,
+          args: "npm test -- auth",
+          output: "Cannot find module '../dist/auth/session.js'\n" +
+                  "  Require stack:\n" +
+                  "  - test/auth/session.test.ts\n\n" +
+                  "提示：测试跑的是编译产物，需要先构建。"
+        },
+
+        { type: "tool", icon: "terminal", name: "run_command", status: "ok", open: false,
+          args: "npm run build && npm test -- auth",
+          output: "PASS test/auth/session.test.ts\n" +
+                  "  ✓ 登录后下发 session cookie\n" +
+                  "  ✓ 刷新令牌时保留 cookie 属性\n\n" +
+                  "Tests: 15 passed, 15 total（3.8s）"
+        },
+
+        { type: "text", html:
+          "<p>找到了。问题不在 Safari，而在<strong>刷新令牌</strong>那条路径。</p>" +
+          "<p><code>refresh.ts</code> 在续期时重建了 cookie，但漏掉了 <code>sameSite</code> 和 <code>secure</code> 两个属性。Chrome 对缺失 <code>SameSite</code> 的 cookie 会按 <code>Lax</code> 处理并照常发送，Safari 的 ITP 则直接不发送——所以只在 Safari 上偶发 401，而且集中在 token 续期之后。</p>"
+        },
+
+        { type: "code", lang: "ts", code:
+          '<span class="tok-com">// 把选项抽出来，两处共用，避免再次不同步</span>\n' +
+          '<span class="tok-kw">export</span> <span class="tok-kw">function</span> <span class="tok-fn">cookieOptions</span>(maxAge: <span class="tok-typ">number</span>): <span class="tok-typ">CookieOptions</span> {\n' +
+          '  <span class="tok-kw">return</span> {\n' +
+          '    httpOnly: <span class="tok-kw">true</span>,\n' +
+          '    secure: <span class="tok-kw">true</span>,\n' +
+          "    sameSite: <span class=\"tok-str\">'lax'</span>,\n" +
+          "    path: <span class=\"tok-str\">'/'</span>,\n" +
+          '    maxAge,\n' +
+          '  };\n' +
+          '}'
+        },
+
+        { type: "text", html:
+          "<p>要我把 <code>refresh.ts:23</code> 改成调用这个函数吗？改完我会重跑一遍 auth 测试。</p>"
+        }
+      ]
+    },
+
+    {
+      id: "s2",
+      group: "今天",
+      title: "Avatar 组件换成 Tailwind 写法",
+      meta: "2 小时前",
+      messages: [
+        { type: "user", text: "src/components/Avatar.tsx 现在是 inline style，帮我改成 Tailwind 类名。" },
+
+        { type: "thinking", open: false, label: "思考了 6 秒", html:
+          "<p>先读原文件，确认 props 和尺寸是动态的还是固定的。动态尺寸没法直接写成静态类名，需要保留 style。</p>"
+        },
+
+        { type: "tool", icon: "file", name: "read_file", status: "ok", open: false,
+          args: "src/components/Avatar.tsx",
+          output: "export function Avatar({ src, size = 32 }) {\n" +
+                  "  return (\n" +
+                  "    <div style={{ width: size, height: size, borderRadius: '50%', overflow: 'hidden' }}>\n" +
+                  "      <img src={src} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />\n" +
+                  "    </div>\n" +
+                  "  );\n" +
+                  "}"
+        },
+
+        { type: "tool", icon: "edit", name: "edit_file", status: "ok", open: false,
+          args: "src/components/Avatar.tsx",
+          output: "已替换 6 处 inline style → 4 个 Tailwind 类名\n" +
+                  "保留 style 属性：width / height（值来自 props，无法静态化）"
+        },
+
+        { type: "text", html: "<p>改完了。只在 <code>size</code> 是动态 prop 的地方保留了 inline style，其余全部转成类名：</p>" },
+
+        { type: "code", lang: "diff", code:
+          '<span class="tok-del">- &lt;div style={{ width: size, height: size, borderRadius: \'50%\', overflow: \'hidden\' }}&gt;</span>\n' +
+          '<span class="tok-add">+ &lt;div className="rounded-full overflow-hidden" style={{ width: size, height: size }}&gt;</span>\n' +
+          '<span class="tok-del">-   &lt;img src={src} style={{ width: \'100%\', height: \'100%\', objectFit: \'cover\' }} /&gt;</span>\n' +
+          '<span class="tok-add">+   &lt;img src={src} className="size-full object-cover" /&gt;</span>'
+        },
+
+        { type: "text", html: "<p><code>rounded-full</code> 和 <code>size-full</code> 需要在 Tailwind 3.4+ 才有，你的项目是 3.4.1，可以直接用。</p>" }
+      ]
+    },
+
+    {
+      id: "s3",
+      group: "更早",
+      title: "讲清楚构建流程",
+      meta: "昨天",
+      messages: [
+        { type: "user", text: "读完 docs/build.md 和 package.json，用几句话讲清楚我们的构建流程。" },
+
+        { type: "thinking", open: false, label: "思考了 4 秒", html:
+          "<p>两个文件都要读：一个说「应该怎么做」，一个说「实际配了什么」，分开比对才看得出偏差。</p>"
+        },
+
+        { type: "tool", icon: "file", name: "read_file", status: "ok", open: false,
+          args: "docs/build.md, package.json",
+          output: "docs/build.md      1.2 KB，18 行\npackage.json       2.4 KB，9 个 scripts\n\n并行读取，耗时 0.14s"
+        },
+
+        { type: "text", html:
+          "<p>三步：</p>" +
+          "<ul>" +
+          "<li><strong>Vite 打包</strong> —— <code>npm run build</code> 走 <code>vite build</code>，产物进 <code>dist/</code>，目标 <code>es2022</code>。</li>" +
+          "<li><strong>类型检查独立跑</strong> —— <code>tsc --noEmit</code> 是单独的 script，Vite 不负责类型，所以 <code>build</code> 通过不代表类型没问题。</li>" +
+          "<li><strong>测试跑编译产物</strong> —— 单测直接用 <code>dist/</code>，所以必须先 build。这一步和文档里写的「直接 <code>npm test</code>」不一致。</li>" +
+          "</ul>" +
+          "<p>第三条是文档过时了，要我顺手改掉吗？</p>"
+        }
+      ]
+    },
+
+    {
+      id: "s4",
+      group: "更早",
+      title: "清理 ESLint 报错",
+      meta: "3 天前",
+      messages: [
+        { type: "user", text: "npm run lint 有 14 个 no-unused-vars 报错，帮我清掉。" },
+        { type: "tool", icon: "terminal", name: "run_command", status: "ok", open: false,
+          args: "npm run lint",
+          output: "14 problems (14 errors, 0 warnings)\n" +
+                  "  9  × no-unused-vars\n" +
+                  "  5  × @typescript-eslint/no-unused-vars"
+        },
+        { type: "text", html: "<p>14 个里有 11 个是没用的 import，剩下 3 个是函数参数占位，已经加了下划线前缀。lint 现在是干净的。</p>" }
+      ]
+    }
+  ];
+
+  let currentId = "s1";
+  let busy = false;
+
+  /* ============================================================
+     渲染
+     ============================================================ */
+  function renderSessions() {
+    let html = "";
+    let group = null;
+    for (const s of sessions) {
+      if (s.group !== group) {
+        html += '<div class="session-group-label">' + esc(s.group) + "</div>";
+        group = s.group;
+      }
+      html +=
+        '<button class="session-item" type="button" data-id="' + s.id + '" ' +
+        'aria-current="' + (s.id === currentId) + '">' +
+          '<div class="session-title">' + esc(s.title) + "</div>" +
+          '<div class="session-meta">' + esc(s.meta) + "</div>" +
+        "</button>";
+    }
+    $("#sessionList").innerHTML = html;
+  }
+
+  const actionsHTML = () =>
+    '<div class="msg-actions">' +
+      '<button class="act-btn" type="button" data-copy-msg>' + icon("copy", 13) + "<span>复制</span></button>" +
+      '<button class="act-btn" type="button" data-retry>' + icon("refresh", 13) + "<span>重新生成</span></button>" +
+      '<button class="act-btn" type="button" data-vote="up" aria-pressed="false">' + icon("up", 13) + "<span>有帮助</span></button>" +
+      '<button class="act-btn" type="button" data-vote="down" aria-pressed="false" aria-label="没帮助">' + icon("down", 13) + "</button>" +
+    "</div>";
+
+  function toolHTML(b) {
+    const st = STATUS[b.status];
+    const spin = b.status === "running" ? "spinner" : "";
+    return (
+      '<div class="tool" data-status="' + b.status + '" data-collapsed="' + (b.open ? "false" : "true") + '">' +
+        '<button class="tool-head" type="button" data-toggle="tool" aria-expanded="' + (!!b.open) + '">' +
+          icon("chevron", 14, "chevron") +
+          '<span class="tool-icon">' + icon(b.icon, 15) + "</span>" +
+          '<span class="tool-name">' + esc(b.name) + "</span>" +
+          '<span class="tool-args">' + esc(b.args) + "</span>" +
+          '<span class="tool-status">' + icon(st.icon, 14, spin) + "<span>" + st.label + "</span></span>" +
+        "</button>" +
+        '<div class="tool-body"><div><pre class="tool-output">' + esc(b.output) + "</pre></div></div>" +
+      "</div>"
+    );
+  }
+
+  function blockHTML(b) {
+    if (b.type === "thinking") {
+      return (
+        '<div class="thinking" data-collapsed="' + (b.open ? "false" : "true") + '">' +
+          '<button class="thinking-toggle" type="button" data-toggle="thinking" aria-expanded="' + (!!b.open) + '">' +
+            icon("sparkle", 14) + "<span>" + esc(b.label) + "</span>" + icon("chevron", 14, "chevron") +
+          "</button>" +
+          '<div class="thinking-body"><div><div class="thinking-inner">' + b.html + "</div></div></div>" +
+        "</div>"
+      );
+    }
+    if (b.type === "tool") return toolHTML(b);
+    if (b.type === "text") return '<div class="prose">' + b.html + "</div>";
+    if (b.type === "code") {
+      return (
+        '<div class="code">' +
+          '<div class="code-head">' +
+            '<span class="code-lang">' + esc(b.lang) + "</span>" +
+            '<button class="act-btn" type="button" data-copy>' + icon("copy", 13) + "<span>复制</span></button>" +
+          "</div>" +
+          "<pre><code>" + b.code + "</code></pre>" +
+        "</div>"
+      );
+    }
+    return "";
+  }
+
+  function renderThread() {
+    const s = sessions.find((x) => x.id === currentId);
+    const thread = $("#thread");
+    const empty = $("#empty");
+
+    syncTitle();
+
+    if (!s || s.messages.length === 0) {
+      thread.hidden = true;
+      empty.hidden = false;
+      return;
+    }
+    thread.hidden = false;
+    empty.hidden = true;
+
+    // 连续的助手块合并成一个回合（中间不加额外间距）
+    const turns = [];
+    for (const b of s.messages) {
+      if (b.type === "user") {
+        turns.push({ kind: "user", block: b });
+      } else {
+        const last = turns[turns.length - 1];
+        if (last && last.kind === "assistant") last.blocks.push(b);
+        else turns.push({ kind: "assistant", blocks: [b] });
+      }
+    }
+
+    thread.innerHTML = turns.map((t) => {
+      if (t.kind === "user") {
+        return '<div class="msg-user"><div class="bubble">' + esc(t.block.text) + "</div></div>";
+      }
+      return '<div class="msg-assistant">' + t.blocks.map(blockHTML).join("") + actionsHTML() + "</div>";
+    }).join("");
+
+    scrollToBottom();
+  }
+
+  const scrollEl = $("#scroll");
+  const scrollToBottom = () => {
+    scrollEl.scrollTop = scrollEl.scrollHeight;
+  };
+
+  /* ============================================================
+     个人主页（演示数据 + 渲染）
+     ============================================================ */
+  const profile = {
+    name: "周高俊",
+    email: "zhougaojun@example.com",
+    plan: "Pro 计划",
+    joined: "2025 年 3 月加入",
+    period: "2026 年 9 月",
+    lastMonthCost: 60.84,
+    models: [
+      { name: "Agent Pro",   requests: 612, input: 1420000, output: 386000, cost: 52.80 },
+      { name: "Agent Flash", requests: 672, input:  780000, output: 254000, cost: 15.60 }
+    ],
+    // 9 月 1–29 日每日 token 消耗（单位：千）；合计等于汇总里的 2,840,000
+    daily: [
+      108, 120, 127, 114, 48, 37, 122, 115, 129, 117,
+      124,  52,  41, 118, 130, 113, 125, 104,  49,  34,
+      117, 123, 134, 126, 112,  57,  40, 114,  90
+    ]
+  };
+
+  const fmtInt = (n) => n.toLocaleString("zh-CN");
+  const fmtMoney = (n) => "¥" + n.toFixed(2);
+
+  function fmtTokens(n) {
+    if (n >= 1e6) return (n / 1e6).toFixed(2).replace(/\.?0+$/, "") + "M";
+    if (n >= 1e3) return Math.round(n / 1e3) + "K";
+    return String(n);
+  }
+
+  function renderProfile() {
+    const sum = (fn) => profile.models.reduce((a, m) => a + fn(m), 0);
+    const totalReq = sum((m) => m.requests);
+    const totalInput = sum((m) => m.input);
+    const totalOutput = sum((m) => m.output);
+    const totalTokens = totalInput + totalOutput;
+    const totalCost = sum((m) => m.cost);
+    const delta = (totalCost / profile.lastMonthCost - 1) * 100;
+
+    const stats = [
+      { label: "本月 Token", value: fmtTokens(totalTokens),
+        note: "输入 " + fmtTokens(totalInput) + " · 输出 " + fmtTokens(totalOutput) },
+      { label: "本月费用", value: fmtMoney(totalCost), note: "按量计费" },
+      { label: "请求次数", value: fmtInt(totalReq),
+        note: "平均 " + (totalTokens / totalReq / 1000).toFixed(1) + "K / 次" },
+      { label: "较上月", value: "+" + delta.toFixed(1) + "%",
+        note: "上月 " + fmtMoney(profile.lastMonthCost) }
+    ];
+
+    const rows = profile.models.map((m) =>
+      "<tr>" +
+        '<td class="model-name">' + esc(m.name) + "</td>" +
+        '<td class="num">' + fmtInt(m.requests) + "</td>" +
+        '<td class="num">' + fmtTokens(m.input) + "</td>" +
+        '<td class="num">' + fmtTokens(m.output) + "</td>" +
+        '<td class="num">' + fmtMoney(m.cost) + "</td>" +
+      "</tr>"
+    ).join("");
+
+    const peak = Math.max(...profile.daily);
+    const low = Math.min(...profile.daily);
+    const bars = profile.daily.map((k, i) =>
+      '<div class="bar" style="height:' + Math.max(4, Math.round((k / peak) * 100)) + '%" ' +
+        'title="9 月 ' + (i + 1) + " 日 · " + fmtTokens(k * 1000) + ' tokens"></div>'
+    ).join("");
+
+    $("#profileInner").innerHTML =
+      '<div class="identity">' +
+        '<span class="identity-avatar" aria-hidden="true">周</span>' +
+        '<div class="identity-main">' +
+          '<h1 class="identity-name">' + esc(profile.name) + "</h1>" +
+          '<div class="identity-email">' + esc(profile.email) + "</div>" +
+          '<div class="identity-meta">' +
+            '<span class="badge">' + esc(profile.plan) + "</span>" +
+            "<span>" + esc(profile.joined) + "</span>" +
+          "</div>" +
+        "</div>" +
+        '<button class="btn-ghost" type="button">管理订阅</button>' +
+      "</div>" +
+
+      '<div class="section-head">' +
+        '<h2 class="section-title">用量与费用</h2>' +
+        '<span class="section-sub">' + esc(profile.period) + "</span>" +
+      "</div>" +
+      '<div class="stats">' +
+        stats.map((s) =>
+          '<div class="stat">' +
+            '<div class="stat-label">' + esc(s.label) + "</div>" +
+            '<div class="stat-value">' + s.value + "</div>" +
+            '<div class="stat-note">' + esc(s.note) + "</div>" +
+          "</div>"
+        ).join("") +
+      "</div>" +
+
+      '<div class="section-head"><h2 class="section-title">按模型拆分</h2></div>' +
+      '<div class="table-wrap"><table class="usage">' +
+        "<thead><tr>" +
+          "<th>模型</th><th>请求</th><th>输入</th><th>输出</th><th>费用</th>" +
+        "</tr></thead>" +
+        "<tbody>" + rows + "</tbody>" +
+        "<tfoot><tr>" +
+          "<td>合计</td>" +
+          '<td class="num">' + fmtInt(totalReq) + "</td>" +
+          '<td class="num">' + fmtTokens(totalInput) + "</td>" +
+          '<td class="num">' + fmtTokens(totalOutput) + "</td>" +
+          '<td class="num">' + fmtMoney(totalCost) + "</td>" +
+        "</tr></tfoot>" +
+      "</table></div>" +
+
+      '<div class="section-head">' +
+        '<h2 class="section-title">每日用量</h2>' +
+        '<span class="section-sub">9 月 1 – 29 日</span>' +
+      "</div>" +
+      '<div class="chart" role="img" aria-label="' +
+        esc(profile.period + "每日 token 消耗，最高 " + fmtTokens(peak * 1000) +
+            "，最低 " + fmtTokens(low * 1000)) + '">' +
+        '<div class="chart-bars">' + bars + "</div>" +
+        '<div class="chart-axis">' +
+          "<span>9/1</span><span>9/8</span><span>9/15</span><span>9/22</span><span>9/29</span>" +
+        "</div>" +
+      "</div>" +
+      '<p class="chart-note">9 月 29 日为当日截至现在，所以柱体偏低。</p>';
+  }
+
+  /* ============================================================
+     交互：折叠 / 复制 / 反馈
+     ============================================================ */
+  $("#thread").addEventListener("click", (e) => {
+    const t = e.target;
+
+    const toggle = t.closest("[data-toggle]");
+    if (toggle) {
+      const host = toggle.parentElement;
+      const collapsed = host.dataset.collapsed === "true";
+      host.dataset.collapsed = String(!collapsed);
+      toggle.setAttribute("aria-expanded", String(collapsed));
+      return;
+    }
+
+    const copyBtn = t.closest("[data-copy]");
+    if (copyBtn) {
+      const code = copyBtn.closest(".code").querySelector("code");
+      flash(copyBtn, "已复制", () => copyText(code.textContent));
+      return;
+    }
+
+    const copyMsg = t.closest("[data-copy-msg]");
+    if (copyMsg) {
+      const turn = copyMsg.closest(".msg-assistant");
+      const text = [...turn.querySelectorAll(".prose")].map((p) => p.innerText).join("\n\n");
+      flash(copyMsg, "已复制", () => copyText(text));
+      return;
+    }
+
+    const retry = t.closest("[data-retry]");
+    if (retry && !busy) {
+      simulateReply("接着上面再确认一遍");
+      return;
+    }
+
+    const vote = t.closest("[data-vote]");
+    if (vote) {
+      const on = vote.getAttribute("aria-pressed") === "true";
+      vote.setAttribute("aria-pressed", String(!on));
+      const sibling = vote.parentElement.querySelector('[data-vote="' + (vote.dataset.vote === "up" ? "down" : "up") + '"]');
+      if (sibling) sibling.setAttribute("aria-pressed", "false");
+    }
+  });
+
+  function copyText(text) {
+    if (navigator.clipboard && window.isSecureContext) {
+      navigator.clipboard.writeText(text).catch(() => {});
+      return;
+    }
+    const ta = document.createElement("textarea");
+    ta.value = text;
+    ta.style.position = "fixed";
+    ta.style.opacity = "0";
+    document.body.appendChild(ta);
+    ta.select();
+    try { document.execCommand("copy"); } catch (_) {}
+    ta.remove();
+  }
+
+  function flash(btn, text, after) {
+    const label = btn.querySelector("span");
+    if (!label) { after(); return; }
+    const original = label.textContent;
+    after();
+    label.textContent = text;
+    setTimeout(() => { label.textContent = original; }, 1400);
+  }
+
+  /* ---------- 视图切换 ---------- */
+  function syncTitle() {
+    if (document.body.dataset.view === "profile") {
+      $("#threadTitle").textContent = "个人主页";
+      return;
+    }
+    const s = sessions.find((x) => x.id === currentId);
+    $("#threadTitle").textContent = s ? s.title : "新对话";
+  }
+
+  function setView(view) {
+    document.body.dataset.view = view;
+    $("#profileBtn").setAttribute("aria-current", String(view === "profile"));
+    if (view === "profile") $("#profile").scrollTop = 0;
+    syncTitle();
+    closeDrawer();
+  }
+
+  $("#profileBtn").addEventListener("click", () => setView("profile"));
+
+  /* ---------- 会话切换 ---------- */
+  $("#sessionList").addEventListener("click", (e) => {
+    const item = e.target.closest(".session-item");
+    if (!item) return;
+    currentId = item.dataset.id;
+    renderSessions();
+    setView("chat");
+    renderThread();
+  });
+
+  $("#newChat").addEventListener("click", () => {
+    currentId = null;
+    renderSessions();
+    setView("chat");
+    renderThread();
+    $("#input").focus();
+  });
+
+  $("#suggestions").addEventListener("click", (e) => {
+    const s = e.target.closest("[data-fill]");
+    if (!s) return;
+    const input = $("#input");
+    input.value = s.dataset.fill;
+    input.dispatchEvent(new Event("input"));
+    input.focus();
+  });
+
+  /* ============================================================
+     抽屉（窄屏）
+     ============================================================ */
+  function openDrawer() {
+    document.body.dataset.drawer = "open";
+    $("#menuBtn").setAttribute("aria-expanded", "true");
+  }
+  function closeDrawer() {
+    document.body.dataset.drawer = "closed";
+    $("#menuBtn").setAttribute("aria-expanded", "false");
+  }
+
+  $("#menuBtn").addEventListener("click", openDrawer);
+  $("[data-close-drawer]").addEventListener("click", closeDrawer);
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape") closeDrawer();
+    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "k") {
+      e.preventDefault();
+      $("#newChat").click();
+    }
+  });
+
+  /* ============================================================
+     宽屏模式
+     ============================================================ */
+  const WIDE_KEY = "agent-ui:wide";
+  const wideBtn = $("#wideBtn");
+
+  function readWide() {
+    try { return localStorage.getItem(WIDE_KEY) === "on"; }
+    catch (_) { return false; }   // file:// 下部分浏览器禁用 localStorage
+  }
+
+  function setWide(on) {
+    document.body.dataset.wide = on ? "on" : "off";
+    wideBtn.setAttribute("aria-pressed", String(on));
+    wideBtn.setAttribute("aria-label", on ? "退出宽屏模式" : "切换宽屏模式");
+    wideBtn.innerHTML = icon(on ? "collapse" : "expand", 16);
+    try { localStorage.setItem(WIDE_KEY, on ? "on" : "off"); } catch (_) {}
+  }
+
+  wideBtn.addEventListener("click", () => {
+    setWide(document.body.dataset.wide !== "on");
+  });
+
+  setWide(readWide());
+
+  /* ============================================================
+     主题：浅色 / 深色 / 跟随系统（三态循环）
+     ============================================================ */
+  const THEME_KEY = "agent-ui:theme";
+  const THEME_ORDER = ["light", "dark", "auto"];
+  const THEME_META = {
+    light: { icon: "sun",     name: "浅色",     next: "深色" },
+    dark:  { icon: "moon",    name: "深色",     next: "跟随系统" },
+    auto:  { icon: "monitor", name: "跟随系统", next: "浅色" }
+  };
+  const darkMedia = window.matchMedia("(prefers-color-scheme: dark)");
+  const themeBtn = $("#themeBtn");
+  let themeChoice = "auto";
+
+  function readTheme() {
+    try {
+      const v = localStorage.getItem(THEME_KEY);
+      if (v === "light" || v === "dark" || v === "auto") return v;
+    } catch (_) {}
+    return "auto";   // 未选过时交给系统
+  }
+
+  function applyTheme() {
+    const dark = themeChoice === "dark" || (themeChoice === "auto" && darkMedia.matches);
+    document.documentElement.dataset.theme = dark ? "dark" : "light";
+
+    const meta = THEME_META[themeChoice];
+    const label = "主题：" + meta.name + "。点击切换到" + meta.next;
+    themeBtn.innerHTML = icon(meta.icon, 16);
+    themeBtn.setAttribute("aria-label", label);
+    themeBtn.setAttribute("title", label);
+  }
+
+  function setTheme(choice) {
+    themeChoice = choice;
+    try { localStorage.setItem(THEME_KEY, choice); } catch (_) {}
+    applyTheme();
+  }
+
+  themeBtn.addEventListener("click", () => {
+    const i = THEME_ORDER.indexOf(themeChoice);
+    setTheme(THEME_ORDER[(i + 1) % THEME_ORDER.length]);
+  });
+
+  // 「跟随系统」时，系统切换要实时响应
+  darkMedia.addEventListener("change", () => {
+    if (themeChoice === "auto") applyTheme();
+  });
+
+  themeChoice = readTheme();
+  applyTheme();
+
+  /* ============================================================
+     输入框
+     ============================================================ */
+  const input = $("#input");
+  const sendBtn = $("#send");
+
+  input.addEventListener("input", () => {
+    sendBtn.disabled = busy || input.value.trim() === "";
+  });
+
+  input.addEventListener("keydown", (e) => {
+    if (e.key === "Enter" && !e.shiftKey && !e.isComposing) {
+      e.preventDefault();
+      $("#composer").requestSubmit();
+    }
+  });
+
+  // 兜底自适应高度（部分浏览器不支持 field-sizing）
+  input.addEventListener("input", () => {
+    input.style.height = "auto";
+    input.style.height = Math.min(input.scrollHeight, 200) + "px";
+  });
+
+  function setBusy(v) {
+    busy = v;
+    sendBtn.disabled = v || input.value.trim() === "";
+  }
+
+  $("#composer").addEventListener("submit", (e) => {
+    e.preventDefault();
+    if (busy) return;
+    const text = input.value.trim();
+    if (!text) return;
+    send(text);
+  });
+
+  function send(text) {
+    let session = sessions.find((x) => x.id === currentId);
+    if (!session) {
+      session = {
+        id: "s" + Date.now(),
+        group: "今天",
+        title: text.length > 18 ? text.slice(0, 18) + "…" : text,
+        meta: "刚刚",
+        messages: []
+      };
+      sessions.unshift(session);
+      currentId = session.id;
+    }
+
+    session.messages.push({ type: "user", text });
+    session.meta = "刚刚";
+
+    input.value = "";
+    input.style.height = "auto";
+    setBusy(true);
+    renderSessions();
+    renderThread();
+
+    simulateReply(text);
+  }
+
+  /* ---------- 模拟一次 Agent 回复：思考 → 工具（运行中→成功）→ 正文 ---------- */
+  function simulateReply(question) {
+    setBusy(true);
+
+    const thread = $("#thread");
+    const turn = document.createElement("div");
+    turn.className = "msg-assistant";
+
+    turn.innerHTML =
+      '<div class="thinking" data-collapsed="false">' +
+        '<button class="thinking-toggle" type="button" data-toggle="thinking" aria-expanded="true">' +
+          icon("sparkle", 14) + '<span class="think-label">正在思考…</span>' + icon("chevron", 14, "chevron") +
+        "</button>" +
+        '<div class="thinking-body"><div><div class="thinking-inner">' +
+          "<p>先确认要查什么，再决定读哪些文件。</p>" +
+        "</div></div></div>" +
+      "</div>";
+
+    thread.appendChild(turn);
+    scrollToBottom();
+
+    const think = turn.querySelector(".thinking");
+    const thinkLabel = turn.querySelector(".think-label");
+
+    setTimeout(() => {
+      thinkLabel.textContent = "思考了 3 秒";
+      think.dataset.collapsed = "true";
+      think.querySelector(".thinking-toggle").setAttribute("aria-expanded", "false");
+
+      const tool = document.createElement("div");
+      tool.className = "tool";
+      tool.dataset.status = "running";
+      tool.dataset.collapsed = "true";
+      tool.innerHTML =
+        '<button class="tool-head" type="button" data-toggle="tool" aria-expanded="false">' +
+          icon("chevron", 14, "chevron") +
+          '<span class="tool-icon">' + icon("search", 15) + "</span>" +
+          '<span class="tool-name">search_code</span>' +
+          '<span class="tool-args">' + esc(question) + "</span>" +
+          '<span class="tool-status">' + icon("loader", 14, "spinner") + "<span>运行中</span></span>" +
+        "</button>" +
+        '<div class="tool-body"><div><pre class="tool-output"></pre></div></div>';
+
+      turn.appendChild(tool);
+      scrollToBottom();
+
+      setTimeout(() => {
+        tool.dataset.status = "ok";
+        tool.querySelector(".tool-status").innerHTML = icon("check", 14) + "<span>成功</span>";
+        tool.querySelector(".tool-output").textContent =
+          "src/auth/session.ts:42   3 处匹配\nsrc/api/refresh.ts:23    3 处匹配\n\n（演示数据，接后端后换成真实返回摘要）";
+
+        const prose = document.createElement("div");
+        prose.className = "prose";
+        prose.innerHTML =
+          "<p>这是原型的占位回复。接上真实后端以后，上面这块思考过程和工具卡片会由流式事件逐个插入，状态从「运行中」切到「成功」或「失败」。</p>";
+        turn.appendChild(prose);
+        turn.insertAdjacentHTML("beforeend", actionsHTML());
+
+        setBusy(false);
+        scrollToBottom();
+      }, 1200);
+    }, 900);
+  }
+
+  /* ---------- 启动 ---------- */
+  renderSessions();
+  renderProfile();
+  renderThread();
+  setView("chat");
+})();
+</script>
+</body>
+</html>

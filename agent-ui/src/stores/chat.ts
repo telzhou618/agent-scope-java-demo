@@ -1,0 +1,234 @@
+import { computed, reactive } from 'vue'
+import { ApiError } from '../api/http'
+import { delSession, getMessages, getSessions, interrupt } from '../api/agent'
+import type { AgentSession } from '../api/types'
+import { chatStream, type StreamHandle } from '../sse/chatStream'
+import { toTurns } from '../utils/history'
+import { createLiveTurn, type LiveTurn } from '../utils/stream'
+import type { AssistantTurn, Turn } from '../utils/model'
+
+const USER_ID_KEY = 'agent-ui:userId'
+
+function readUserId(): string {
+  try {
+    return localStorage.getItem(USER_ID_KEY) || '1'
+  } catch {
+    return '1'
+  }
+}
+
+function toMessage(error: unknown): string {
+  if (error instanceof ApiError) return error.message
+  if (error instanceof TypeError) return '无法连接 Agent 服务，请确认 agent-app（8082）已启动'
+  return error instanceof Error ? error.message : String(error)
+}
+
+interface ChatState {
+  userId: string
+  view: 'chat' | 'profile'
+  drawerOpen: boolean
+  sessions: AgentSession[]
+  currentSessionId: string | null
+  turns: Turn[]
+  streaming: boolean
+  loadingSessions: boolean
+  loadingMessages: boolean
+  sessionsError: string
+  messagesError: string
+}
+
+const state = reactive<ChatState>({
+  userId: readUserId(),
+  view: 'chat',
+  drawerOpen: false,
+  sessions: [],
+  currentSessionId: null,
+  turns: [],
+  streaming: false,
+  loadingSessions: false,
+  loadingMessages: false,
+  sessionsError: '',
+  messagesError: '',
+})
+
+let handle: StreamHandle | null = null
+let liveTurn: LiveTurn | null = null
+let seq = 0
+
+const newId = (prefix: string) => `${prefix}-${Date.now()}-${seq++}`
+
+const isAssistant = (turn: Turn): turn is AssistantTurn => turn.kind === 'assistant'
+
+function dropEmptyLiveTurn() {
+  if (!liveTurn) return
+  if (liveTurn.turn.blocks.length === 0 && !liveTurn.turn.error) {
+    const index = state.turns.indexOf(liveTurn.turn)
+    if (index >= 0) state.turns.splice(index, 1)
+  }
+}
+
+async function loadSessions() {
+  state.loadingSessions = true
+  state.sessionsError = ''
+  try {
+    state.sessions = (await getSessions(state.userId)) ?? []
+  } catch (error) {
+    state.sessionsError = toMessage(error)
+  } finally {
+    state.loadingSessions = false
+  }
+}
+
+async function openSession(sessionId: string) {
+  if (state.streaming) await stop()
+  state.currentSessionId = sessionId
+  state.view = 'chat'
+  state.drawerOpen = false
+  state.messagesError = ''
+  state.turns = []
+  state.loadingMessages = true
+  try {
+    const messages = await getMessages(state.userId, sessionId)
+    if (state.currentSessionId !== sessionId) return
+    state.turns = toTurns(messages ?? [])
+  } catch (error) {
+    state.messagesError = toMessage(error)
+  } finally {
+    state.loadingMessages = false
+  }
+}
+
+async function newChat() {
+  if (state.streaming) await stop()
+  state.currentSessionId = null
+  state.turns = []
+  state.messagesError = ''
+  state.view = 'chat'
+  state.drawerOpen = false
+}
+
+async function removeSession(sessionId: string) {
+  try {
+    await delSession(state.userId, sessionId)
+  } catch (error) {
+    state.sessionsError = toMessage(error)
+    return
+  }
+  state.sessions = state.sessions.filter((item) => item.sessionId !== sessionId)
+  if (state.currentSessionId === sessionId) {
+    state.currentSessionId = null
+    state.turns = []
+  }
+}
+
+async function send(text: string) {
+  const message = text.trim()
+  if (!message || state.streaming) return
+
+  const sessionId = state.currentSessionId ?? String(Date.now())
+  const isNew = !state.currentSessionId
+  state.currentSessionId = sessionId
+  state.messagesError = ''
+  state.turns.push({ kind: 'user', id: newId('user'), text: message, timestamp: '' })
+
+  const live = createLiveTurn(newId('live'))
+  state.turns.push(live.turn)
+  state.streaming = true
+  liveTurn = live
+
+  const stream = chatStream(
+    { message, sessionId, userId: state.userId },
+    {
+      onEvent: (event) => live.handle(event),
+      onError: (error) => live.fail(error),
+    },
+  )
+  handle = stream
+
+  await stream.done
+
+  const finished = liveTurn
+  liveTurn = null
+  handle = null
+  finished?.finish()
+  dropEmptyLiveTurn()
+  state.streaming = false
+
+  if (isNew || !state.sessions.some((item) => item.sessionId === sessionId)) {
+    void loadSessions()
+  }
+}
+
+/** 中断：先通知后端停止，再断开本地流 */
+async function stop() {
+  const sessionId = state.currentSessionId
+  const pending = sessionId ? interrupt(state.userId, sessionId).catch(() => undefined) : null
+  handle?.abort()
+  if (pending) await pending
+}
+
+function regenerate() {
+  if (state.streaming) return
+  for (let index = state.turns.length - 1; index >= 0; index -= 1) {
+    const turn = state.turns[index]
+    if (turn.kind === 'user') {
+      void send(turn.text)
+      return
+    }
+  }
+}
+
+function setFeedback(turn: AssistantTurn, feedback: 'up' | 'down' | null) {
+  turn.feedback = feedback
+}
+
+function setView(view: 'chat' | 'profile') {
+  state.view = view
+  state.drawerOpen = false
+}
+
+function toggleDrawer(open?: boolean) {
+  state.drawerOpen = open ?? !state.drawerOpen
+}
+
+async function setUserId(userId: string) {
+  const next = userId.trim()
+  if (!next || next === state.userId) return
+  if (state.streaming) await stop()
+  state.userId = next
+  try {
+    localStorage.setItem(USER_ID_KEY, next)
+  } catch {
+    /* 隐私模式下无法持久化，忽略 */
+  }
+  state.currentSessionId = null
+  state.turns = []
+  await loadSessions()
+}
+
+const title = computed(() => {
+  if (state.view === 'profile') return '个人主页'
+  const session = state.sessions.find((item) => item.sessionId === state.currentSessionId)
+  if (session?.summary) return session.summary
+  const firstUser = state.turns.find((turn) => turn.kind === 'user')
+  return firstUser && firstUser.kind === 'user' ? firstUser.text : '新对话'
+})
+
+export function useChat() {
+  return {
+    state,
+    title,
+    isAssistant,
+    loadSessions,
+    openSession,
+    newChat,
+    removeSession,
+    send,
+    stop,
+    regenerate,
+    setFeedback,
+    setView,
+    toggleDrawer,
+    setUserId,
+  }
+}

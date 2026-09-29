@@ -1,0 +1,111 @@
+/* ============================================================
+   设计令牌
+   浅色中性灰 + 链接蓝。所有正文文字对比度 ≥ 4.5:1（WCAG AA）
+   ============================================================ */
+:root {
+  color-scheme: light;
+
+  --bg:            #ffffff;
+  --bg-sidebar:    #f8fafc;
+  --bg-subtle:     #f1f5f9;
+  --bg-code:       #f8fafc;
+  --surface:       #ffffff;  /* 抬升表面：卡片、输入框、选中项 */
+  --surface-press: #e2e8f0;  /* 图标按钮按下态 */
+
+  --border:        #e2e8f0;
+  --border-strong: #cbd5e1;
+
+  --fg:            #1e293b;  /* 13.9:1 */
+  --fg-muted:      #64748b;  /*  4.8:1 */
+  --fg-icon:       #94a3b8;  /* 仅用于图标/装饰，不用于文字 */
+
+  --accent:        #2563eb;  /*  5.2:1 */
+  --accent-soft:   #eff6ff;
+  --on-accent:     #ffffff;  /* 强调色之上的文字 */
+  --ok:            #15803d;  /*  5.0:1 */
+  --ok-soft:       #f0fdf4;
+  --err:           #b91c1c;  /* 6.5:1（白底）/ 6.0:1（粉底） */
+  --err-soft:      #fef2f2;
+  --err-border:    #fecaca;
+
+  /* 语法高亮：One Light */
+  --tok-kw:  #a626a4;
+  --tok-str: #4d7c0f;
+  --tok-com: #6b7280;
+  --tok-fn:  #2563eb;
+  --tok-num: #b45309;
+  --tok-typ: #0e7490;
+
+  --ring:      rgba(37, 99, 235, .13);
+  --scrim:     rgba(15, 23, 42, .45);
+  --topbar-bg: rgba(255, 255, 255, .85);
+
+  --radius-sm: 8px;
+  --radius:    10px;
+  --radius-lg: 14px;
+  --radius-xl: 18px;
+
+  --shadow-1: 0 1px 2px rgba(15, 23, 42, .04);
+  --shadow-2: 0 1px 2px rgba(15, 23, 42, .05), 0 4px 12px rgba(15, 23, 42, .05);
+
+  --ease: cubic-bezier(.32, .72, 0, 1);
+  --dur: 200ms;
+
+  --sidebar-w: 260px;
+  --read-w: 720px;
+  --read-wide: 1080px;                        /* 宽屏模式的容器宽度 */
+  --thread-w: var(--read-w);                  /* 当前生效的容器宽度 */
+  --read-inner: calc(var(--thread-w) - 48px); /* 与消息内容左右边缘对齐 */
+
+  --font: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC",
+          "Hiragino Sans GB", "Microsoft YaHei", Inter, Roboto, sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas,
+               "Liberation Mono", monospace;
+}
+
+/* ============================================================
+   深色主题
+   挂在 html 上而不是 body，因为 color-scheme 要用它一起切换
+   滚动条、输入光标和原生控件。
+   ============================================================ */
+html[data-theme="dark"] {
+  color-scheme: dark;
+
+  --bg:            #0f172a;
+  --bg-sidebar:    #0b1120;
+  --bg-subtle:     #1e293b;
+  --bg-code:       #0b1120;
+  --surface:       #1b2536;
+  --surface-press: #26344a;
+
+  --border:        #1e293b;
+  --border-strong: #334155;
+
+  --fg:            #e6edf6;
+  --fg-muted:      #94a3b8;
+  --fg-icon:       #64748b;
+
+  --accent:        #60a5fa;
+  --accent-soft:   #172554;
+  --on-accent:     #0b1120;
+  --ok:            #4ade80;
+  --ok-soft:       #0a2e1a;
+  --err:           #f87171;
+  --err-soft:      #3b1218;
+  --err-border:    #7f1d1d;
+
+  /* 语法高亮：One Dark（One Light 那套在深底上不可读） */
+  --tok-kw:  #c678dd;
+  --tok-str: #98c379;
+  --tok-com: #7f8ea3;
+  --tok-fn:  #61afef;
+  --tok-num: #d19a66;
+  --tok-typ: #56b6c2;
+
+  --ring:      rgba(96, 165, 250, .28);
+  --scrim:     rgba(0, 0, 0, .65);
+  --topbar-bg: rgba(15, 23, 42, .85);
+
+  --shadow-1: 0 1px 2px rgba(0, 0, 0, .5);
+  --shadow-2: 0 1px 2px rgba(0, 0, 0, .5), 0 4px 12px rgba(0, 0, 0, .45);
+}

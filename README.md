@@ -10,6 +10,7 @@ Agent + MCP 演示工程：基于 [AgentScope Java](https://github.com/agentscop
 | --- | --- | --- |
 | `mcp-server` | 8081 | 基于 Spring AI MCP Server（STREAMABLE 协议），提供示例工具：当前时间、模拟天气查询 |
 | `agent-app` | 8082 | 基于 AgentScope HarnessAgent 的智能体服务，连接 MCP server 获取工具，对外提供 SSE 流式对话接口 |
+| `agent-ui` | 5173 | 基于 Vite + Vue 3 的对话界面，对接 agent-app 的对话/会话接口；原型见 `agent-ui/原型/index.html` |
 
 ## 环境要求
 
@@ -29,7 +30,32 @@ mvn -pl mcp-server spring-boot:run
 # 3. 再启动 Agent 服务（8082）
 export YOKA_DASHSCOPE_API_KEY=sk-xxxx
 mvn -pl agent-app spring-boot:run
+
+# 4. 启动前端界面（5173，需要先启动 agent-app）
+cd agent-ui
+pnpm install
+pnpm dev
 ```
+
+浏览器打开 `http://localhost:5173` 即可对话。前端通过 Vite 代理把 `/agent/scope/**` 转发到 `http://localhost:8082`，无需处理跨域。
+
+界面上支持的接口：
+
+| 界面能力 | 接口 |
+| --- | --- |
+| 侧栏会话列表、相对时间分组 | `GET /agent/scope/getSessions` |
+| 打开会话、渲染历史消息（思考过程/工具调用/正文） | `GET /agent/scope/getMessages` |
+| 发送消息、流式渲染 | `POST /agent/scope/chat_sse` |
+| 停止生成（输入框右侧方块按钮） | `GET /agent/scope/interrupt` |
+| 会话项悬停后的删除按钮 | `GET /agent/scope/delSession` |
+
+说明：
+
+- 默认用户 ID 为 `1`，可在「个人主页」里切换；`userId` 存在 `localStorage` 的 `agent-ui:userId`。
+- 新建会话在发出第一条消息时才生成 `sessionId`，因此没有消息的空会话不会出现在列表里。
+- 个人主页的用量/费用/图表是**演示数据**（后端暂无对应接口），页面上已标注。
+- 附件、选择工具、模型切换、更多操作为占位控件（禁用状态）。
+- 流式过程中后端不返回工具的成功/失败信号，所以工具卡片一律按「成功」收尾（仅当整个流报错时才标记失败）；历史消息里可依据 `state` 字段准确还原。
 
 可选环境变量：
 
