@@ -6,6 +6,17 @@
 /* ---------- 思考正文保留换行 ---------- */
 .thinking-inner p { white-space: pre-wrap; }
 
+/* ---------- 等待首个流事件时的占位 ---------- */
+.thinking-pending {
+  cursor: default;
+  animation: thinking-pulse 1.6s var(--ease) infinite;
+}
+
+@keyframes thinking-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: .55; }
+}
+
 /* ---------- Markdown 正文补齐：表格、标题、引用、分隔线 ---------- */
 .prose h1,
 .prose h2,

@@ -31,6 +31,14 @@ function vote(value: 'up' | 'down') {
 
 <template>
   <div class="msg-assistant">
+    <!-- 请求已发出但还没收到任何事件时，先给出「正在思考…」，避免空白 -->
+    <div v-if="props.turn.streaming && !props.turn.blocks.length" class="thinking">
+      <div class="thinking-toggle thinking-pending">
+        <AppIcon name="sparkle" :size="14" />
+        <span>正在思考…</span>
+      </div>
+    </div>
+
     <template v-for="(block, index) in props.turn.blocks" :key="index">
       <ThinkingCard v-if="block.kind === 'thinking'" :block="block" />
       <ToolCard v-else-if="block.kind === 'tool'" :block="block" />
