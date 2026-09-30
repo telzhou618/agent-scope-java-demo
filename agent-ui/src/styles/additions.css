@@ -573,3 +573,12 @@ html.theme-transition *::after {
 
 .bar-tip-title { color: var(--fg); font-weight: 600; }
 .bar-tip b { color: var(--fg); font-weight: 600; }
+
+/* ---------- 用量统计加载中 ---------- */
+.usage-loading {
+  min-height: 80px;
+  display: grid;
+  place-items: center;
+  color: var(--fg-muted);
+  font-size: 13.5px;
+}

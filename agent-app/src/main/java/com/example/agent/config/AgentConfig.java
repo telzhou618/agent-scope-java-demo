@@ -1,6 +1,8 @@
 package com.example.agent.config;
 
 import com.example.agent.middleware.ToolCallBeforeMiddleware;
+import com.example.agent.middleware.TokenUsageMiddleware;
+import com.example.agent.usage.TokenUsageService;
 import io.agentscope.core.model.GenerateOptions;
 import io.agentscope.core.permission.PermissionContextState;
 import io.agentscope.core.permission.PermissionMode;
@@ -51,7 +53,7 @@ public class AgentConfig {
     }
 
     @Bean
-    public HarnessAgent harnessAgent() {
+    public HarnessAgent harnessAgent(TokenUsageService usageService) {
         // MCP连接
         var mcpClientBuilder = McpClientBuilder.create("http-mcp")
                 .streamableHttpTransport(mcpServerUrl + mcpEndpoint)
@@ -96,6 +98,7 @@ public class AgentConfig {
 
                 // middleware
                 .middleware(new ToolCallBeforeMiddleware())
+                .middleware(new TokenUsageMiddleware(usageService))
 
                 // 工具权限一律不验证，危险，生产环境不建议
                 .permissionContext(PermissionContextState.builder()

@@ -1,10 +1,18 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed, ref, watch } from 'vue'
 import AppIcon from './AppIcon.vue'
 import { useDismissableMenu } from '../composables/useDismissableMenu'
 import { useAuthStore } from '../stores/auth'
+import { getUsageSummary } from '../api/agent'
 import { formatInt, formatMoney, formatTokens } from '../utils/format'
-import { RANGE_OPTIONS, defaultCustomRange, resolveRange, type RangeKey } from '../utils/usage'
+import {
+  RANGE_OPTIONS,
+  defaultCustomRange,
+  resolveBounds,
+  toDateInput,
+  type RangeKey,
+  type UsageSummary,
+} from '../utils/usage'
 
 const auth = useAuthStore()
 
@@ -12,7 +20,7 @@ const auth = useAuthStore()
 const displayName = computed(() => auth.user?.nickname || auth.user?.username || '未登录')
 const avatarChar = computed(() => displayName.value.charAt(0) || 'A')
 
-/* ---- 用量演示数据：后端暂无对应接口，数字由 utils/usage.ts 确定性生成 ---- */
+/* ---- 用量统计：来自后端接口（t_token_usage 按区间聚合） ---- */
 const {
   open: rangeOpen,
   bindRoot: bindRangeRoot,
@@ -20,17 +28,40 @@ const {
   toggle: toggleRange,
 } = useDismissableMenu()
 
-const rangeKey = ref<RangeKey>('lastMonth')
+const rangeKey = ref<RangeKey>('thisMonth')
 const custom = ref(defaultCustomRange())
+const usage = ref<UsageSummary | null>(null)
+const loadingUsage = ref(false)
 
 const rangeLabel = computed(
   () => RANGE_OPTIONS.find((option) => option.key === rangeKey.value)?.label ?? '',
 )
-const usage = computed(() => resolveRange(rangeKey.value, custom.value))
-const peak = computed(() => Math.max(1, ...usage.value.buckets.map((bucket) => bucket.tokens)))
+
+async function loadUsage() {
+  const { start, end, granularity } = resolveBounds(rangeKey.value, custom.value)
+  loadingUsage.value = true
+  try {
+    usage.value = await getUsageSummary({
+      start: toDateInput(start),
+      end: toDateInput(end),
+      granularity,
+    })
+  } finally {
+    loadingUsage.value = false
+  }
+}
+
+watch([rangeKey, () => custom.value.start, () => custom.value.end], () => void loadUsage(), {
+  immediate: true,
+})
+
+const peak = computed(() =>
+  usage.value ? Math.max(1, ...usage.value.buckets.map((bucket) => bucket.tokens)) : 1,
+)
 
 /** x 轴只标 5 个刻度，避免柱子多时标签挤在一起 */
 const axisLabels = computed(() => {
+  if (!usage.value) return []
   const { buckets } = usage.value
   if (buckets.length <= 5) return buckets.map((bucket) => bucket.label)
   const step = (buckets.length - 1) / 4
@@ -90,7 +121,6 @@ function onBarEnter(event: MouseEvent) {
 
     <div class="usage-head">
       <h2 class="section-title">用量与费用</h2>
-      <span class="badge badge-demo">演示数据</span>
 
       <div :ref="bindRangeRoot" class="range-picker">
         <button
@@ -127,47 +157,50 @@ function onBarEnter(event: MouseEvent) {
       </span>
     </div>
 
-    <div class="usage-cards">
-      <div class="stat">
-        <div class="stat-label">消费金额</div>
-        <div class="stat-value">
-          {{ formatMoney(usage.cost) }}<span class="stat-unit">CNY</span>
+    <template v-if="usage">
+      <div class="usage-cards">
+        <div class="stat">
+          <div class="stat-label">消费金额</div>
+          <div class="stat-value">
+            {{ formatMoney(usage.totals.cost) }}<span class="stat-unit">CNY</span>
+          </div>
+        </div>
+        <div class="stat">
+          <div class="stat-label">API 请求次数</div>
+          <div class="stat-value">{{ formatInt(usage.totals.requests) }}</div>
+        </div>
+        <div class="stat">
+          <div class="stat-label">Tokens</div>
+          <div class="stat-value">{{ formatTokens(usage.totals.tokens) }}</div>
         </div>
       </div>
-      <div class="stat">
-        <div class="stat-label">API 请求次数</div>
-        <div class="stat-value">{{ formatInt(usage.requests) }}</div>
-      </div>
-      <div class="stat">
-        <div class="stat-label">Tokens</div>
-        <div class="stat-value">{{ formatTokens(usage.tokens) }}</div>
-      </div>
-    </div>
 
-    <div class="section-head">
-      <h2 class="section-title">每日用量</h2>
-      <span class="section-sub">{{ usage.description }}</span>
-    </div>
-    <div class="chart">
-      <div class="chart-bars">
-        <div
-          v-for="(bucket, index) in usage.buckets"
-          :key="index"
-          class="bar"
-          :style="{ height: barHeight(bucket.tokens) }"
-          tabindex="0"
-          @mouseenter="onBarEnter"
-        >
-          <span class="bar-tip">
-            <span class="bar-tip-title">{{ bucket.label }}</span>
-            <span>Tokens <b>{{ formatTokens(bucket.tokens) }}</b></span>
-            <span>费用 <b>{{ formatMoney(bucket.cost) }}</b></span>
-          </span>
+      <div class="section-head">
+        <h2 class="section-title">每日用量</h2>
+        <span class="section-sub">{{ usage.description }}</span>
+      </div>
+      <div class="chart">
+        <div class="chart-bars">
+          <div
+            v-for="(bucket, index) in usage.buckets"
+            :key="index"
+            class="bar"
+            :style="{ height: barHeight(bucket.tokens) }"
+            tabindex="0"
+            @mouseenter="onBarEnter"
+          >
+            <span class="bar-tip">
+              <span class="bar-tip-title">{{ bucket.label }}</span>
+              <span>Tokens <b>{{ formatTokens(bucket.tokens) }}</b></span>
+              <span>费用 <b>{{ formatMoney(bucket.cost) }}</b></span>
+            </span>
+          </div>
+        </div>
+        <div class="chart-axis">
+          <span v-for="label in axisLabels" :key="label">{{ label }}</span>
         </div>
       </div>
-      <div class="chart-axis">
-        <span v-for="label in axisLabels" :key="label">{{ label }}</span>
-      </div>
-    </div>
+    </template>
+    <div v-else class="usage-loading">{{ loadingUsage ? '正在加载用量统计…' : '' }}</div>
   </div>
 </template>

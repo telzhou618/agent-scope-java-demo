@@ -43,6 +43,11 @@ sa-token:
   is-read-cookie: false
   is-print: false
 
+# token 计费单价（元 / 百万 token，按 qwen3.7-plus 口径）
+usage:
+  input-price-per-million: 6
+  output-price-per-million: 24
+
 
 # 接口分组配置
 springdoc:

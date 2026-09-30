@@ -1,7 +1,6 @@
 /**
- * 个人中心的用量演示数据。
- * 用「按小时」的确定性伪随机生成：同一小时永远得到同一个值，
- * 所以切换时间维度时数字是稳定的，不会每次渲染都跳。
+ * 用量统计：区间定义与数据类型。
+ * 数据来自后端 /agent/scope/usage/summary（按用户与区间聚合 token 消耗记录）。
  */
 
 export type RangeKey =
@@ -35,57 +34,18 @@ export interface UsageBucket {
   cost: number
 }
 
-export interface UsageSummary {
-  granularity: 'hour' | 'day'
-  buckets: UsageBucket[]
-  tokens: number
-  requests: number
+export interface UsageTotals {
   cost: number
-  /** 供标题展示的区间描述，如「9 月 1 – 30 日 · 按天」 */
+  requests: number
+  inputTokens: number
+  outputTokens: number
+  tokens: number
+}
+
+export interface UsageSummary {
+  totals: UsageTotals
+  buckets: UsageBucket[]
   description: string
-}
-
-/** 一小时内 token 量的节律（0–23 点），模拟白天高、深夜低 */
-const HOUR_WEIGHTS = [
-  0.06, 0.04, 0.03, 0.03, 0.04, 0.1, 0.35, 0.7, 1.0, 1.05, 1.1, 0.95, 0.6, 0.95, 1.15, 1.1, 0.95,
-  0.7, 0.5, 0.55, 0.7, 0.8, 0.5, 0.25,
-]
-
-const BASE_TOKENS_PER_HOUR = 103_000
-/** 单次请求平均消耗的 token，用来把请求次数与 token 量对上 */
-const TOKENS_PER_REQUEST = 61_000
-/** 综合单价（元 / 百万 token），用来把费用与 token 量对上 */
-const COST_PER_MILLION = 0.154
-/** 自定义区间最长跨度（天），防止一次生成过多柱子 */
-const MAX_CUSTOM_DAYS = 180
-
-/** 稳定伪随机：同一个 seed 永远同一个值 */
-function noise(seed: number): number {
-  const value = Math.sin(seed * 12.9898) * 43758.5453
-  return value - Math.floor(value)
-}
-
-function hourTokens(date: Date): number {
-  const seed = Math.floor(date.getTime() / 3_600_000)
-  const weight = HOUR_WEIGHTS[date.getHours()]
-  return Math.round(BASE_TOKENS_PER_HOUR * weight * (0.75 + noise(seed) * 0.5))
-}
-
-function dayTokens(date: Date): number {
-  let total = 0
-  for (let hour = 0; hour < 24; hour += 1) {
-    total += hourTokens(new Date(date.getFullYear(), date.getMonth(), date.getDate(), hour))
-  }
-  return total
-}
-
-function toBucket(label: string, tokens: number): UsageBucket {
-  return {
-    label,
-    tokens,
-    requests: Math.max(1, Math.round(tokens / TOKENS_PER_REQUEST)),
-    cost: (tokens / 1_000_000) * COST_PER_MILLION,
-  }
 }
 
 const startOfDay = (date: Date) => new Date(date.getFullYear(), date.getMonth(), date.getDate())
@@ -94,6 +54,8 @@ const addDays = (date: Date, days: number) =>
   new Date(date.getFullYear(), date.getMonth(), date.getDate() + days)
 
 const DAY = 86_400_000
+/** 自定义区间最长跨度（天），防止一次请求过多柱子 */
+const MAX_CUSTOM_DAYS = 180
 
 /** 解析 <input type="date"> 的值，按本地时区构造，避免 UTC 偏移 */
 export function parseDateInput(value: string): Date | null {
@@ -114,31 +76,34 @@ export const defaultCustomRange = () => ({
   end: toDateInput(startOfDay(new Date())),
 })
 
-function resolveBounds(key: RangeKey, custom: { start: string; end: string }) {
+export interface RangeBounds {
+  start: Date
+  end: Date
+  granularity: 'hour' | 'day'
+}
+
+/** 把选择的时间维度解析成起止日期与统计粒度；今天/昨天按小时，其余按天 */
+export function resolveBounds(key: RangeKey, custom: { start: string; end: string }): RangeBounds {
   const today = startOfDay(new Date())
 
   switch (key) {
     case 'today':
-      return { start: today, end: today, granularity: 'hour' as const }
+      return { start: today, end: today, granularity: 'hour' }
     case 'yesterday': {
       const yesterday = addDays(today, -1)
-      return { start: yesterday, end: yesterday, granularity: 'hour' as const }
+      return { start: yesterday, end: yesterday, granularity: 'hour' }
     }
     case 'last7':
-      return { start: addDays(today, -6), end: today, granularity: 'day' as const }
+      return { start: addDays(today, -6), end: today, granularity: 'day' }
     case 'last30':
-      return { start: addDays(today, -29), end: today, granularity: 'day' as const }
+      return { start: addDays(today, -29), end: today, granularity: 'day' }
     case 'thisMonth':
-      return {
-        start: new Date(today.getFullYear(), today.getMonth(), 1),
-        end: today,
-        granularity: 'day' as const,
-      }
+      return { start: new Date(today.getFullYear(), today.getMonth(), 1), end: today, granularity: 'day' }
     case 'lastMonth':
       return {
         start: new Date(today.getFullYear(), today.getMonth() - 1, 1),
         end: new Date(today.getFullYear(), today.getMonth(), 0),
-        granularity: 'day' as const,
+        granularity: 'day',
       }
     default: {
       let start = parseDateInput(custom.start) ?? addDays(today, -6)
@@ -148,54 +113,7 @@ function resolveBounds(key: RangeKey, custom: { start: string; end: string }) {
         start = new Date(end.getTime() - (MAX_CUSTOM_DAYS - 1) * DAY)
       }
       const single = start.getTime() === end.getTime()
-      return { start, end, granularity: single ? ('hour' as const) : ('day' as const) }
+      return { start, end, granularity: single ? 'hour' : 'day' }
     }
-  }
-}
-
-const formatDay = (date: Date) => `${date.getMonth() + 1} 月 ${date.getDate()} 日`
-
-/** 按时间维度汇总用量；今天/昨天按小时，其余按天 */
-export function resolveRange(
-  key: RangeKey,
-  custom: { start: string; end: string } = defaultCustomRange(),
-): UsageSummary {
-  const { start, end, granularity } = resolveBounds(key, custom)
-  const buckets: UsageBucket[] = []
-  const now = new Date()
-
-  if (granularity === 'hour') {
-    // 今天只统计到当前小时（当天截至现在）
-    const lastHour = key === 'today' ? now.getHours() : 23
-    for (let hour = 0; hour <= lastHour; hour += 1) {
-      const at = new Date(start.getFullYear(), start.getMonth(), start.getDate(), hour)
-      buckets.push(toBucket(`${String(hour).padStart(2, '0')}:00`, hourTokens(at)))
-    }
-  } else {
-    for (let time = start.getTime(); time <= end.getTime(); time += DAY) {
-      const date = new Date(time)
-      buckets.push(toBucket(`${date.getMonth() + 1}/${date.getDate()}`, dayTokens(date)))
-    }
-  }
-
-  const totals = buckets.reduce(
-    (acc, bucket) => ({
-      tokens: acc.tokens + bucket.tokens,
-      requests: acc.requests + bucket.requests,
-      cost: acc.cost + bucket.cost,
-    }),
-    { tokens: 0, requests: 0, cost: 0 },
-  )
-
-  const range =
-    start.getTime() === end.getTime()
-      ? formatDay(start)
-      : `${formatDay(start)} – ${formatDay(end)}`
-
-  return {
-    granularity,
-    buckets,
-    ...totals,
-    description: `${range} · ${granularity === 'hour' ? '按小时' : '按天'}`,
   }
 }

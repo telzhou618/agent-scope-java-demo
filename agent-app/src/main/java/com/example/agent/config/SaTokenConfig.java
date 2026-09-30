@@ -11,7 +11,7 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
  * Sa-Token 拦截器：除登录/退出与接口文档外，所有接口都要求登录
  */
 @Configuration
-@MapperScan("com.example.agent.user")
+@MapperScan({"com.example.agent.user", "com.example.agent.usage"})
 public class SaTokenConfig implements WebMvcConfigurer {
 
     @Override
