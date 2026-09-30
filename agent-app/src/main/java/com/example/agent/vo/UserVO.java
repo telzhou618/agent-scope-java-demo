@@ -1,6 +1,6 @@
-package com.example.agent.auth;
+package com.example.agent.vo;
 
-import com.example.agent.user.User;
+import com.example.agent.entity.User;
 import lombok.Data;
 
 /**

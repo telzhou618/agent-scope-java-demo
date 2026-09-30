@@ -1,11 +1,14 @@
-package com.example.agent.auth;
+package com.example.agent.service;
 
 import cn.dev33.satoken.stp.StpUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.example.agent.dto.LoginRequest;
+import com.example.agent.dto.LoginResponse;
+import com.example.agent.entity.User;
 import com.example.agent.error.BizException;
 import com.example.agent.error.ErrorCode;
-import com.example.agent.user.User;
-import com.example.agent.user.UserMapper;
+import com.example.agent.mapper.UserMapper;
+import com.example.agent.vo.UserVO;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;

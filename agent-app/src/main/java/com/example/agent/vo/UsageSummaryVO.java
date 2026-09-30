@@ -1,4 +1,4 @@
-package com.example.agent.usage;
+package com.example.agent.vo;
 
 import lombok.Data;
 

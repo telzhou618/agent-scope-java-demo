@@ -2,7 +2,7 @@ package com.example.agent.config;
 
 import com.example.agent.middleware.ToolCallBeforeMiddleware;
 import com.example.agent.middleware.TokenUsageMiddleware;
-import com.example.agent.usage.TokenUsageService;
+import com.example.agent.service.TokenUsageService;
 import io.agentscope.core.model.GenerateOptions;
 import io.agentscope.core.permission.PermissionContextState;
 import io.agentscope.core.permission.PermissionMode;

@@ -1,4 +1,4 @@
-package com.example.agent.auth;
+package com.example.agent.service;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;

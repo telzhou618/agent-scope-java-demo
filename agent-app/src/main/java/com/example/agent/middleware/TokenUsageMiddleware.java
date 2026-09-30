@@ -1,6 +1,6 @@
 package com.example.agent.middleware;
 
-import com.example.agent.usage.TokenUsageService;
+import com.example.agent.service.TokenUsageService;
 import io.agentscope.core.agent.Agent;
 import io.agentscope.core.agent.RuntimeContext;
 import io.agentscope.core.event.AgentEvent;

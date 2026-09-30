@@ -1,5 +1,6 @@
-package com.example.agent.auth;
+package com.example.agent.dto;
 
+import com.example.agent.vo.UserVO;
 import lombok.Data;
 
 /**

@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.agent.mapper.TokenUsageMapper">
+
+    <select id="sumByDay" resultType="com.example.agent.vo.UsageBucketRow">
+        SELECT DATE_FORMAT(create_time, '%Y-%m-%d') AS bucket,
+               SUM(input_tokens)  AS inputTokens,
+               SUM(output_tokens) AS outputTokens,
+               SUM(cost)          AS cost,
+               COUNT(*)           AS requests
+        FROM t_token_usage
+        WHERE user_id = #{userId} AND create_time &gt;= #{start} AND create_time &lt; #{end}
+        GROUP BY bucket
+        ORDER BY bucket
+    </select>
+
+    <select id="sumByHour" resultType="com.example.agent.vo.UsageBucketRow">
+        SELECT DATE_FORMAT(create_time, '%Y-%m-%d %H') AS bucket,
+               SUM(input_tokens)  AS inputTokens,
+               SUM(output_tokens) AS outputTokens,
+               SUM(cost)          AS cost,
+               COUNT(*)           AS requests
+        FROM t_token_usage
+        WHERE user_id = #{userId} AND create_time &gt;= #{start} AND create_time &lt; #{end}
+        GROUP BY bucket
+        ORDER BY bucket
+    </select>
+
+</mapper>
