@@ -5,7 +5,7 @@ import { useChat } from '../stores/chat'
 import { useTheme } from '../composables/useTheme'
 import { useWide } from '../composables/useWide'
 import { useSidebar } from '../composables/useSidebar'
-import { downloadText, exportFilename, turnsToMarkdown } from '../utils/export'
+import { downloadText, exportFilename, turnsToHtml, turnsToMarkdown } from '../utils/export'
 
 const { state, title } = useChat()
 const theme = useTheme()
@@ -17,14 +17,25 @@ const menuRoot = ref<HTMLElement | null>(null)
 
 const canExport = computed(() => !state.streaming && state.turns.length > 0)
 
-function exportSession() {
+function exportSession(format: 'md' | 'html') {
   if (!canExport.value) return
-  const content = turnsToMarkdown(state.turns, {
+  const meta = {
     userId: state.userId,
     sessionId: state.currentSessionId,
     title: title.value,
-  })
-  downloadText(exportFilename(title.value, state.currentSessionId), content)
+  }
+  if (format === 'html') {
+    downloadText(
+      exportFilename(title.value, state.currentSessionId, { extension: 'html' }),
+      turnsToHtml(state.turns, meta),
+      'text/html;charset=utf-8',
+    )
+  } else {
+    downloadText(
+      exportFilename(title.value, state.currentSessionId),
+      turnsToMarkdown(state.turns, meta),
+    )
+  }
   menuOpen.value = false
 }
 
@@ -112,10 +123,21 @@ onBeforeUnmount(() => {
           role="menuitem"
           :disabled="!canExport"
           :title="canExport ? '' : '当前没有可导出的内容'"
-          @click="exportSession"
+          @click="exportSession('md')"
         >
           <AppIcon name="download" :size="14" />
           导出 Markdown
+        </button>
+        <button
+          class="more-item"
+          type="button"
+          role="menuitem"
+          :disabled="!canExport"
+          :title="canExport ? '' : '当前没有可导出的内容'"
+          @click="exportSession('html')"
+        >
+          <AppIcon name="download" :size="14" />
+          导出 HTML
         </button>
       </div>
     </div>

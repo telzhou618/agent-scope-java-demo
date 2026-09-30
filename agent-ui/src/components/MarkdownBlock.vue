@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, ref, watch } from 'vue'
-import { renderMarkdown } from '../composables/useMarkdown'
+import { renderMarkdown } from '../utils/markdown'
 import { copyText, flashLabel } from '../utils/clipboard'
 
 const props = defineProps<{ markdown: string }>()
