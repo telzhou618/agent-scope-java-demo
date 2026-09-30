@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import AppIcon from './AppIcon.vue'
 import { useChat } from '../stores/chat'
 import { useSidebar } from '../composables/useSidebar'
@@ -7,6 +7,35 @@ import { groupLabel, relativeTime } from '../utils/format'
 
 const chat = useChat()
 const sidebar = useSidebar()
+
+const accountOpen = ref(false)
+const accountRoot = ref<HTMLElement | null>(null)
+
+function openProfile() {
+  accountOpen.value = false
+  chat.setView('profile')
+}
+
+function onDocumentClick(event: MouseEvent) {
+  if (!accountOpen.value) return
+  const target = event.target as Node | null
+  if (target && accountRoot.value?.contains(target)) return
+  accountOpen.value = false
+}
+
+function onKeydown(event: KeyboardEvent) {
+  if (event.key === 'Escape') accountOpen.value = false
+}
+
+onMounted(() => {
+  document.addEventListener('click', onDocumentClick)
+  document.addEventListener('keydown', onKeydown)
+})
+
+onBeforeUnmount(() => {
+  document.removeEventListener('click', onDocumentClick)
+  document.removeEventListener('keydown', onKeydown)
+})
 
 const groups = computed(() => {
   const result: { label: string; items: typeof chat.state.sessions }[] = []
@@ -85,19 +114,34 @@ function confirmRemove(sessionId: string, summary: string) {
     </div>
 
     <div class="sidebar-foot">
-      <button
-        class="account-btn"
-        type="button"
-        :aria-current="chat.state.view === 'profile'"
-        @click="chat.setView('profile')"
-      >
-        <span class="avatar" aria-hidden="true">张</span>
-        <span class="account-text">
-          <span class="account-name">张三</span>
-          <span class="account-plan">Pro 计划</span>
-        </span>
-        <AppIcon name="chevron" :size="14" />
-      </button>
+      <div ref="accountRoot" class="account-wrap">
+        <button
+          class="account-btn"
+          type="button"
+          aria-haspopup="menu"
+          :aria-expanded="accountOpen"
+          :aria-current="chat.state.view === 'profile'"
+          @click="accountOpen = !accountOpen"
+        >
+          <span class="avatar" aria-hidden="true">张</span>
+          <span class="account-text">
+            <span class="account-name">张三</span>
+            <span class="account-plan">Pro 计划</span>
+          </span>
+          <AppIcon name="chevron" :size="14" class="chevron" />
+        </button>
+
+        <div v-if="accountOpen" class="account-menu" role="menu">
+          <button class="more-item" type="button" role="menuitem" @click="openProfile">
+            <AppIcon name="user" :size="14" />
+            个人主页
+          </button>
+          <button class="more-item" type="button" role="menuitem" disabled title="暂未开放">
+            <AppIcon name="logout" :size="14" />
+            退出
+          </button>
+        </div>
+      </div>
     </div>
   </aside>
 </template>

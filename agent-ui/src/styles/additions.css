@@ -321,3 +321,30 @@
   body[data-sidebar="collapsed"] .sidebar { display: none; }
   body[data-sidebar="collapsed"] .menu-btn { display: grid; }
 }
+
+/* ---------- 侧栏底部账号菜单：向上滑出 ---------- */
+.account-wrap {
+  position: relative;
+}
+
+.account-menu {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: calc(100% + 6px);
+  z-index: 30;
+  padding: 5px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  box-shadow: var(--shadow-2);
+  animation: account-menu-rise 160ms var(--ease);
+}
+
+/* 菜单展开时箭头翻向上 */
+.account-btn[aria-expanded="true"] .chevron { transform: rotate(180deg); }
+
+@keyframes account-menu-rise {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: none; }
+}
