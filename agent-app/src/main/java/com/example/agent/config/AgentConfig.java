@@ -49,9 +49,6 @@ public class AgentConfig {
     @Autowired
     private DataSource dataSource;
 
-    @Autowired
-    private TokenUsageService tokenUsageService;
-
 
     @Bean
     public AgentStateStore agentStateStore() {
@@ -60,7 +57,7 @@ public class AgentConfig {
     }
 
     @Bean
-    public HarnessAgent harnessAgent() {
+    public HarnessAgent harnessAgent(TokenUsageService tokenUsageService) {
         // MCP连接
         var mcpClientBuilder = McpClientBuilder.create("http-mcp")
                 .streamableHttpTransport(mcpServerUrl + mcpEndpoint)

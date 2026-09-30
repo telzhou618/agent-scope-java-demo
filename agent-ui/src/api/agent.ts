@@ -1,6 +1,6 @@
 import { API_BASE, http } from './http'
 import type { AgentSession, Msg, Result } from './types'
-import type { UsageSummary } from '../utils/usage'
+import type { RecentRequestItem, UsageSummary } from '../utils/usage'
 
 /** 会话列表；用户身份由后端从 token 解析 */
 export const getSessions = () =>
@@ -18,3 +18,7 @@ export const interrupt = (sessionId: string) =>
 /** token 消耗统计（按区间；用户身份由后端从 token 解析） */
 export const getUsageSummary = (params: { start: string; end: string; granularity: 'hour' | 'day' }) =>
   http.get<Result<UsageSummary>>(`${API_BASE}/usage/summary`, { params }).then((r) => r.data.data)
+
+/** 最近请求记录（区间内最近 10 条，按时间倒序） */
+export const getRecentRequests = (params: { start: string; end: string }) =>
+  http.get<Result<RecentRequestItem[]>>(`${API_BASE}/usage/recent`, { params }).then((r) => r.data.data)

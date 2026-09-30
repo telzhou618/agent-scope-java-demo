@@ -3,7 +3,7 @@ import { computed, ref, watch } from 'vue'
 import AppIcon from './AppIcon.vue'
 import { useDismissableMenu } from '../composables/useDismissableMenu'
 import { useAuthStore } from '../stores/auth'
-import { getUsageSummary } from '../api/agent'
+import { getRecentRequests, getUsageSummary } from '../api/agent'
 import { formatInt, formatMoney, formatTokens } from '../utils/format'
 import {
   RANGE_OPTIONS,
@@ -11,6 +11,7 @@ import {
   resolveBounds,
   toDateInput,
   type RangeKey,
+  type RecentRequestItem,
   type UsageSummary,
 } from '../utils/usage'
 
@@ -33,6 +34,10 @@ const custom = ref(defaultCustomRange())
 const usage = ref<UsageSummary | null>(null)
 const loadingUsage = ref(false)
 
+/** 最近请求记录（区间内最近 10 条） */
+const recent = ref<RecentRequestItem[] | null>(null)
+const loadingRecent = ref(false)
+
 const rangeLabel = computed(
   () => RANGE_OPTIONS.find((option) => option.key === rangeKey.value)?.label ?? '',
 )
@@ -51,9 +56,25 @@ async function loadUsage() {
   }
 }
 
-watch([rangeKey, () => custom.value.start, () => custom.value.end], () => void loadUsage(), {
-  immediate: true,
-})
+/** 最近请求记录：跟随时间维度变化，取区间内最近 10 条 */
+async function loadRecent() {
+  const { start, end } = resolveBounds(rangeKey.value, custom.value)
+  loadingRecent.value = true
+  try {
+    recent.value = await getRecentRequests({ start: toDateInput(start), end: toDateInput(end) })
+  } finally {
+    loadingRecent.value = false
+  }
+}
+
+watch(
+  [rangeKey, () => custom.value.start, () => custom.value.end],
+  () => {
+    void loadUsage()
+    void loadRecent()
+  },
+  { immediate: true },
+)
 
 const peak = computed(() =>
   usage.value ? Math.max(1, ...usage.value.buckets.map((bucket) => bucket.tokens)) : 1,
@@ -95,6 +116,11 @@ function onBarEnter(event: MouseEvent) {
   if (center - half < chartRect.left) shift = chartRect.left - (center - half)
   else if (center + half > chartRect.right) shift = chartRect.right - (center + half)
   tip.style.setProperty('--tip-shift', `${shift}px`)
+}
+
+/** createTime 是 ISO LocalDateTime（含 T），只展示到秒 */
+function formatTime(value: string): string {
+  return value.replace('T', ' ').slice(0, 19)
 }
 </script>
 
@@ -202,5 +228,41 @@ function onBarEnter(event: MouseEvent) {
       </div>
     </template>
     <div v-else class="usage-loading">{{ loadingUsage ? '正在加载用量统计…' : '' }}</div>
+
+    <div class="section-head">
+      <h2 class="section-title">最近请求记录</h2>
+      <span class="section-sub">{{ rangeLabel }}</span>
+    </div>
+    <div class="recent-table">
+      <div class="recent-scroll">
+        <table v-if="recent && recent.length > 0">
+          <thead>
+            <tr>
+              <th class="col-time">请求时间</th>
+              <th class="col-title">会话标题</th>
+              <th>模型</th>
+              <th class="col-num">输入</th>
+              <th class="col-num">输出</th>
+              <th class="col-num">耗时</th>
+              <th class="col-num">费用</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="(item, index) in recent" :key="index">
+              <td class="col-time">{{ formatTime(item.createTime) }}</td>
+              <td class="col-title">{{ item.sessionTitle }}</td>
+              <td>{{ item.modelName }}</td>
+              <td class="col-num">{{ formatInt(item.inputTokens) }}</td>
+              <td class="col-num">{{ formatInt(item.outputTokens) }}</td>
+              <td class="col-num">{{ item.durationSeconds.toFixed(1) }} s</td>
+              <td class="col-num">{{ formatMoney(item.cost) }}</td>
+            </tr>
+          </tbody>
+        </table>
+        <div v-else class="recent-empty">
+          {{ loadingRecent ? '正在加载最近请求…' : '该时间段暂无请求记录' }}
+        </div>
+      </div>
+    </div>
   </div>
 </template>

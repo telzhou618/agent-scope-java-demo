@@ -582,3 +582,47 @@ html.theme-transition *::after {
   color: var(--fg-muted);
   font-size: 13.5px;
 }
+
+/* ---------- 个人中心：最近请求记录 ---------- */
+/* 外观对齐 .chart 卡片：同边框、同圆角、同底色 */
+.recent-table {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg-sidebar);
+  overflow: hidden;
+}
+
+.recent-scroll { overflow-x: auto; }
+
+.recent-table table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12.5px;
+}
+
+.recent-table th,
+.recent-table td {
+  padding: 8px 12px;
+  white-space: nowrap;
+  text-align: left;
+}
+
+.recent-table thead th {
+  font-size: 11.5px;
+  font-weight: 500;
+  color: var(--fg-muted);
+  border-bottom: 1px solid var(--border);
+}
+
+.recent-table tbody tr + tr td { border-top: 1px solid var(--border); }
+.recent-table tbody tr:hover td { background: var(--bg-subtle); }
+
+.recent-table .col-num { text-align: right; font-variant-numeric: tabular-nums; }
+.recent-table .col-time { color: var(--fg-muted); font-variant-numeric: tabular-nums; }
+
+.recent-empty {
+  padding: 28px 12px;
+  text-align: center;
+  color: var(--fg-muted);
+  font-size: 12.5px;
+}

@@ -26,4 +26,24 @@
         ORDER BY bucket
     </select>
 
+    <select id="selectRecent" resultType="com.example.agent.entity.TokenUsage">
+        SELECT id,
+               user_id          AS userId,
+               session_id       AS sessionId,
+               agent_name       AS agentName,
+               model_name       AS modelName,
+               input_tokens     AS inputTokens,
+               output_tokens    AS outputTokens,
+               cached_tokens    AS cachedTokens,
+               duration_seconds AS durationSeconds,
+               cost,
+               reply_id         AS replyId,
+               create_time      AS createTime,
+               update_time      AS updateTime
+        FROM t_token_usage
+        WHERE user_id = #{userId} AND create_time &gt;= #{start} AND create_time &lt; #{end}
+        ORDER BY create_time DESC, id DESC
+        LIMIT 10
+    </select>
+
 </mapper>

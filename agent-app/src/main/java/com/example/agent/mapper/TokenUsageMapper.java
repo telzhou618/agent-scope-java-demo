@@ -22,4 +22,12 @@ public interface TokenUsageMapper extends BaseMapper<TokenUsage> {
             @Param("userId") Long userId,
             @Param("start") LocalDateTime start,
             @Param("end") LocalDateTime end);
+
+    /**
+     * 区间内按请求时间倒序取最近 10 条
+     */
+    List<TokenUsage> selectRecent(
+            @Param("userId") Long userId,
+            @Param("start") LocalDateTime start,
+            @Param("end") LocalDateTime end);
 }

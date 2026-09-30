@@ -48,6 +48,19 @@ export interface UsageSummary {
   description: string
 }
 
+/** 最近请求记录：/agent/scope/usage/recent 返回的单条记录 */
+export interface RecentRequestItem {
+  sessionId: string
+  sessionTitle: string
+  modelName: string
+  inputTokens: number
+  outputTokens: number
+  durationSeconds: number
+  cost: number
+  /** ISO LocalDateTime，如 2026-09-30T10:24:35 */
+  createTime: string
+}
+
 const startOfDay = (date: Date) => new Date(date.getFullYear(), date.getMonth(), date.getDate())
 
 const addDays = (date: Date, days: number) =>
