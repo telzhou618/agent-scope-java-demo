@@ -6,13 +6,21 @@ import com.alibaba.fastjson2.JSON;
 import com.example.agent.dto.AgentChatRequest;
 import com.example.agent.dto.AgentSession;
 import com.example.agent.dto.AgentSseEvent;
+import com.example.agent.dto.ChatAttachment;
 import com.example.agent.dto.Result;
 import com.example.agent.dto.SessionMeta;
+import com.example.agent.error.BizException;
+import com.example.agent.service.DocumentTextExtractor;
+import com.example.agent.service.FileStorageService;
 import com.example.agent.service.SessionTitleService;
 import io.agentscope.core.ReActAgent;
 import io.agentscope.core.agent.RuntimeContext;
 import io.agentscope.core.event.*;
+import io.agentscope.core.message.Base64Source;
+import io.agentscope.core.message.ContentBlock;
+import io.agentscope.core.message.ImageBlock;
 import io.agentscope.core.message.Msg;
+import io.agentscope.core.message.TextBlock;
 import io.agentscope.core.message.UserMessage;
 import io.agentscope.core.state.AgentState;
 import io.agentscope.core.state.AgentStateStore;
@@ -28,6 +36,7 @@ import org.springframework.web.bind.annotation.*;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
+import java.nio.charset.StandardCharsets;
 import java.util.*;
 
 /**
@@ -43,6 +52,8 @@ public class AgentScopeController {
     private final HarnessAgent harnessAgent;
     private final AgentStateStore agentStateStore;
     private final SessionTitleService sessionTitleService;
+    private final FileStorageService fileStorageService;
+    private final DocumentTextExtractor documentTextExtractor;
 
     /**
      * 从 token 解析当前登录用户 id（字符串形式，与会话状态目录名一致）
@@ -58,13 +69,15 @@ public class AgentScopeController {
         Map<String, StringBuilder> toolParamsAccumulator = new HashMap<>();
 
         String userId = loginUserId();
+        String message = effectiveMessage(request);
+        UserMessage userMessage = buildUserMessage(userId, message, request.getAttachments());
         RuntimeContext context = RuntimeContext.builder()
                 .sessionId(request.getSessionId())
                 .userId(userId)
                 .put("requestId", request.getRequestId() == null ? "" : request.getRequestId())
                 .build();
 
-        Flux<ServerSentEvent<String>> mainStream = harnessAgent.streamEvents(new UserMessage("user", request.getMessage()), context)
+        Flux<ServerSentEvent<String>> mainStream = harnessAgent.streamEvents(userMessage, context)
                 .flatMap(event -> {
                     if (log.isDebugEnabled()) {
                         log.debug("Agent 流事件：{}", JSON.toJSONString(event));
@@ -85,7 +98,7 @@ public class AgentScopeController {
 
         // 首条消息并行生成会话标题，完成后以 title 事件并入流（不阻塞主回复）
         Mono<ServerSentEvent<String>> titleEvent = sessionTitleService
-                .generateIfAbsent(userId, request.getSessionId(), request.getMessage())
+                .generateIfAbsent(userId, request.getSessionId(), message)
                 .map(title -> toSse(AgentSseEvent.builder().type("title").content(title).build()))
                 .onErrorResume(e -> {
                     log.warn("会话标题事件推送失败", e);
@@ -93,6 +106,42 @@ public class AgentScopeController {
                 });
 
         return mainStream.mergeWith(titleEvent);
+    }
+
+    private String effectiveMessage(AgentChatRequest request) {
+        boolean blank = request.getMessage() == null || request.getMessage().isBlank();
+        boolean hasAttachments = request.getAttachments() != null && !request.getAttachments().isEmpty();
+        if (blank && !hasAttachments) {
+            throw new BizException("用户消息不能为空");
+        }
+        return blank ? "请查看我发送的文件" : request.getMessage();
+    }
+
+    private UserMessage buildUserMessage(String userId, String text, List<ChatAttachment> attachments) {
+        if (attachments == null || attachments.isEmpty()) {
+            return new UserMessage("user", text);
+        }
+        List<ContentBlock> blocks = new ArrayList<>();
+        blocks.add(TextBlock.builder().text(text).build());
+        for (ChatAttachment attachment : attachments) {
+            byte[] bytes = fileStorageService.readBytes(userId, attachment.id());
+            if (fileStorageService.isImage(attachment.ext())) {
+                blocks.add(new ImageBlock(new Base64Source(
+                        fileStorageService.mediaType(attachment.ext()),
+                        java.util.Base64.getEncoder().encodeToString(bytes))));
+            } else if (documentTextExtractor.isDocument(attachment.ext())) {
+                blocks.add(TextBlock.builder().text(attachmentText(attachment.name(),
+                        documentTextExtractor.extract(attachment.name(), attachment.ext(), bytes))).build());
+            } else {
+                blocks.add(TextBlock.builder().text(attachmentText(attachment.name(),
+                        new String(bytes, StandardCharsets.UTF_8))).build());
+            }
+        }
+        return new UserMessage("user", blocks.toArray(new ContentBlock[0]));
+    }
+
+    private String attachmentText(String name, String content) {
+        return "【附件：" + name + "】\n" + content;
     }
 
     private ServerSentEvent<String> toSse(AgentSseEvent sseEvent) {

@@ -5,7 +5,7 @@ import {
   isToolResultBlock,
   isToolUseBlock,
 } from '../api/types'
-import type { AssistantTurn, ToolBlockModel, Turn } from './model'
+import type { AssistantTurn, ToolBlockModel, Turn, UserAttachment, UserTurn } from './model'
 import { prettyJson } from './format'
 
 /** tool_result.output 在 HTTP 返回是内容块数组，兼容字符串形式 */
@@ -24,6 +24,17 @@ const toolArgs = (content?: string, input?: Record<string, unknown>): string => 
   return ''
 }
 
+/** 历史 USER 消息里的 ImageBlock → 气泡附件；data 缺失则忽略 */
+function imageAttachment(block: ContentBlock, seq: number): UserAttachment | null {
+  if (block.type !== 'image') return null
+  const source = (block as { source?: { mediaType?: string; data?: string } }).source
+  const data = typeof source?.data === 'string' ? source.data : ''
+  if (!data) return null
+  const mediaType = typeof source?.mediaType === 'string' ? source.mediaType : 'image/png'
+  const ext = mediaType.replace(/^image\//, '').split(';')[0] || 'png'
+  return { name: `图片-${seq}.${ext}`, ext, size: 0, url: `data:${mediaType};base64,${data}` }
+}
+
 /** 历史消息归一化成回合模型，与实时流共用同一套结构 */
 export function toTurns(messages: Msg[]): Turn[] {
   const turns: Turn[] = []
@@ -40,14 +51,25 @@ export function toTurns(messages: Msg[]): Turn[] {
 
   for (const message of messages) {
     if (message.role === 'USER' || message.role === 'SYSTEM') {
-      const text = (message.content ?? []).filter(isTextBlock).map((block) => block.text).join('')
-      if (!text.trim()) continue
-      turns.push({
+      let text = ''
+      const attachments: UserAttachment[] = []
+      for (const block of message.content ?? []) {
+        if (isTextBlock(block)) {
+          text += block.text
+          continue
+        }
+        const image = imageAttachment(block, seq)
+        if (image) attachments.push(image)
+      }
+      if (!text.trim() && attachments.length === 0) continue
+      const turn: UserTurn = {
         kind: 'user',
         id: message.id || `user-${seq++}`,
         text,
         timestamp: message.timestamp ?? '',
-      })
+      }
+      if (attachments.length) turn.attachments = attachments.map((item) => ({ ...item }))
+      turns.push(turn)
       current = null
       continue
     }

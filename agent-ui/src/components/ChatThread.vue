@@ -71,7 +71,7 @@ function onFeedback(turn: AssistantTurnModel, value: 'up' | 'down' | null) {
   <div ref="scroller" class="scroll" @scroll="onScroll">
     <div v-show="hasTurns" ref="thread" class="thread">
       <template v-for="turn in chat.state.turns" :key="turn.id">
-        <UserBubble v-if="turn.kind === 'user'" :text="turn.text" />
+        <UserBubble v-if="turn.kind === 'user'" :text="turn.text" :attachments="turn.attachments" />
         <AssistantTurn
           v-else
           :turn="turn"

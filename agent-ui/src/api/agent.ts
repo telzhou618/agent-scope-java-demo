@@ -1,5 +1,5 @@
 import { API_BASE, http } from './http'
-import type { AgentSession, Msg, Result } from './types'
+import type { AgentSession, ChatAttachment, Msg, Result } from './types'
 import type { RecentRequestItem, UsageSummary } from '../utils/usage'
 
 /** 会话列表；用户身份由后端从 token 解析 */
@@ -22,3 +22,9 @@ export const getUsageSummary = (params: { start: string; end: string; granularit
 /** 最近请求记录（区间内最近 10 条，按时间倒序） */
 export const getRecentRequests = (params: { start: string; end: string }) =>
   http.get<Result<RecentRequestItem[]>>(`${API_BASE}/usage/recent`, { params }).then((r) => r.data.data)
+
+export const uploadFile = (file: File) => {
+  const form = new FormData()
+  form.append('file', file)
+  return http.post<Result<ChatAttachment>>(`${API_BASE}/files/upload`, form).then((r) => r.data.data)
+}

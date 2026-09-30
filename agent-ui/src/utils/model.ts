@@ -25,11 +25,20 @@ export interface TextBlockModel {
 
 export type AssistantBlock = ThinkingBlockModel | ToolBlockModel | TextBlockModel
 
+export interface UserAttachment {
+  id?: string
+  name: string
+  ext: string
+  size: number
+  url?: string
+}
+
 export interface UserTurn {
   kind: 'user'
   id: string
   text: string
   timestamp: string
+  attachments?: UserAttachment[]
 }
 
 export interface AssistantTurn {

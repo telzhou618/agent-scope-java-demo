@@ -65,10 +65,18 @@ export interface Msg {
   usage?: unknown
 }
 
+export interface ChatAttachment {
+  id: string
+  name: string
+  ext: string
+  size: number
+}
+
 export interface ChatRequest {
   message: string
   sessionId: string
   requestId?: string
+  attachments?: ChatAttachment[]
 }
 
 export interface ToolCallInfo {

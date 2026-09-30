@@ -3,12 +3,32 @@ import { computed, nextTick, ref, watch } from 'vue'
 import AppIcon from './AppIcon.vue'
 import { useComposer } from '../composables/useComposer'
 import { useChat } from '../stores/chat'
+import { ATTACHMENT_ACCEPT, formatSize } from '../utils/attachments'
 
 const chat = useChat()
-const { draft, focusToken, clear } = useComposer()
-const textarea = ref<HTMLTextAreaElement | null>(null)
+const {
+  draft,
+  focusToken,
+  attachments,
+  uploading,
+  uploadError,
+  clear,
+  attachFiles,
+  removeAttachment,
+  resetAttachments,
+  allUploaded,
+} = useComposer()
 
-const canSend = computed(() => !chat.state.streaming && draft.value.trim().length > 0)
+const textarea = ref<HTMLTextAreaElement | null>(null)
+const fileInput = ref<HTMLInputElement | null>(null)
+
+const canSend = computed(
+  () =>
+    !chat.state.streaming &&
+    uploading.value === 0 &&
+    allUploaded() &&
+    (draft.value.trim().length > 0 || attachments.value.length > 0),
+)
 
 function resize() {
   const element = textarea.value
@@ -24,13 +44,38 @@ watch(focusToken, async () => {
   textarea.value?.focus()
 })
 
+/** 只有附件没有文字时随附件一起走的默认文案 */
+const DEFAULT_ATTACHMENT_MESSAGE = '请帮我分析这些附件'
+
 function submit() {
-  if (chat.state.streaming) return
-  const message = draft.value.trim()
-  if (!message) return
+  if (chat.state.streaming || uploading.value > 0) return
+  const text = draft.value.trim()
+  if (!text && attachments.value.length === 0) return
+  const list = attachments.value.map((item) => ({ ...item }))
   clear()
+  resetAttachments()
   nextTick(resize)
-  void chat.send(message)
+  void chat.send(text || DEFAULT_ATTACHMENT_MESSAGE, list)
+}
+
+function pickFiles() {
+  fileInput.value?.click()
+}
+
+function onPicked(event: Event) {
+  const target = event.target as HTMLInputElement
+  if (target.files?.length) attachFiles(target.files)
+  target.value = ''
+}
+
+/** 支持直接粘贴截图（剪贴板中的图片文件） */
+function onPaste(event: ClipboardEvent) {
+  const images = Array.from(event.clipboardData?.files ?? []).filter((file) =>
+    file.type.startsWith('image/'),
+  )
+  if (!images.length) return
+  event.preventDefault()
+  attachFiles(images)
 }
 
 function onKeydown(event: KeyboardEvent) {
@@ -44,6 +89,24 @@ function onKeydown(event: KeyboardEvent) {
 <template>
   <div class="composer-wrap">
     <form class="composer" @submit.prevent="submit">
+      <div v-if="attachments.length" class="attach-chips">
+        <div v-for="a in attachments" :key="a.key" class="attach-chip" :title="a.name">
+          <img v-if="a.url" class="chip-thumb" :src="a.url" :alt="a.name" />
+          <AppIcon v-else name="file" :size="16" />
+          <span class="chip-name">{{ a.name }}</span>
+          <span v-if="a.size > 0" class="chip-size">{{ formatSize(a.size) }}</span>
+          <span v-if="!a.id" class="chip-loading"><AppIcon name="loader" :size="14" /></span>
+          <button
+            class="attach-del"
+            type="button"
+            aria-label="移除附件"
+            @click="removeAttachment(a.key)"
+          >
+            <AppIcon name="x" :size="13" />
+          </button>
+        </div>
+      </div>
+      <p v-if="uploadError" class="attach-error">{{ uploadError }}</p>
       <label class="sr-only" for="input">消息输入框</label>
       <textarea
         id="input"
@@ -52,13 +115,11 @@ function onKeydown(event: KeyboardEvent) {
         rows="1"
         placeholder="给 Agent 发消息…"
         @keydown="onKeydown"
+        @paste="onPaste"
       />
       <div class="composer-bar">
-        <button class="icon-btn" type="button" aria-label="添加附件" disabled>
+        <button class="icon-btn" type="button" aria-label="添加文件" title="添加文件" @click="pickFiles">
           <AppIcon name="clip" :size="17" />
-        </button>
-        <button class="icon-btn" type="button" aria-label="选择工具" disabled>
-          <AppIcon name="wrench" :size="17" />
         </button>
         <span class="spacer" />
         <button
@@ -75,6 +136,14 @@ function onKeydown(event: KeyboardEvent) {
           <AppIcon name="send" :size="17" />
         </button>
       </div>
+      <input
+        ref="fileInput"
+        type="file"
+        :accept="ATTACHMENT_ACCEPT"
+        multiple
+        class="sr-only"
+        @change="onPicked"
+      />
     </form>
   </div>
 </template>

@@ -5,7 +5,7 @@ import type { AgentSession } from '../api/types'
 import { chatStream, type StreamHandle } from '../sse/chatStream'
 import { toTurns } from '../utils/history'
 import { createLiveTurn, type LiveTurn } from '../utils/stream'
-import type { AssistantTurn, Turn } from '../utils/model'
+import type { AssistantTurn, Turn, UserAttachment, UserTurn } from '../utils/model'
 
 const SIDEBAR_KEY = 'agent-ui:sidebar'
 const narrowMedia = window.matchMedia('(max-width: 900px)')
@@ -145,16 +145,18 @@ async function removeSession(sessionId: string) {
   }
 }
 
-async function send(text: string) {
+async function send(text: string, attachments?: UserAttachment[]) {
   const message = text.trim()
-  if (!message || state.streaming) return
+  if ((!message && !attachments?.length) || state.streaming) return
 
   const sessionId = state.currentSessionId ?? crypto.randomUUID()
   const isNew = !state.currentSessionId
   state.currentSessionId = sessionId
   const requestId = crypto.randomUUID()
   state.messagesError = ''
-  state.turns.push({ kind: 'user', id: newId('user'), text: message, timestamp: '' })
+  const userTurn: UserTurn = { kind: 'user', id: newId('user'), text: message, timestamp: '' }
+  if (attachments?.length) userTurn.attachments = attachments.map((item) => ({ ...item }))
+  state.turns.push(userTurn)
 
   const live = createLiveTurn(newId('live'))
   state.turns.push(live.turn)
@@ -168,7 +170,14 @@ async function send(text: string) {
   }
 
   const stream = chatStream(
-    { message, sessionId, requestId },
+    {
+      message,
+      sessionId,
+      requestId,
+      attachments: attachments
+        ?.filter((item) => item.id)
+        .map((item) => ({ id: item.id ?? '', name: item.name, ext: item.ext, size: item.size })),
+    },
     {
       onEvent: (event) => {
         if (event.type === 'title') {
@@ -209,7 +218,7 @@ function regenerate() {
   for (let index = state.turns.length - 1; index >= 0; index -= 1) {
     const turn = state.turns[index]
     if (turn.kind === 'user') {
-      void send(turn.text)
+      void send(turn.text, turn.attachments)
       return
     }
   }

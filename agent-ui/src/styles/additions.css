@@ -626,3 +626,38 @@ html.theme-transition *::after {
   color: var(--fg-muted);
   font-size: 12.5px;
 }
+
+/* ---------- 聊天附件：输入框 chip 与气泡缩略图 ---------- */
+.attach-chips { display: flex; flex-wrap: wrap; gap: 6px; padding: 12px 15px 0; }
+
+.attach-chip {
+  display: inline-flex; align-items: center; gap: 6px; max-width: 220px;
+  padding: 4px 6px; background: var(--bg-sidebar);
+  border: 1px solid var(--border); border-radius: 8px; font-size: 12px;
+}
+
+.chip-thumb { width: 34px; height: 34px; object-fit: cover; border-radius: 5px; }
+.chip-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.chip-size, .attach-size { color: var(--fg-muted); white-space: nowrap; }
+
+.chip-loading { display: inline-flex; color: var(--fg-muted); animation: spin 1s linear infinite; }
+
+.attach-del {
+  width: 20px; height: 20px; display: inline-flex; align-items: center; justify-content: center;
+  border: 0; border-radius: 50%; background: transparent; color: var(--fg-muted); cursor: pointer;
+}
+.attach-del:hover { background: var(--err-soft); color: var(--err); }
+
+.attach-error { margin: 0; padding: 7px 15px 0; font-size: 12px; color: var(--err); }
+
+.bubble-attach { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 4px; }
+
+.attach-thumb { width: 92px; height: 92px; object-fit: cover; border-radius: 8px; border: 1px solid var(--border); }
+
+.attach-file {
+  display: inline-flex; align-items: center; gap: 6px; max-width: 220px;
+  padding: 6px 10px; background: var(--bg-sidebar);
+  border: 1px solid var(--border); border-radius: 8px; font-size: 12px;
+}
+
+.attach-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }

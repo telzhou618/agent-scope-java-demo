@@ -7,6 +7,8 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.util.List;
+
 @Data
 @Builder
 @NoArgsConstructor
@@ -14,8 +16,7 @@ import lombok.NoArgsConstructor;
 @Schema(description = "Agent 聊天请求")
 public class AgentChatRequest {
 
-    @NotBlank(message = "用户消息不能为空")
-    @Schema(description = "用户消息", requiredMode = Schema.RequiredMode.REQUIRED)
+    @Schema(description = "用户消息，有附件时可为空")
     private String message;
 
     @NotBlank(message = "会话ID不能为空")
@@ -24,4 +25,7 @@ public class AgentChatRequest {
 
     @Schema(description = "请求ID")
     private String requestId;
+
+    @Schema(description = "附件列表")
+    private List<ChatAttachment> attachments;
 }
