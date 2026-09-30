@@ -1,7 +1,10 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
+import AppIcon from './AppIcon.vue'
+import { useDismissableMenu } from '../composables/useDismissableMenu'
 import { useAuthStore } from '../stores/auth'
 import { formatInt, formatMoney, formatTokens } from '../utils/format'
+import { RANGE_OPTIONS, defaultCustomRange, resolveRange, type RangeKey } from '../utils/usage'
 
 const auth = useAuthStore()
 
@@ -9,70 +12,59 @@ const auth = useAuthStore()
 const displayName = computed(() => auth.user?.nickname || auth.user?.username || '未登录')
 const avatarChar = computed(() => displayName.value.charAt(0) || 'A')
 
-/* ---- 演示数据：后端暂无用量相关接口，先按原型填充 ---- */
-const profile = {
-  plan: 'Pro 计划',
-  joined: '2025 年 3 月加入',
-  period: '2026 年 9 月',
-  lastMonthCost: 60.84,
-  models: [
-    { name: 'Agent Pro', requests: 612, input: 1420000, output: 386000, cost: 52.8 },
-    { name: 'Agent Flash', requests: 672, input: 780000, output: 254000, cost: 15.6 },
-  ],
-  // 9 月 1–29 日每日 token 消耗（单位：千）
-  daily: [
-    108, 120, 127, 114, 48, 37, 122, 115, 129, 117, 124, 52, 41, 118, 130, 113, 125, 104, 49, 34,
-    117, 123, 134, 126, 112, 57, 40, 114, 90,
-  ],
+/* ---- 用量演示数据：后端暂无对应接口，数字由 utils/usage.ts 确定性生成 ---- */
+const {
+  open: rangeOpen,
+  bindRoot: bindRangeRoot,
+  close: closeRange,
+  toggle: toggleRange,
+} = useDismissableMenu()
+
+const rangeKey = ref<RangeKey>('lastMonth')
+const custom = ref(defaultCustomRange())
+
+const rangeLabel = computed(
+  () => RANGE_OPTIONS.find((option) => option.key === rangeKey.value)?.label ?? '',
+)
+const usage = computed(() => resolveRange(rangeKey.value, custom.value))
+const peak = computed(() => Math.max(1, ...usage.value.buckets.map((bucket) => bucket.tokens)))
+
+/** x 轴只标 5 个刻度，避免柱子多时标签挤在一起 */
+const axisLabels = computed(() => {
+  const { buckets } = usage.value
+  if (buckets.length <= 5) return buckets.map((bucket) => bucket.label)
+  const step = (buckets.length - 1) / 4
+  return Array.from({ length: 5 }, (_, index) => buckets[Math.round(index * step)].label)
+})
+
+function barHeight(tokens: number): string {
+  return `${Math.max(3, Math.round((tokens / peak.value) * 100))}%`
 }
 
-const totals = computed(() => {
-  const sum = (pick: (item: (typeof profile.models)[number]) => number) =>
-    profile.models.reduce((total, item) => total + pick(item), 0)
-  const totalRequests = sum((item) => item.requests)
-  const totalInput = sum((item) => item.input)
-  const totalOutput = sum((item) => item.output)
-  const totalTokens = totalInput + totalOutput
-  const totalCost = sum((item) => item.cost)
-  return {
-    totalRequests,
-    totalInput,
-    totalOutput,
-    totalTokens,
-    totalCost,
-    delta: (totalCost / profile.lastMonthCost - 1) * 100,
-  }
-})
+function selectRange(key: RangeKey) {
+  rangeKey.value = key
+  closeRange()
+}
 
-const stats = computed(() => {
-  const t = totals.value
-  return [
-    {
-      label: '本月 Token',
-      value: formatTokens(t.totalTokens),
-      note: `输入 ${formatTokens(t.totalInput)} · 输出 ${formatTokens(t.totalOutput)}`,
-    },
-    { label: '本月费用', value: formatMoney(t.totalCost), note: '按量计费' },
-    {
-      label: '请求次数',
-      value: formatInt(t.totalRequests),
-      note: `平均 ${(t.totalTokens / t.totalRequests / 1000).toFixed(1)}K / 次`,
-    },
-    {
-      label: '较上月',
-      value: `+${t.delta.toFixed(1)}%`,
-      note: `上月 ${formatMoney(profile.lastMonthCost)}`,
-    },
-  ]
-})
+/**
+ * 悬停提示横向贴边时会被裁掉，这里把提示拉回图表范围内。
+ * 位移写进 --tip-shift，由 CSS 计算最终位置。
+ */
+function onBarEnter(event: MouseEvent) {
+  const bar = event.currentTarget as HTMLElement
+  const tip = bar.querySelector<HTMLElement>('.bar-tip')
+  const chart = bar.closest<HTMLElement>('.chart')
+  if (!tip || !chart) return
 
-const peak = Math.max(...profile.daily)
-const low = Math.min(...profile.daily)
-
-const chartLabel = computed(
-  () =>
-    `${profile.period}每日 token 消耗，最高 ${formatTokens(peak * 1000)}，最低 ${formatTokens(low * 1000)}`,
-)
+  const barRect = bar.getBoundingClientRect()
+  const chartRect = chart.getBoundingClientRect()
+  const center = barRect.left + barRect.width / 2
+  const half = tip.offsetWidth / 2
+  let shift = 0
+  if (center - half < chartRect.left) shift = chartRect.left - (center - half)
+  else if (center + half > chartRect.right) shift = chartRect.right - (center + half)
+  tip.style.setProperty('--tip-shift', `${shift}px`)
+}
 </script>
 
 <template>
@@ -89,71 +81,93 @@ const chartLabel = computed(
         <h1 class="identity-name">{{ displayName }}</h1>
         <div class="identity-email">{{ auth.user?.email || '—' }}</div>
         <div class="identity-meta">
-          <span class="badge">{{ profile.plan }}</span>
-          <span>{{ profile.joined }}</span>
+          <span class="badge">Pro 计划</span>
+          <span>2025 年 3 月加入</span>
         </div>
       </div>
       <button class="btn-ghost" type="button" disabled title="暂未开放">管理订阅</button>
     </div>
 
-    <div class="section-head">
+    <div class="usage-head">
       <h2 class="section-title">用量与费用</h2>
       <span class="badge badge-demo">演示数据</span>
-      <span class="section-sub">{{ profile.period }}</span>
-    </div>
-    <div class="stats">
-      <div v-for="item in stats" :key="item.label" class="stat">
-        <div class="stat-label">{{ item.label }}</div>
-        <div class="stat-value">{{ item.value }}</div>
-        <div class="stat-note">{{ item.note }}</div>
+
+      <div :ref="bindRangeRoot" class="range-picker">
+        <button
+          class="range-btn"
+          type="button"
+          aria-haspopup="menu"
+          :aria-expanded="rangeOpen"
+          @click="toggleRange()"
+        >
+          <span class="range-label">时间维度</span>
+          <span class="range-current">{{ rangeLabel }}</span>
+          <AppIcon name="chevron" :size="13" class="chevron" />
+        </button>
+        <div v-if="rangeOpen" class="more-menu range-menu" role="menu">
+          <button
+            v-for="option in RANGE_OPTIONS"
+            :key="option.key"
+            class="more-item"
+            type="button"
+            role="menuitemradio"
+            :aria-checked="option.key === rangeKey"
+            @click="selectRange(option.key)"
+          >
+            {{ option.label }}
+            <AppIcon v-if="option.key === rangeKey" name="check" :size="14" class="range-check" />
+          </button>
+        </div>
       </div>
+
+      <span v-if="rangeKey === 'custom'" class="range-custom">
+        <input v-model="custom.start" class="range-date" type="date" aria-label="开始日期" />
+        <span>至</span>
+        <input v-model="custom.end" class="range-date" type="date" aria-label="结束日期" />
+      </span>
     </div>
 
-    <div class="section-head"><h2 class="section-title">按模型拆分</h2></div>
-    <div class="table-wrap">
-      <table class="usage">
-        <thead>
-          <tr><th>模型</th><th>请求</th><th>输入</th><th>输出</th><th>费用</th></tr>
-        </thead>
-        <tbody>
-          <tr v-for="item in profile.models" :key="item.name">
-            <td class="model-name">{{ item.name }}</td>
-            <td class="num">{{ formatInt(item.requests) }}</td>
-            <td class="num">{{ formatTokens(item.input) }}</td>
-            <td class="num">{{ formatTokens(item.output) }}</td>
-            <td class="num">{{ formatMoney(item.cost) }}</td>
-          </tr>
-        </tbody>
-        <tfoot>
-          <tr>
-            <td>合计</td>
-            <td class="num">{{ formatInt(totals.totalRequests) }}</td>
-            <td class="num">{{ formatTokens(totals.totalInput) }}</td>
-            <td class="num">{{ formatTokens(totals.totalOutput) }}</td>
-            <td class="num">{{ formatMoney(totals.totalCost) }}</td>
-          </tr>
-        </tfoot>
-      </table>
+    <div class="usage-cards">
+      <div class="stat">
+        <div class="stat-label">消费金额</div>
+        <div class="stat-value">
+          {{ formatMoney(usage.cost) }}<span class="stat-unit">CNY</span>
+        </div>
+      </div>
+      <div class="stat">
+        <div class="stat-label">API 请求次数</div>
+        <div class="stat-value">{{ formatInt(usage.requests) }}</div>
+      </div>
+      <div class="stat">
+        <div class="stat-label">Tokens</div>
+        <div class="stat-value">{{ formatTokens(usage.tokens) }}</div>
+      </div>
     </div>
 
     <div class="section-head">
       <h2 class="section-title">每日用量</h2>
-      <span class="section-sub">9 月 1 – 29 日</span>
+      <span class="section-sub">{{ usage.description }}</span>
     </div>
-    <div class="chart" role="img" :aria-label="chartLabel">
+    <div class="chart">
       <div class="chart-bars">
         <div
-          v-for="(value, index) in profile.daily"
+          v-for="(bucket, index) in usage.buckets"
           :key="index"
           class="bar"
-          :style="{ height: `${Math.max(4, Math.round((value / peak) * 100))}%` }"
-          :title="`9 月 ${index + 1} 日 · ${formatTokens(value * 1000)} tokens`"
-        />
+          :style="{ height: barHeight(bucket.tokens) }"
+          tabindex="0"
+          @mouseenter="onBarEnter"
+        >
+          <span class="bar-tip">
+            <span class="bar-tip-title">{{ bucket.label }}</span>
+            <span>Tokens <b>{{ formatTokens(bucket.tokens) }}</b></span>
+            <span>费用 <b>{{ formatMoney(bucket.cost) }}</b></span>
+          </span>
+        </div>
       </div>
       <div class="chart-axis">
-        <span>9/1</span><span>9/8</span><span>9/15</span><span>9/22</span><span>9/29</span>
+        <span v-for="label in axisLabels" :key="label">{{ label }}</span>
       </div>
     </div>
-    <p class="chart-note">9 月 29 日为当日截至现在，所以柱体偏低。</p>
   </div>
 </template>
