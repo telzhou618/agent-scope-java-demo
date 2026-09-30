@@ -38,6 +38,7 @@
                duration_seconds AS durationSeconds,
                cost,
                reply_id         AS replyId,
+               request_id       AS requestId,
                create_time      AS createTime,
                update_time      AS updateTime
         FROM t_token_usage

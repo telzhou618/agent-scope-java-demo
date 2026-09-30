@@ -61,6 +61,7 @@ public class AgentScopeController {
         RuntimeContext context = RuntimeContext.builder()
                 .sessionId(request.getSessionId())
                 .userId(userId)
+                .put("requestId", request.getRequestId() == null ? "" : request.getRequestId())
                 .build();
 
         Flux<ServerSentEvent<String>> mainStream = harnessAgent.streamEvents(new UserMessage("user", request.getMessage()), context)

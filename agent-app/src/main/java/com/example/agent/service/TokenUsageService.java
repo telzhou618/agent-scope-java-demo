@@ -1,6 +1,5 @@
 package com.example.agent.service;
 
-import com.example.agent.dto.SessionMeta;
 import com.example.agent.entity.TokenUsage;
 import com.example.agent.mapper.TokenUsageMapper;
 import com.example.agent.vo.RecentRequestVO;
@@ -9,11 +8,9 @@ import com.example.agent.vo.UsageSummaryVO;
 import io.agentscope.core.agent.RuntimeContext;
 import io.agentscope.core.event.ModelCallEndEvent;
 import io.agentscope.core.model.ChatUsage;
-import io.agentscope.core.state.AgentStateStore;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
-import org.springframework.util.StringUtils;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -33,10 +30,7 @@ import java.util.Map;
 @RequiredArgsConstructor
 public class TokenUsageService {
 
-    private static final String SESSION_META_KEY = "session_meta";
-
     private final TokenUsageMapper tokenUsageMapper;
-    private final AgentStateStore stateStore;
 
     @Value("${usage.input-price-per-million}")
     private double inputPricePerMillion;
@@ -63,6 +57,8 @@ public class TokenUsageService {
         record.setDurationSeconds(usage.getTime());
         record.setCost(computeCost(usage));
         record.setReplyId(event.getReplyId() == null ? "" : event.getReplyId());
+        Object requestIdValue = ctx.get("requestId");
+        record.setRequestId(requestIdValue == null ? "" : String.valueOf(requestIdValue));
         tokenUsageMapper.insert(record);
     }
 
@@ -73,19 +69,18 @@ public class TokenUsageService {
     }
 
     /**
-     * 最近请求记录：区间内按请求时间倒序取最近 10 条，会话标题缺失时回退为 sessionId。
+     * 最近请求记录：区间内按请求时间倒序取最近 10 条。
      */
     public List<RecentRequestVO> recent(long userId, LocalDate start, LocalDate end) {
         LocalDateTime startTime = start.atStartOfDay();
         LocalDateTime endTime = end.plusDays(1).atStartOfDay();
         List<TokenUsage> records = tokenUsageMapper.selectRecent(userId, startTime, endTime);
 
-        String uid = String.valueOf(userId);
         List<RecentRequestVO> result = new ArrayList<>(records.size());
         for (TokenUsage record : records) {
             RecentRequestVO vo = new RecentRequestVO();
             vo.setSessionId(record.getSessionId());
-            vo.setSessionTitle(sessionTitle(uid, record.getSessionId()));
+            vo.setRequestId(record.getRequestId());
             vo.setModelName(record.getModelName());
             vo.setInputTokens(record.getInputTokens() == null ? 0L : record.getInputTokens().longValue());
             vo.setOutputTokens(record.getOutputTokens() == null ? 0L : record.getOutputTokens().longValue());
@@ -95,16 +90,6 @@ public class TokenUsageService {
             result.add(vo);
         }
         return result;
-    }
-
-    /**
-     * 读取会话标题，未生成过标题时回退为 sessionId。
-     */
-    private String sessionTitle(String userId, String sessionId) {
-        return stateStore.get(userId, sessionId, SESSION_META_KEY, SessionMeta.class)
-                .map(SessionMeta::getTitle)
-                .filter(StringUtils::hasText)
-                .orElse(sessionId);
     }
 
     /**

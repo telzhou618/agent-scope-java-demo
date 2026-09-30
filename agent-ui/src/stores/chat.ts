@@ -152,6 +152,7 @@ async function send(text: string) {
   const sessionId = state.currentSessionId ?? crypto.randomUUID()
   const isNew = !state.currentSessionId
   state.currentSessionId = sessionId
+  const requestId = crypto.randomUUID()
   state.messagesError = ''
   state.turns.push({ kind: 'user', id: newId('user'), text: message, timestamp: '' })
 
@@ -167,7 +168,7 @@ async function send(text: string) {
   }
 
   const stream = chatStream(
-    { message, sessionId },
+    { message, sessionId, requestId },
     {
       onEvent: (event) => {
         if (event.type === 'title') {

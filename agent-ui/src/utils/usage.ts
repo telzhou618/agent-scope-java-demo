@@ -51,7 +51,7 @@ export interface UsageSummary {
 /** 最近请求记录：/agent/scope/usage/recent 返回的单条记录 */
 export interface RecentRequestItem {
   sessionId: string
-  sessionTitle: string
+  requestId: string
   modelName: string
   inputTokens: number
   outputTokens: number

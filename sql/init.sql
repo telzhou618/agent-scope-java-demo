@@ -46,6 +46,7 @@ CREATE TABLE IF NOT EXISTS t_token_usage (
   id               BIGINT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '主键ID',
   user_id          BIGINT       NOT NULL COMMENT '用户ID',
   session_id       VARCHAR(64)  NOT NULL COMMENT '会话ID',
+  request_id       VARCHAR(36)  NOT NULL DEFAULT '' COMMENT '请求ID（前端每次发消息生成）',
   agent_name       VARCHAR(64)  NOT NULL COMMENT 'Agent名称',
   model_name       VARCHAR(64)  NOT NULL COMMENT '模型名称',
   input_tokens     INT          NOT NULL DEFAULT 0 COMMENT '输入token数',

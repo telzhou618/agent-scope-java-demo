@@ -68,6 +68,7 @@ export interface Msg {
 export interface ChatRequest {
   message: string
   sessionId: string
+  requestId?: string
 }
 
 export interface ToolCallInfo {

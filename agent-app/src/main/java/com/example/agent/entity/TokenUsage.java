@@ -38,6 +38,8 @@ public class TokenUsage {
 
     private String replyId;
 
+    private String requestId;
+
     private LocalDateTime createTime;
 
     private LocalDateTime updateTime;

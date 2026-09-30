@@ -14,9 +14,9 @@ public class RecentRequestVO {
     private String sessionId;
 
     /**
-     * 会话标题，未生成时回退为 sessionId
+     * 请求ID（前端每次发消息生成）
      */
-    private String sessionTitle;
+    private String requestId;
 
     /**
      * 模型名称

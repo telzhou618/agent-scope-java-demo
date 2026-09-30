@@ -239,7 +239,7 @@ function formatTime(value: string): string {
           <thead>
             <tr>
               <th class="col-time">请求时间</th>
-              <th class="col-title">会话标题</th>
+              <th class="col-title">请求 ID</th>
               <th>模型</th>
               <th class="col-num">输入</th>
               <th class="col-num">输出</th>
@@ -250,7 +250,7 @@ function formatTime(value: string): string {
           <tbody>
             <tr v-for="(item, index) in recent" :key="index">
               <td class="col-time">{{ formatTime(item.createTime) }}</td>
-              <td class="col-title">{{ item.sessionTitle }}</td>
+              <td class="col-title" :title="item.requestId">{{ item.requestId }}</td>
               <td>{{ item.modelName }}</td>
               <td class="col-num">{{ formatInt(item.inputTokens) }}</td>
               <td class="col-num">{{ formatInt(item.outputTokens) }}</td>
