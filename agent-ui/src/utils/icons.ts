@@ -34,6 +34,8 @@ export const iconPaths = {
   send: '<path d="M12 19V5M6 11l6-6 6 6"/>',
   stop: '<rect x="7" y="7" width="10" height="10" rx="2"/>',
   download: '<path d="M12 3v12"/><path d="m7 11 5 5 5-5"/><path d="M5 20h14"/>',
+  printer:
+    '<path d="M6 9V3h12v6"/><path d="M6 18H4a1.5 1.5 0 0 1-1.5-1.5v-5A1.5 1.5 0 0 1 4 10h16a1.5 1.5 0 0 1 1.5 1.5v5A1.5 1.5 0 0 1 20 18h-2"/><rect x="6" y="13.5" width="12" height="7.5" rx="1"/>',
   trash:
     '<path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/>',
 } as const

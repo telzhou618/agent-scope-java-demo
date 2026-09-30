@@ -132,6 +132,25 @@ code { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; fo
 .hljs-title, .hljs-title.function_, .hljs-function .hljs-title { color: var(--tok-fn); }
 .hljs-number, .hljs-symbol, .hljs-bullet, .hljs-link { color: var(--tok-num); }
 .hljs-type, .hljs-class .hljs-title, .hljs-built_in, .hljs-builtin-name, .hljs-params, .hljs-attr, .hljs-property, .hljs-variable, .hljs-template-variable { color: var(--tok-typ); }
+
+/* 打印（导出 PDF）：A4、方块不被跨页切断、强制浅色以便纸面阅读 */
+@media print {
+  @page { size: A4; margin: 16mm 14mm; }
+  :root {
+    color-scheme: light;
+    --fg: #1e293b; --fg-muted: #64748b; --border: #cbd5e1;
+    --bg: #ffffff; --bg-subtle: #f8fafc; --accent: #1d4ed8;
+    --tok-kw: #a626a4; --tok-str: #3f6212; --tok-com: #6b7280;
+    --tok-fn: #1d4ed8; --tok-num: #b45309; --tok-typ: #0e7490;
+  }
+  * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  body { padding: 0; }
+  header, main { max-width: none; }
+  .turn, .code, table, blockquote, pre, li { break-inside: avoid; }
+  .turn { padding: 16px 0; }
+  h1, h2, h3, h4 { break-after: avoid; }
+  a { color: inherit; text-decoration: none; }
+}
 `.trim()
 
 /** 导出为 HTML：内容与 Markdown 版一致，正文走同一套 Markdown 渲染 */
@@ -150,7 +169,7 @@ export function turnsToHtml(turns: Turn[], meta: ExportMeta, exportedAt = new Da
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>${escapeHtml(title)}</title>
+<title>${escapeHtml(exportBase(title, meta.sessionId, exportedAt))}</title>
 <style>
 ${HTML_STYLE}
 </style>
@@ -172,13 +191,8 @@ ${sections}
 `
 }
 
-/** 文件名：标题 + 时间戳，去掉 Windows 不允许的字符 */
-export function exportFilename(
-  title: string,
-  sessionId: string | null,
-  options: { date?: Date; extension?: string } = {},
-): string {
-  const date = options.date ?? new Date()
+/** 文件名主体：标题 + 时间戳，去掉 Windows 不允许的字符 */
+function exportBase(title: string, sessionId: string | null, date: Date): string {
   const base = (title || sessionId || 'session')
     .replace(/[\\/:*?"<>|]+/g, '_')
     .replace(/\s+/g, ' ')
@@ -188,7 +202,16 @@ export function exportFilename(
   const stamp =
     `${date.getFullYear()}${pad(date.getMonth() + 1)}${pad(date.getDate())}` +
     `-${pad(date.getHours())}${pad(date.getMinutes())}`
-  return `${clipped}-${stamp}.${options.extension ?? 'md'}`
+  return `${clipped}-${stamp}`
+}
+
+export function exportFilename(
+  title: string,
+  sessionId: string | null,
+  options: { date?: Date; extension?: string } = {},
+): string {
+  const date = options.date ?? new Date()
+  return `${exportBase(title, sessionId, date)}.${options.extension ?? 'md'}`
 }
 
 export function downloadText(filename: string, text: string, mime = 'text/markdown;charset=utf-8') {
