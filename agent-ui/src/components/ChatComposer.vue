@@ -76,8 +76,5 @@ function onKeydown(event: KeyboardEvent) {
         </button>
       </div>
     </form>
-    <p class="composer-hint">
-      <kbd>Enter</kbd> 发送 · <kbd>Shift</kbd> + <kbd>Enter</kbd> 换行
-    </p>
   </div>
 </template>
