@@ -82,6 +82,14 @@ function dropEmptyLiveTurn() {
   }
 }
 
+/** 首条消息生成的 AI 标题：只更新侧栏，不进消息区 */
+function updateSessionSummary(sessionId: string, title?: string) {
+  const summary = title?.trim()
+  if (!summary) return
+  const session = state.sessions.find((item) => item.sessionId === sessionId)
+  if (session) session.summary = summary
+}
+
 /** 会话列表；用户身份由后端从 token 解析 */
 async function loadSessions() {
   state.loadingSessions = true
@@ -161,7 +169,13 @@ async function send(text: string) {
   const stream = chatStream(
     { message, sessionId },
     {
-      onEvent: (event) => live.handle(event),
+      onEvent: (event) => {
+        if (event.type === 'title') {
+          updateSessionSummary(sessionId, event.content)
+          return
+        }
+        live.handle(event)
+      },
       onError: (error) => live.fail(error),
     },
   )

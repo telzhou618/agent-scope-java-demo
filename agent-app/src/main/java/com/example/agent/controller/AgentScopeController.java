@@ -7,6 +7,8 @@ import com.example.agent.dto.AgentChatRequest;
 import com.example.agent.dto.AgentSession;
 import com.example.agent.dto.AgentSseEvent;
 import com.example.agent.dto.Result;
+import com.example.agent.dto.SessionMeta;
+import com.example.agent.service.SessionTitleService;
 import io.agentscope.core.ReActAgent;
 import io.agentscope.core.agent.RuntimeContext;
 import io.agentscope.core.event.*;
@@ -24,6 +26,7 @@ import org.springframework.http.codec.ServerSentEvent;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 
 import java.util.*;
 
@@ -39,6 +42,7 @@ public class AgentScopeController {
 
     private final HarnessAgent harnessAgent;
     private final AgentStateStore agentStateStore;
+    private final SessionTitleService sessionTitleService;
 
     /**
      * 从 token 解析当前登录用户 id（字符串形式，与会话状态目录名一致）
@@ -53,12 +57,13 @@ public class AgentScopeController {
         // 每个请求维护工具参数累积器
         Map<String, StringBuilder> toolParamsAccumulator = new HashMap<>();
 
+        String userId = loginUserId();
         RuntimeContext context = RuntimeContext.builder()
                 .sessionId(request.getSessionId())
-                .userId(loginUserId())
+                .userId(userId)
                 .build();
 
-        return harnessAgent.streamEvents(new UserMessage("user", request.getMessage()), context)
+        Flux<ServerSentEvent<String>> mainStream = harnessAgent.streamEvents(new UserMessage("user", request.getMessage()), context)
                 .flatMap(event -> {
                     if (log.isDebugEnabled()) {
                         log.debug("Agent 流事件：{}", JSON.toJSONString(event));
@@ -67,10 +72,7 @@ public class AgentScopeController {
                     if (sseEvent == null) {
                         return Flux.empty();
                     }
-                    String jsonData = JSON.toJSONString(sseEvent);
-                    return Flux.just(ServerSentEvent.<String>builder()
-                            .data(jsonData)
-                            .build());
+                    return Flux.just(toSse(sseEvent));
                 })
                 .onErrorResume(error -> {
                     log.error("Agent 流执行出错", error);
@@ -79,6 +81,23 @@ public class AgentScopeController {
                             .data(error.getMessage())
                             .build());
                 });
+
+        // 首条消息并行生成会话标题，完成后以 title 事件并入流（不阻塞主回复）
+        Mono<ServerSentEvent<String>> titleEvent = sessionTitleService
+                .generateIfAbsent(userId, request.getSessionId(), request.getMessage())
+                .map(title -> toSse(AgentSseEvent.builder().type("title").content(title).build()))
+                .onErrorResume(e -> {
+                    log.warn("会话标题事件推送失败", e);
+                    return Mono.empty();
+                });
+
+        return mainStream.mergeWith(titleEvent);
+    }
+
+    private ServerSentEvent<String> toSse(AgentSseEvent sseEvent) {
+        return ServerSentEvent.<String>builder()
+                .data(JSON.toJSONString(sseEvent))
+                .build();
     }
 
     private AgentSseEvent toSseEvent(AgentEvent event, Map<String, StringBuilder> toolParamsAccumulator) {
@@ -172,7 +191,7 @@ public class AgentScopeController {
         if (CollUtil.isEmpty(sessionIds)) {
             return Result.okData(new LinkedList<>());
         }
-        // 遍历会话，获取第一个消息作为摘要
+        // 遍历会话，优先使用 AI 生成的会话标题，缺省回退首条消息摘要
         List<AgentSession> agentSessions = sessionIds.stream().map(sessionId -> {
                     Optional<Msg> first = agentStateStore.get(userId, sessionId, "agent_state", AgentState.class)
                             .map(AgentState::getContext)
@@ -182,10 +201,14 @@ public class AgentScopeController {
                         return null;
                     }
                     Msg msg = first.get();
+                    String summary = agentStateStore.get(userId, sessionId, "session_meta", SessionMeta.class)
+                            .map(SessionMeta::getTitle)
+                            .filter(title -> !title.isBlank())
+                            .orElse(msg.getTextContent());
                     return AgentSession.builder()
                             .userId(userId)
                             .sessionId(sessionId)
-                            .summary(msg.getTextContent())
+                            .summary(summary)
                             .timestamp(msg.getTimestamp())
                             .build();
                 })

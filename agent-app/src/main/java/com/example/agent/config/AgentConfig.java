@@ -87,11 +87,7 @@ public class AgentConfig {
                                 .build())
                 .build();
         // 压缩模型，用轻量级低成本的, 推荐 flash 模型
-        DashScopeChatModel compactionModel = DashScopeChatModel.builder()
-                .apiKey(dashScopeApiKey)
-                .modelName("qwen3.6-flash")
-                .formatter(new DashScopeChatFormatter())
-                .build();
+        DashScopeChatModel compactionModel = buildFlashModel(true);
 
         return HarnessAgent.builder()
                 // harness 默认工作空间, 存储永久记忆等。
@@ -129,6 +125,26 @@ public class AgentConfig {
                 .disableMemoryTools()            // 不注册 memory_search / memory_get / session_search 工具.di
                 .disableWorkspaceContext()       // 止把 workspace 中的结构化上下文注入 system prompt,system prompt 更干净
 
+                .build();
+    }
+
+    @Bean
+    public DashScopeChatModel titleModel() {
+        // 标题生成模型，与压缩模型共用轻量级 flash；非流式整体返回，配合 blockLast 收敛全文
+        return buildFlashModel(false);
+    }
+
+    /**
+     * 构建轻量级 flash 模型（qwen3.6-flash），供上下文压缩、标题生成等辅助任务使用
+     *
+     * @param stream 是否流式：压缩走流式，标题生成需要完整文本走非流式
+     */
+    private DashScopeChatModel buildFlashModel(boolean stream) {
+        return DashScopeChatModel.builder()
+                .apiKey(dashScopeApiKey)
+                .modelName("qwen3.6-flash")
+                .stream(stream)
+                .formatter(new DashScopeChatFormatter())
                 .build();
     }
 }

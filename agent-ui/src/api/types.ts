@@ -85,6 +85,7 @@ export type SseEventType =
   | 'tool_result'
   | 'agent_result'
   | 'agent_end'
+  | 'title'
 
 export interface AgentSseEvent {
   type: SseEventType
