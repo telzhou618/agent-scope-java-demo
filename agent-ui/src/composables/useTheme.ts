@@ -25,14 +25,30 @@ function readTheme(): ThemeChoice {
 }
 
 const choice = ref<ThemeChoice>(readTheme())
+const THEME_TRANSITION_CLASS = 'theme-transition'
+let transitionTimer: number | null = null
 
-function apply() {
+/**
+ * 应用主题。animate=true 时给 <html> 挂一个短暂类，让颜色在 260ms 内过渡；
+ * 只在切换瞬间挂，避免常驻 `*` 过渡拖慢首屏与滚动。
+ */
+function apply(animate = false) {
+  if (animate) {
+    const root = document.documentElement
+    root.classList.add(THEME_TRANSITION_CLASS)
+    if (transitionTimer !== null) window.clearTimeout(transitionTimer)
+    transitionTimer = window.setTimeout(() => {
+      root.classList.remove(THEME_TRANSITION_CLASS)
+      transitionTimer = null
+    }, 260)
+  }
   const dark = choice.value === 'dark' || (choice.value === 'auto' && darkMedia.matches)
   document.documentElement.dataset.theme = dark ? 'dark' : 'light'
 }
 
+// 「跟随系统」时，系统主题变化同样带过渡
 darkMedia.addEventListener('change', () => {
-  if (choice.value === 'auto') apply()
+  if (choice.value === 'auto') apply(true)
 })
 
 apply()
@@ -49,7 +65,7 @@ export function useTheme() {
     } catch {
       /* 忽略持久化失败 */
     }
-    apply()
+    apply(true)
   }
 
   return { choice, meta, label, cycle }

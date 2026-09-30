@@ -73,6 +73,7 @@ async function onSubmit() {
           type="submit"
           :disabled="loading || !account.trim() || !password"
         >
+          <AppIcon v-if="loading" name="loader" :size="15" class="spinner" />
           {{ loading ? '登录中…' : '登 录' }}
         </button>
       </form>

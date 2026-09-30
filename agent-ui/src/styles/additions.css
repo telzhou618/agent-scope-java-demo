@@ -208,6 +208,12 @@
   border-radius: var(--radius-xl);
   background: var(--surface);
   box-shadow: var(--shadow-2);
+  animation: login-card-in 200ms var(--ease);
+}
+
+@keyframes login-card-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: none; }
 }
 
 .login-brand {
@@ -271,9 +277,22 @@
   background: var(--err-soft);
   color: var(--err);
   font-size: 13px;
+  animation: login-error-in 260ms var(--ease);
+}
+
+/* 淡入 + 一次轻微左右摆动：比硬出现醒目，又不刺眼 */
+@keyframes login-error-in {
+  0% { opacity: 0; transform: translateY(-4px); }
+  55% { transform: translateX(-3px); }
+  80% { transform: translateX(3px); }
+  100% { opacity: 1; transform: none; }
 }
 
 .login-submit {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
   width: 100%;
   height: 40px;
   border-radius: var(--radius);
@@ -336,7 +355,9 @@
   display: flex;
 }
 
+/* 顶栏下拉：从按钮下方轻微落下（与账号菜单同一套关键帧，方向由变量控制） */
 .more-menu {
+  --menu-from: -6px;
   position: absolute;
   top: calc(100% + 6px);
   right: 0;
@@ -347,6 +368,7 @@
   border-radius: var(--radius);
   background: var(--surface);
   box-shadow: var(--shadow-2);
+  animation: menu-rise 160ms var(--ease);
 }
 
 .more-item {
@@ -400,13 +422,26 @@
   border-radius: var(--radius);
   background: var(--surface);
   box-shadow: var(--shadow-2);
-  animation: account-menu-rise 160ms var(--ease);
+  animation: menu-rise 160ms var(--ease);
 }
 
 /* 菜单展开时箭头翻向上 */
 .account-btn[aria-expanded="true"] .chevron { transform: rotate(180deg); }
 
-@keyframes account-menu-rise {
-  from { opacity: 0; transform: translateY(6px); }
+/* 两个弹层共用：--menu-from 决定从哪里滑进来（顶栏往下、账号菜单往上） */
+@keyframes menu-rise {
+  from { opacity: 0; transform: translateY(var(--menu-from, 6px)); }
   to { opacity: 1; transform: none; }
+}
+
+/* ---------- 主题切换：只在切换的 260ms 内让颜色过渡 ---------- */
+/* 不用常驻的 `* { transition }`：那会拖慢首屏并波及滚动。
+   这段用 !important 临时接管过渡，等类被移除后各元素恢复自己的过渡。 */
+html.theme-transition,
+html.theme-transition *,
+html.theme-transition *::before,
+html.theme-transition *::after {
+  transition: background-color 200ms var(--ease), color 200ms var(--ease),
+    border-color 200ms var(--ease), fill 200ms var(--ease),
+    stroke 200ms var(--ease) !important;
 }
