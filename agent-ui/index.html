@@ -15,14 +15,16 @@
 })();
 </script>
 </head>
-<body data-drawer="closed" data-view="chat" data-sidebar="open">
+<body data-view="chat">
 <div id="app"></div>
 <script>
-/* 与主题同理：首次绘制前定好侧栏是否收起，刷新时不会闪一下 */
+/* 首屏前置：侧栏是否收起，避免刷新时闪一下。
+   窄屏的侧栏是抽屉，一律从收起状态进入（不沿用宽屏的折叠偏好）。 */
 (() => {
   try {
-    document.body.dataset.sidebar =
-      localStorage.getItem("agent-ui:sidebar") === "collapsed" ? "collapsed" : "open";
+    const narrow = window.matchMedia("(max-width: 900px)").matches;
+    const collapsed = narrow || localStorage.getItem("agent-ui:sidebar") === "collapsed";
+    document.body.dataset.sidebar = collapsed ? "collapsed" : "open";
   } catch (_) {}
 })();
 </script>

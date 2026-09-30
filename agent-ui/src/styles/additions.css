@@ -314,9 +314,14 @@
   cursor: default;
 }
 
-/* ---------- 宽屏下收起侧栏 ---------- */
-/* 窄屏的收起走 body[data-drawer]（原型里已有），这里只补宽屏：整列折叠，
-   顶栏汉堡按钮重新展开 */
+/* ---------- 侧栏收起：一套 data-sidebar 属性，两种布局含义 ---------- */
+/* 窄屏：侧栏是抽屉，「收起」= 抽屉滑出屏幕（原型里 data-drawer 的规则已不再使用） */
+@media (max-width: 900px) {
+  body[data-sidebar="open"] .sidebar { transform: none; }
+  body[data-sidebar="open"] .scrim { opacity: 1; pointer-events: auto; }
+}
+
+/* 宽屏：「收起」= 整列折叠，顶栏汉堡按钮重新展开 */
 @media (min-width: 901px) {
   body[data-sidebar="collapsed"] .sidebar { display: none; }
   body[data-sidebar="collapsed"] .menu-btn { display: grid; }

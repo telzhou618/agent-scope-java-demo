@@ -1,7 +1,43 @@
 import DOMPurify from 'dompurify'
-import hljs from 'highlight.js/lib/common'
+import hljs from 'highlight.js/lib/core'
+import bash from 'highlight.js/lib/languages/bash'
+import css from 'highlight.js/lib/languages/css'
+import diff from 'highlight.js/lib/languages/diff'
+import java from 'highlight.js/lib/languages/java'
+import javascript from 'highlight.js/lib/languages/javascript'
+import json from 'highlight.js/lib/languages/json'
+import markdownLang from 'highlight.js/lib/languages/markdown'
+import python from 'highlight.js/lib/languages/python'
+import sql from 'highlight.js/lib/languages/sql'
+import typescript from 'highlight.js/lib/languages/typescript'
+import xml from 'highlight.js/lib/languages/xml'
+import yaml from 'highlight.js/lib/languages/yaml'
 import { Marked, type Tokens } from 'marked'
 import { iconPaths } from './icons'
+
+/*
+ * 只注册用得上的语言：highlight.js 的 common 包会带 36 种（约 300KB 源码），
+ * 这里 12 种约 110KB。别名由各语言自己声明（js / ts / sh / html / py / yml 都能识别），
+ * 未注册的语言按纯文本输出。需要新增时在这里加一行。
+ */
+const LANGUAGES = {
+  bash,
+  css,
+  diff,
+  java,
+  javascript,
+  json,
+  markdown: markdownLang,
+  python,
+  sql,
+  typescript,
+  xml,
+  yaml,
+}
+
+for (const [name, language] of Object.entries(LANGUAGES)) {
+  hljs.registerLanguage(name, language)
+}
 
 export const escapeHtml = (value: string) =>
   value.replace(/[&<>"']/g, (char) => {

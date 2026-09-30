@@ -1,41 +1,22 @@
 <script setup lang="ts">
-import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
+import { computed } from 'vue'
 import AppIcon from './AppIcon.vue'
 import { useChat } from '../stores/chat'
-import { useSidebar } from '../composables/useSidebar'
+import { useDismissableMenu } from '../composables/useDismissableMenu'
 import { groupLabel, relativeTime } from '../utils/format'
 
 const chat = useChat()
-const sidebar = useSidebar()
-
-const accountOpen = ref(false)
-const accountRoot = ref<HTMLElement | null>(null)
+const {
+  open: accountOpen,
+  bindRoot: bindAccountRoot,
+  close: closeAccount,
+  toggle: toggleAccount,
+} = useDismissableMenu()
 
 function openProfile() {
-  accountOpen.value = false
+  closeAccount()
   chat.setView('profile')
 }
-
-function onDocumentClick(event: MouseEvent) {
-  if (!accountOpen.value) return
-  const target = event.target as Node | null
-  if (target && accountRoot.value?.contains(target)) return
-  accountOpen.value = false
-}
-
-function onKeydown(event: KeyboardEvent) {
-  if (event.key === 'Escape') accountOpen.value = false
-}
-
-onMounted(() => {
-  document.addEventListener('click', onDocumentClick)
-  document.addEventListener('keydown', onKeydown)
-})
-
-onBeforeUnmount(() => {
-  document.removeEventListener('click', onDocumentClick)
-  document.removeEventListener('keydown', onKeydown)
-})
 
 const groups = computed(() => {
   const result: { label: string; items: typeof chat.state.sessions }[] = []
@@ -66,7 +47,7 @@ function confirmRemove(sessionId: string, summary: string) {
         type="button"
         aria-label="收起侧栏"
         title="收起侧栏"
-        @click="sidebar.collapse()"
+        @click="chat.setSidebarOpen(false)"
       >
         <AppIcon name="sidebarCollapse" :size="16" />
       </button>
@@ -114,14 +95,14 @@ function confirmRemove(sessionId: string, summary: string) {
     </div>
 
     <div class="sidebar-foot">
-      <div ref="accountRoot" class="account-wrap">
+      <div :ref="bindAccountRoot" class="account-wrap">
         <button
           class="account-btn"
           type="button"
           aria-haspopup="menu"
           :aria-expanded="accountOpen"
           :aria-current="chat.state.view === 'profile'"
-          @click="accountOpen = !accountOpen"
+          @click="toggleAccount()"
         >
           <span class="avatar" aria-hidden="true">张</span>
           <span class="account-text">

@@ -8,12 +8,38 @@ import { createLiveTurn, type LiveTurn } from '../utils/stream'
 import type { AssistantTurn, Turn } from '../utils/model'
 
 const USER_ID_KEY = 'agent-ui:userId'
+const SIDEBAR_KEY = 'agent-ui:sidebar'
+const narrowMedia = window.matchMedia('(max-width: 900px)')
 
 function readUserId(): string {
   try {
     return localStorage.getItem(USER_ID_KEY) || '1'
   } catch {
     return '1'
+  }
+}
+
+/**
+ * 侧栏是否展开。同一个状态，两种布局含义：
+ * 窄屏（≤900px）是抽屉，宽屏（>900px）是整列折叠。
+ * 窄屏不沿用宽屏的折叠偏好——抽屉本来就该从收起状态进入。
+ */
+function readSidebarOpen(): boolean {
+  if (narrowMedia.matches) return false
+  try {
+    return localStorage.getItem(SIDEBAR_KEY) !== 'collapsed'
+  } catch {
+    return true
+  }
+}
+
+/** 只有宽屏下的折叠才值得记住 */
+function persistSidebar(open: boolean) {
+  if (narrowMedia.matches) return
+  try {
+    localStorage.setItem(SIDEBAR_KEY, open ? 'open' : 'collapsed')
+  } catch {
+    /* 隐私模式下无法持久化，忽略 */
   }
 }
 
@@ -26,7 +52,7 @@ function toMessage(error: unknown): string {
 interface ChatState {
   userId: string
   view: 'chat' | 'profile'
-  drawerOpen: boolean
+  sidebarOpen: boolean
   sessions: AgentSession[]
   currentSessionId: string | null
   turns: Turn[]
@@ -40,7 +66,7 @@ interface ChatState {
 const state = reactive<ChatState>({
   userId: readUserId(),
   view: 'chat',
-  drawerOpen: false,
+  sidebarOpen: readSidebarOpen(),
   sessions: [],
   currentSessionId: null,
   turns: [],
@@ -83,7 +109,7 @@ async function openSession(sessionId: string) {
   if (state.streaming) await stop()
   state.currentSessionId = sessionId
   state.view = 'chat'
-  state.drawerOpen = false
+  closeDrawerOnNarrow()
   state.messagesError = ''
   state.turns = []
   state.loadingMessages = true
@@ -104,7 +130,7 @@ async function newChat() {
   state.turns = []
   state.messagesError = ''
   state.view = 'chat'
-  state.drawerOpen = false
+  closeDrawerOnNarrow()
 }
 
 async function removeSession(sessionId: string) {
@@ -184,11 +210,22 @@ function setFeedback(turn: AssistantTurn, feedback: 'up' | 'down' | null) {
 
 function setView(view: 'chat' | 'profile') {
   state.view = view
-  state.drawerOpen = false
+  closeDrawerOnNarrow()
 }
 
-function toggleDrawer(open?: boolean) {
-  state.drawerOpen = open ?? !state.drawerOpen
+/** 用户显式开合（侧栏头部按钮 / 顶栏汉堡按钮）：宽屏下记住偏好 */
+function setSidebarOpen(open: boolean) {
+  state.sidebarOpen = open
+  persistSidebar(open)
+}
+
+function toggleSidebar() {
+  setSidebarOpen(!state.sidebarOpen)
+}
+
+/** 打开会话/新对话时的自动收起：只对窄屏抽屉生效，宽屏侧栏不该被动折叠 */
+function closeDrawerOnNarrow() {
+  if (narrowMedia.matches) state.sidebarOpen = false
 }
 
 async function setUserId(userId: string) {
@@ -228,7 +265,9 @@ export function useChat() {
     regenerate,
     setFeedback,
     setView,
-    toggleDrawer,
+    setSidebarOpen,
+    toggleSidebar,
+    closeDrawerOnNarrow,
     setUserId,
   }
 }

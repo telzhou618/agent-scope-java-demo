@@ -7,28 +7,28 @@ import ChatThread from './components/ChatThread.vue'
 import ProfileView from './components/ProfileView.vue'
 import { useChat } from './stores/chat'
 
-const { state, loadSessions, newChat, toggleDrawer } = useChat()
+const { state, loadSessions, newChat, closeDrawerOnNarrow } = useChat()
 
-document.body.dataset.view = state.view
-document.body.dataset.drawer = state.drawerOpen ? 'open' : 'closed'
+// 布局状态写在 body 上，样式表全权负责两种布局下的呈现
+watch(
+  () => state.sidebarOpen,
+  (open) => {
+    document.body.dataset.sidebar = open ? 'open' : 'collapsed'
+  },
+  { immediate: true },
+)
 
 watch(
   () => state.view,
   (view) => {
     document.body.dataset.view = view
   },
-)
-
-watch(
-  () => state.drawerOpen,
-  (open) => {
-    document.body.dataset.drawer = open ? 'open' : 'closed'
-  },
+  { immediate: true },
 )
 
 function onKeydown(event: KeyboardEvent) {
   if (event.key === 'Escape') {
-    toggleDrawer(false)
+    closeDrawerOnNarrow()
     return
   }
   if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'k') {
@@ -59,5 +59,5 @@ onBeforeUnmount(() => {
       <ChatComposer />
     </main>
   </div>
-  <div class="scrim" @click="toggleDrawer(false)" />
+  <div class="scrim" @click="closeDrawerOnNarrow()" />
 </template>
