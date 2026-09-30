@@ -7,21 +7,23 @@ import io.agentscope.core.model.GenerateOptions;
 import io.agentscope.core.permission.PermissionContextState;
 import io.agentscope.core.permission.PermissionMode;
 import io.agentscope.core.state.AgentStateStore;
-import io.agentscope.core.state.JsonFileAgentStateStore;
 import io.agentscope.core.tool.Toolkit;
 import io.agentscope.core.tool.mcp.McpClientBuilder;
 import io.agentscope.core.tool.mcp.McpClientWrapper;
 import io.agentscope.extensions.model.dashscope.DashScopeChatModel;
 import io.agentscope.extensions.model.dashscope.formatter.DashScopeChatFormatter;
+import io.agentscope.extensions.mysql.state.MysqlAgentStateStore;
 import io.agentscope.harness.agent.HarnessAgent;
 import io.agentscope.harness.agent.memory.compaction.CompactionConfig;
 import io.agentscope.harness.agent.memory.compaction.ToolResultEvictionConfig;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.util.StringUtils;
 
+import javax.sql.DataSource;
 import java.nio.file.Path;
 import java.time.Duration;
 
@@ -44,16 +46,21 @@ public class AgentConfig {
     @Value("${spring.ai.dashscope.api-key}")
     private String dashScopeApiKey;
 
+    @Autowired
+    private DataSource dataSource;
+
+    @Autowired
+    private TokenUsageService tokenUsageService;
+
 
     @Bean
     public AgentStateStore agentStateStore() {
-        return new JsonFileAgentStateStore(Path.of(
-                System.getProperty("user.home") + "/.agentscope/agent/state"
-        ));
+        // 会话状态落库（agent_demo.agentscope_sessions），建表语句见根目录 sql/init.sql
+        return new MysqlAgentStateStore(dataSource, "agent_demo", "agentscope_sessions", false);
     }
 
     @Bean
-    public HarnessAgent harnessAgent(TokenUsageService usageService) {
+    public HarnessAgent harnessAgent() {
         // MCP连接
         var mcpClientBuilder = McpClientBuilder.create("http-mcp")
                 .streamableHttpTransport(mcpServerUrl + mcpEndpoint)
@@ -98,7 +105,7 @@ public class AgentConfig {
 
                 // middleware
                 .middleware(new ToolCallBeforeMiddleware())
-                .middleware(new TokenUsageMiddleware(usageService))
+                .middleware(new TokenUsageMiddleware(tokenUsageService))
 
                 // 工具权限一律不验证，危险，生产环境不建议
                 .permissionContext(PermissionContextState.builder()

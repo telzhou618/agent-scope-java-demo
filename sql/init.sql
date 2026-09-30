@@ -59,3 +59,17 @@ CREATE TABLE IF NOT EXISTS t_token_usage (
   PRIMARY KEY (id),
   KEY idx_user_time (user_id, create_time)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='token消耗记录';
+
+-- ------------------------------------------------------------
+-- AgentScope 会话状态（AgentStateStore → MysqlAgentStateStore）
+-- 列名/类型与官方组件内置 SQL 严格一致，请勿修改
+-- ------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS agentscope_sessions (
+  session_id VARCHAR(255) NOT NULL COMMENT '会话槽位（userId:sessionId）',
+  state_key  VARCHAR(255) NOT NULL COMMENT '状态键',
+  item_index INT          NOT NULL DEFAULT 0 COMMENT '列表状态序号，单值为0',
+  state_data LONGTEXT     NOT NULL COMMENT '状态 JSON',
+  created_at DATETIME     DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  updated_at DATETIME     DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+  PRIMARY KEY (session_id, state_key, item_index)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='AgentScope会话状态';
