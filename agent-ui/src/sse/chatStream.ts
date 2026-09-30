@@ -1,5 +1,6 @@
 import type { AgentSseEvent, ChatRequest } from '../api/types'
 import { API_BASE } from '../api/http'
+import { getToken } from '../api/token'
 
 export interface StreamHandlers {
   onEvent: (event: AgentSseEvent) => void
@@ -45,13 +46,19 @@ function dispatch(frame: string, handlers: StreamHandlers) {
 /** POST 方式的 SSE：EventSource 只支持 GET，所以自己读流 */
 export function chatStream(request: ChatRequest, handlers: StreamHandlers): StreamHandle {
   const controller = new AbortController()
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+    Accept: 'text/event-stream',
+  }
+  const token = getToken()
+  if (token) headers.Authorization = `Bearer ${token}`
 
   const done = (async () => {
     let response: Response
     try {
       response = await fetch(`${API_BASE}/chat_sse`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', Accept: 'text/event-stream' },
+        headers,
         body: JSON.stringify(request),
         signal: controller.signal,
       })

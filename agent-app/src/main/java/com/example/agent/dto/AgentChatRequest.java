@@ -21,8 +21,4 @@ public class AgentChatRequest {
     @NotBlank(message = "会话ID不能为空")
     @Schema(description = "会话ID", requiredMode = Schema.RequiredMode.REQUIRED)
     private String sessionId;
-
-    @NotBlank(message = "用户ID不能为空")
-    @Schema(description = "用户ID", requiredMode = Schema.RequiredMode.REQUIRED)
-    private String userId;
 }

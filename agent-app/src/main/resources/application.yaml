@@ -5,6 +5,17 @@ spring:
   application:
     name: agent-app
 
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: jdbc:mysql://localhost:3306/agent_demo?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai&useSSL=false&allowPublicKeyRetrieval=true
+    username: root
+    password: ${MYSQL_PASSWORD:root}
+
+  data:
+    redis:
+      host: localhost
+      port: 6379
+
   ai:
     dashscope:
       api-key: ${YOKA_DASHSCOPE_API_KEY}
@@ -17,6 +28,20 @@ mcp:
     url: http://localhost:8081
     endpoint: /mcp
     token: ${MCP_SERVER_TOKEN:}
+
+# MyBatis-Plus
+mybatis-plus:
+  configuration:
+    map-underscore-to-camel-case: true
+
+# Sa-Token：token 通过 Authorization: Bearer 传递，存 Redis，7 天有效
+sa-token:
+  token-name: Authorization
+  token-prefix: Bearer
+  timeout: 604800
+  is-concurrent: false
+  is-read-cookie: false
+  is-print: false
 
 
 # 接口分组配置

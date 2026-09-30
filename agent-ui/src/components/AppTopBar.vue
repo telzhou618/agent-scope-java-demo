@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import AppIcon from './AppIcon.vue'
+import { useAuthStore } from '../stores/auth'
 import { useChat } from '../stores/chat'
 import { useTheme } from '../composables/useTheme'
 import { useWide } from '../composables/useWide'
@@ -10,6 +11,7 @@ import { printHtmlDocument } from '../utils/print'
 import type { IconName } from '../utils/icons'
 
 const { state, title, toggleSidebar } = useChat()
+const auth = useAuthStore()
 const theme = useTheme()
 const wide = useWide()
 const {
@@ -36,7 +38,7 @@ function exportSession(format: 'md' | 'html' | 'pdf') {
   if (!canExport.value) return
   const at = new Date()
   const meta = {
-    userId: state.userId,
+    userId: String(auth.user?.id ?? ''),
     sessionId: state.currentSessionId,
     title: title.value,
   }

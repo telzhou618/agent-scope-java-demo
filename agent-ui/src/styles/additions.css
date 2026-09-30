@@ -191,45 +191,102 @@
   font-size: 13.5px;
 }
 
-/* ---------- 个人主页：用户 ID 切换 ---------- */
-.settings-row {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin-top: 14px;
-  padding: 12px 14px;
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  background: var(--surface);
+/* ---------- 登录页 ---------- */
+.login-page {
+  min-height: 100dvh;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: var(--bg);
 }
 
-.settings-label {
+.login-card {
+  width: 100%;
+  max-width: 360px;
+  padding: 32px 28px 28px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-xl);
+  background: var(--surface);
+  box-shadow: var(--shadow-2);
+}
+
+.login-brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.login-title {
+  font-size: 18px;
+  font-weight: 650;
+  letter-spacing: -.01em;
+}
+
+.login-sub {
+  margin: 6px 0 22px;
+  font-size: 13.5px;
+  color: var(--fg-muted);
+}
+
+.login-field {
+  display: block;
+  margin-bottom: 14px;
+}
+
+.login-label {
+  display: block;
+  margin-bottom: 6px;
   font-size: 13px;
   color: var(--fg-muted);
 }
 
-.settings-input {
-  width: 120px;
-  padding: 6px 10px;
+.login-input {
+  width: 100%;
+  padding: 9px 12px;
   border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius);
   background: var(--bg);
   color: var(--fg);
-  font-size: 13.5px;
+  font-size: 14.5px;
   font-family: inherit;
   outline: none;
+  transition: border-color var(--dur) var(--ease), box-shadow var(--dur) var(--ease);
 }
 
-.settings-input:focus {
+.login-input:focus {
   border-color: var(--accent);
   box-shadow: 0 0 0 3px var(--ring);
 }
 
-.settings-note {
-  font-size: 12px;
-  color: var(--fg-muted);
+.login-input::placeholder { color: var(--fg-muted); }
+
+.login-error {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0 0 14px;
+  padding: 8px 11px;
+  border: 1px solid var(--err-border);
+  border-radius: var(--radius);
+  background: var(--err-soft);
+  color: var(--err);
+  font-size: 13px;
 }
+
+.login-submit {
+  width: 100%;
+  height: 40px;
+  border-radius: var(--radius);
+  background: var(--accent);
+  color: var(--on-accent);
+  font-size: 14.5px;
+  font-weight: 550;
+  transition: opacity var(--dur) var(--ease), transform var(--dur) var(--ease);
+}
+
+.login-submit:hover:not([disabled]) { opacity: .9; }
+.login-submit:active:not([disabled]) { transform: scale(.98); }
+.login-submit[disabled] { opacity: .5; cursor: default; }
 
 .badge-demo {
   background: var(--accent-soft);

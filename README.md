@@ -9,40 +9,55 @@ Agent + MCP 演示工程：基于 [AgentScope Java](https://github.com/agentscop
 | 模块 | 端口 | 说明 |
 | --- | --- | --- |
 | `mcp-server` | 8081 | 基于 Spring AI MCP Server（STREAMABLE 协议），提供示例工具：当前时间、模拟天气查询 |
-| `agent-app` | 8082 | 基于 AgentScope HarnessAgent 的智能体服务，连接 MCP server 获取工具，对外提供 SSE 流式对话接口 |
-| `agent-ui` | 5173 | 基于 Vite + Vue 3 的对话界面，对接 agent-app 的对话/会话接口；原型见 `agent-ui/原型/index.html` |
+| `agent-app` | 8082 | 基于 AgentScope HarnessAgent 的智能体服务，连接 MCP server 获取工具，对外提供 SSE 流式对话接口；含 Sa-Token + MyBatis-Plus 的用户登录（MySQL 存用户、Redis 存 token） |
+| `agent-ui` | 5173 | 基于 Vite + Vue 3 的对话界面（登录页 + Vue Router + Pinia + Axios），对接 agent-app；原型见 `agent-ui/原型/index.html` |
 
 ## 环境要求
 
 - JDK 17+
 - Maven 3.6+
 - DashScope API Key（环境变量 `YOKA_DASHSCOPE_API_KEY`）
+- MySQL 8（`localhost:3306`，初始化脚本见 `sql/init.sql`）
+- Redis（`localhost:6379`，存登录 token）
 
 ## 启动方式
 
 ```bash
-# 1. 编译
+# 1. 初始化数据库（建库 agent_demo + 用户表 t_user + 种子用户 admin/admin123）
+mysql -h127.0.0.1 -uroot -p < sql/init.sql
+
+# 2. 编译
 mvn clean compile
 
-# 2. 先启动 MCP server（8081）
+# 3. 先启动 MCP server（8081）
 mvn -pl mcp-server spring-boot:run
 
-# 3. 再启动 Agent 服务（8082）
+# 4. 再启动 Agent 服务（8082）
 export YOKA_DASHSCOPE_API_KEY=sk-xxxx
 mvn -pl agent-app spring-boot:run
 
-# 4. 启动前端界面（5173，需要先启动 agent-app）
+# 5. 启动前端界面（5173，需要先启动 agent-app）
 cd agent-ui
 pnpm install
 pnpm dev
 ```
 
-浏览器打开 `http://localhost:5173` 即可对话。前端通过 Vite 代理把 `/agent/scope/**` 转发到 `http://localhost:8082`，无需处理跨域。
+浏览器打开 `http://localhost:5173` 会跳到登录页，用种子账号 **admin / admin123**（或邮箱 `admin@example.com`）登录后进入对话。除 `/auth/login`、`/auth/logout` 外，所有接口都要带 `Authorization: Bearer <token>`；Agent 接口的用户身份由后端从 token 解析（不再传 userId），会话按用户隔离。前端通过 Vite 代理把 `/agent/**`、`/auth/**` 转发到 `http://localhost:8082`，无需处理跨域。
+
+路由：
+
+| 路径 | 说明 |
+| --- | --- |
+| `/login` | 登录页 |
+| `/chat` | 新对话；发首条消息后地址变为 `/chat/<uuid>` |
+| `/chat/:sessionId` | 指定会话（sessionId 为 uuid） |
+| `/profile` | 个人主页（真实用户信息来自 `/auth/current`） |
 
 界面上支持的接口：
 
 | 界面能力 | 接口 |
 | --- | --- |
+| 登录、退出、当前用户 | `POST /auth/login`、`POST /auth/logout`、`GET /auth/current` |
 | 侧栏会话列表、相对时间分组 | `GET /agent/scope/getSessions` |
 | 打开会话、渲染历史消息（思考过程/工具调用/正文） | `GET /agent/scope/getMessages` |
 | 发送消息、流式渲染 | `POST /agent/scope/chat_sse` |
@@ -51,11 +66,11 @@ pnpm dev
 
 说明：
 
-- 默认用户 ID 为 `1`，可在「个人主页」里切换；`userId` 存在 `localStorage` 的 `agent-ui:userId`。
-- 新建会话在发出第一条消息时才生成 `sessionId`，因此没有消息的空会话不会出现在列表里。
-- 个人主页的用量/费用/图表是**演示数据**（后端暂无对应接口），页面上已标注。
+- 登录状态由 Pinia 管理，token 存 `localStorage` 的 `agent-ui:token`（后端存 Redis，有效期 7 天）；除登录/退出外的接口由前端 Axios 拦截器自动携带 token，401 时自动回登录页。
+- 新建会话在发出第一条消息时才生成 `sessionId`（uuid），因此没有消息的空会话不会出现在列表里。
+- 个人主页的用户信息（昵称/邮箱/头像）来自 `/auth/current`；用量/费用/图表仍是**演示数据**（后端暂无对应接口），页面上已标注。
 - 附件、选择工具、模型切换为占位控件（禁用状态）；顶栏 ⋯ 菜单可把**当前会话的对话正文导出为 Markdown / HTML / PDF**（三者内容一致，均不含思考过程与工具调用；流式中或空会话时该项置灰）。PDF 走浏览器打印，会弹出系统打印对话框，在对话框里选「另存为 PDF」。
-- 侧栏左下角头像点开是菜单（个人主页 / 退出），其中「退出」暂未实现；侧栏头部按钮可收起侧栏（窄屏关抽屉，宽屏折叠整列，顶栏汉堡按钮展开）。
+- 侧栏左下角头像点开是菜单（个人主页 / 退出），「退出」调用 `/auth/logout` 后回到登录页；侧栏头部按钮可收起侧栏（窄屏关抽屉，宽屏折叠整列，顶栏汉堡按钮展开）。
 - 流式过程中后端不返回工具的成功/失败信号，所以工具卡片一律按「成功」收尾（仅当整个流报错时才标记失败）；历史消息里可依据 `state` 字段准确还原。
 
 可选环境变量：
@@ -63,16 +78,24 @@ pnpm dev
 | 变量 | 默认 | 说明 |
 | --- | --- | --- |
 | `YOKA_DASHSCOPE_API_KEY` | 无（必填） | DashScope API Key |
+| `MYSQL_PASSWORD` | `root` | MySQL 密码（本机演示默认值，生产请覆盖） |
 | `MCP_SERVER_TOKEN` | 空 | MCP server 访问令牌，为空时不附加 Authorization 头 |
 
 ## 接口示例
 
-流式对话（SSE）：
+先登录拿 token，再调 Agent 接口：
 
 ```bash
+# 登录（账号 admin/admin123，密码 BCrypt 加密存储，生成工具见 PasswordGeneratorTest）
+curl -X POST http://localhost:8082/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"account":"admin","password":"admin123"}'
+
+# 流式对话（SSE），用户身份由 token 解析
 curl -N -X POST http://localhost:8082/agent/scope/chat_sse \
   -H "Content-Type: application/json" \
-  -d '{"userId":"1","sessionId":"11","message":"查询一下杭州今天的天气"}'
+  -H "Authorization: Bearer <上一步返回的 token>" \
+  -d '{"sessionId":"11","message":"查询一下杭州今天的天气"}'
 ```
 返回结果:
 ``` text
@@ -172,15 +195,16 @@ data:{"content":"","type":"agent_end"}
 
 ```
 
-历史消息：`GET /agent/scope/getMessages?userId=u1&sessionId=s1`
+历史消息：`GET /agent/scope/getMessages?sessionId=s1`（带 token）
 
-会话列表：`GET /agent/scope/getSessions?userId=u1`
+会话列表：`GET /agent/scope/getSessions`（带 token）
 
-中断会话：`GET /agent/scope/interrupt?userId=u1&sessionId=s1`
+中断会话：`GET /agent/scope/interrupt?sessionId=s1`（带 token）
 
 API 文档：启动 agent-app 后访问 `http://localhost:8082/doc.html`（Knife4j）。
 
 ## 说明
 
-- 智能体状态与上下文默认存储在 `~/.agentscope` 目录下（JsonFileAgentStateStore）。
+- 用户存储：MySQL `agent_demo.t_user`（MyBatis-Plus），密码 BCrypt 加密；登录态用 Sa-Token 存 Redis（有效期 7 天），SQL 脚本在 `sql/` 目录。
+- 智能体状态与上下文默认存储在 `~/.agentscope` 目录下（JsonFileAgentStateStore），按登录用户的 DB 自增 id 分目录隔离。
 - `AgentConfig` 中工具权限模式为 `PermissionMode.BYPASS`（不校验权限），仅供演示，生产环境请勿使用。

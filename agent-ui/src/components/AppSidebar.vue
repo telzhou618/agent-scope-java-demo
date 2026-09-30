@@ -1,11 +1,15 @@
 <script setup lang="ts">
 import { computed } from 'vue'
+import { useRouter } from 'vue-router'
 import AppIcon from './AppIcon.vue'
+import { useAuthStore } from '../stores/auth'
 import { useChat } from '../stores/chat'
 import { useDismissableMenu } from '../composables/useDismissableMenu'
 import { groupLabel, relativeTime } from '../utils/format'
 
 const chat = useChat()
+const auth = useAuthStore()
+const router = useRouter()
 const {
   open: accountOpen,
   bindRoot: bindAccountRoot,
@@ -13,9 +17,20 @@ const {
   toggle: toggleAccount,
 } = useDismissableMenu()
 
+/** 侧栏底部账号：昵称与头像首字来自真实登录用户 */
+const accountName = computed(() => auth.user?.nickname || '未登录')
+const accountAvatar = computed(() => accountName.value.charAt(0) || 'A')
+
 function openProfile() {
   closeAccount()
-  chat.setView('profile')
+  void router.push('/profile')
+}
+
+/** 退出登录后跳转到登录页（需求 9） */
+async function onLogout() {
+  closeAccount()
+  await auth.logout()
+  await router.replace('/login')
 }
 
 const groups = computed(() => {
@@ -53,7 +68,7 @@ function confirmRemove(sessionId: string, summary: string) {
       </button>
     </div>
 
-    <button class="new-chat" type="button" @click="chat.newChat()">
+    <button class="new-chat" type="button" @click="router.push('/chat')">
       <AppIcon name="plus" :size="15" />
       新对话
       <span class="kbd-hint" aria-hidden="true">Ctrl K</span>
@@ -75,9 +90,9 @@ function confirmRemove(sessionId: string, summary: string) {
           role="button"
           tabindex="0"
           :aria-current="session.sessionId === chat.state.currentSessionId"
-          @click="chat.openSession(session.sessionId)"
-          @keydown.enter.prevent="chat.openSession(session.sessionId)"
-          @keydown.space.prevent="chat.openSession(session.sessionId)"
+          @click="router.push({ name: 'chat-session', params: { sessionId: session.sessionId } })"
+          @keydown.enter.prevent="router.push({ name: 'chat-session', params: { sessionId: session.sessionId } })"
+          @keydown.space.prevent="router.push({ name: 'chat-session', params: { sessionId: session.sessionId } })"
         >
           <div class="session-title">{{ session.summary || session.sessionId }}</div>
           <div class="session-meta">{{ relativeTime(session.timestamp) }}</div>
@@ -104,9 +119,9 @@ function confirmRemove(sessionId: string, summary: string) {
           :aria-current="chat.state.view === 'profile'"
           @click="toggleAccount()"
         >
-          <span class="avatar" aria-hidden="true">张</span>
+          <span class="avatar" aria-hidden="true">{{ accountAvatar }}</span>
           <span class="account-text">
-            <span class="account-name">张三</span>
+            <span class="account-name">{{ accountName }}</span>
             <span class="account-plan">Pro 计划</span>
           </span>
           <AppIcon name="chevron" :size="14" class="chevron" />
@@ -117,7 +132,7 @@ function confirmRemove(sessionId: string, summary: string) {
             <AppIcon name="user" :size="14" />
             个人主页
           </button>
-          <button class="more-item" type="button" role="menuitem" disabled title="暂未开放">
+          <button class="more-item" type="button" role="menuitem" @click="onLogout">
             <AppIcon name="logout" :size="14" />
             退出
           </button>

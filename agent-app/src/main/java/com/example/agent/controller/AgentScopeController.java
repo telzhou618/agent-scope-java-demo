@@ -1,5 +1,6 @@
 package com.example.agent.controller;
 
+import cn.dev33.satoken.stp.StpUtil;
 import cn.hutool.core.collection.CollUtil;
 import com.alibaba.fastjson2.JSON;
 import com.example.agent.dto.AgentChatRequest;
@@ -39,6 +40,13 @@ public class AgentScopeController {
     private final HarnessAgent harnessAgent;
     private final AgentStateStore agentStateStore;
 
+    /**
+     * 从 token 解析当前登录用户 id（字符串形式，与会话状态目录名一致）
+     */
+    private String loginUserId() {
+        return String.valueOf(StpUtil.getLoginIdAsLong());
+    }
+
     @PostMapping(value = "/chat_sse", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     @Operation(summary = "流式对话")
     public Flux<ServerSentEvent<String>> chatSse(@RequestBody @Validated AgentChatRequest request) {
@@ -47,7 +55,7 @@ public class AgentScopeController {
 
         RuntimeContext context = RuntimeContext.builder()
                 .sessionId(request.getSessionId())
-                .userId(request.getUserId())
+                .userId(loginUserId())
                 .build();
 
         return harnessAgent.streamEvents(new UserMessage("user", request.getMessage()), context)
@@ -145,9 +153,9 @@ public class AgentScopeController {
 
     @GetMapping("/getMessages")
     @Operation(summary = "历史消息")
-    public Result<List<Msg>> getMessages(String userId, String sessionId) {
+    public Result<List<Msg>> getMessages(String sessionId) {
         Optional<AgentState> agentState = agentStateStore.get(
-                userId, sessionId, "agent_state", AgentState.class
+                loginUserId(), sessionId, "agent_state", AgentState.class
         );
         if (agentState.isPresent()) {
             return Result.okData(agentState.get().getContext());
@@ -157,7 +165,8 @@ public class AgentScopeController {
 
     @GetMapping("/getSessions")
     @Operation(summary = "会话列表")
-    public Result<List<AgentSession>> getSessions(String userId) {
+    public Result<List<AgentSession>> getSessions() {
+        String userId = loginUserId();
         // load 用户所有会话
         Set<String> sessionIds = agentStateStore.listSessionIds(userId);
         if (CollUtil.isEmpty(sessionIds)) {
@@ -188,16 +197,16 @@ public class AgentScopeController {
 
     @GetMapping("/delSession")
     @Operation(summary = "删除会话")
-    public Result<Void> delSessions(String userId, String sessionId) {
-        agentStateStore.delete(userId, sessionId);
+    public Result<Void> delSessions(String sessionId) {
+        agentStateStore.delete(loginUserId(), sessionId);
         return Result.ok();
     }
 
     @GetMapping("/interrupt")
     @Operation(summary = "中断会话")
-    public Result<Void> interrupt(String userId, String sessionId) {
+    public Result<Void> interrupt(String sessionId) {
         RuntimeContext target = RuntimeContext.builder()
-                .userId(userId)
+                .userId(loginUserId())
                 .sessionId(sessionId)
                 .build();
         harnessAgent.getDelegate().interrupt(target, new UserMessage("用户已取消操作"));

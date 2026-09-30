@@ -1,13 +1,15 @@
-import { getJson } from './http'
-import type { AgentSession, Msg } from './types'
+import { API_BASE, http } from './http'
+import type { AgentSession, Msg, Result } from './types'
 
-export const getSessions = (userId: string) => getJson<AgentSession[]>('/getSessions', { userId })
+/** 会话列表；用户身份由后端从 token 解析 */
+export const getSessions = () =>
+  http.get<Result<AgentSession[]>>(`${API_BASE}/getSessions`).then((r) => r.data.data)
 
-export const getMessages = (userId: string, sessionId: string) =>
-  getJson<Msg[]>('/getMessages', { userId, sessionId })
+export const getMessages = (sessionId: string) =>
+  http.get<Result<Msg[]>>(`${API_BASE}/getMessages`, { params: { sessionId } }).then((r) => r.data.data)
 
-export const delSession = (userId: string, sessionId: string) =>
-  getJson<void>('/delSession', { userId, sessionId })
+export const delSession = (sessionId: string) =>
+  http.get<Result<void>>(`${API_BASE}/delSession`, { params: { sessionId } }).then((r) => r.data.data)
 
-export const interrupt = (userId: string, sessionId: string) =>
-  getJson<void>('/interrupt', { userId, sessionId })
+export const interrupt = (sessionId: string) =>
+  http.get<Result<void>>(`${API_BASE}/interrupt`, { params: { sessionId } }).then((r) => r.data.data)

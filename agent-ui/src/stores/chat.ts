@@ -7,17 +7,8 @@ import { toTurns } from '../utils/history'
 import { createLiveTurn, type LiveTurn } from '../utils/stream'
 import type { AssistantTurn, Turn } from '../utils/model'
 
-const USER_ID_KEY = 'agent-ui:userId'
 const SIDEBAR_KEY = 'agent-ui:sidebar'
 const narrowMedia = window.matchMedia('(max-width: 900px)')
-
-function readUserId(): string {
-  try {
-    return localStorage.getItem(USER_ID_KEY) || '1'
-  } catch {
-    return '1'
-  }
-}
 
 /**
  * 侧栏是否展开。同一个状态，两种布局含义：
@@ -50,7 +41,6 @@ function toMessage(error: unknown): string {
 }
 
 interface ChatState {
-  userId: string
   view: 'chat' | 'profile'
   sidebarOpen: boolean
   sessions: AgentSession[]
@@ -64,7 +54,6 @@ interface ChatState {
 }
 
 const state = reactive<ChatState>({
-  userId: readUserId(),
   view: 'chat',
   sidebarOpen: readSidebarOpen(),
   sessions: [],
@@ -93,11 +82,12 @@ function dropEmptyLiveTurn() {
   }
 }
 
+/** 会话列表；用户身份由后端从 token 解析 */
 async function loadSessions() {
   state.loadingSessions = true
   state.sessionsError = ''
   try {
-    state.sessions = (await getSessions(state.userId)) ?? []
+    state.sessions = (await getSessions()) ?? []
   } catch (error) {
     state.sessionsError = toMessage(error)
   } finally {
@@ -114,7 +104,7 @@ async function openSession(sessionId: string) {
   state.turns = []
   state.loadingMessages = true
   try {
-    const messages = await getMessages(state.userId, sessionId)
+    const messages = await getMessages(sessionId)
     if (state.currentSessionId !== sessionId) return
     state.turns = toTurns(messages ?? [])
   } catch (error) {
@@ -135,7 +125,7 @@ async function newChat() {
 
 async function removeSession(sessionId: string) {
   try {
-    await delSession(state.userId, sessionId)
+    await delSession(sessionId)
   } catch (error) {
     state.sessionsError = toMessage(error)
     return
@@ -151,7 +141,7 @@ async function send(text: string) {
   const message = text.trim()
   if (!message || state.streaming) return
 
-  const sessionId = state.currentSessionId ?? String(Date.now())
+  const sessionId = state.currentSessionId ?? crypto.randomUUID()
   const isNew = !state.currentSessionId
   state.currentSessionId = sessionId
   state.messagesError = ''
@@ -162,8 +152,14 @@ async function send(text: string) {
   state.streaming = true
   liveTurn = live
 
+  // 新建会话：地址补上 sessionId（需求 12）。动态导入避免 store -> router 循环依赖
+  if (isNew) {
+    const { default: router } = await import('../router')
+    await router.replace(`/chat/${sessionId}`)
+  }
+
   const stream = chatStream(
-    { message, sessionId, userId: state.userId },
+    { message, sessionId },
     {
       onEvent: (event) => live.handle(event),
       onError: (error) => live.fail(error),
@@ -188,7 +184,7 @@ async function send(text: string) {
 /** 中断：先通知后端停止，再断开本地流 */
 async function stop() {
   const sessionId = state.currentSessionId
-  const pending = sessionId ? interrupt(state.userId, sessionId).catch(() => undefined) : null
+  const pending = sessionId ? interrupt(sessionId).catch(() => undefined) : null
   handle?.abort()
   if (pending) await pending
 }
@@ -228,21 +224,6 @@ function closeDrawerOnNarrow() {
   if (narrowMedia.matches) state.sidebarOpen = false
 }
 
-async function setUserId(userId: string) {
-  const next = userId.trim()
-  if (!next || next === state.userId) return
-  if (state.streaming) await stop()
-  state.userId = next
-  try {
-    localStorage.setItem(USER_ID_KEY, next)
-  } catch {
-    /* 隐私模式下无法持久化，忽略 */
-  }
-  state.currentSessionId = null
-  state.turns = []
-  await loadSessions()
-}
-
 const title = computed(() => {
   if (state.view === 'profile') return '个人主页'
   const session = state.sessions.find((item) => item.sessionId === state.currentSessionId)
@@ -268,6 +249,5 @@ export function useChat() {
     setSidebarOpen,
     toggleSidebar,
     closeDrawerOnNarrow,
-    setUserId,
   }
 }

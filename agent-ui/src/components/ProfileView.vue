@@ -1,14 +1,16 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue'
-import { useChat } from '../stores/chat'
+import { computed } from 'vue'
+import { useAuthStore } from '../stores/auth'
 import { formatInt, formatMoney, formatTokens } from '../utils/format'
 
-const { state, setUserId } = useChat()
+const auth = useAuthStore()
+
+/** 用户信息：来自 /auth/current 的真实数据 */
+const displayName = computed(() => auth.user?.nickname || auth.user?.username || '未登录')
+const avatarChar = computed(() => displayName.value.charAt(0) || 'A')
 
 /* ---- 演示数据：后端暂无用量相关接口，先按原型填充 ---- */
 const profile = {
-  name: '张三',
-  email: 'zhangsan@example.com',
   plan: 'Pro 计划',
   joined: '2025 年 3 月加入',
   period: '2026 年 9 月',
@@ -23,8 +25,6 @@ const profile = {
     117, 123, 134, 126, 112, 57, 40, 114, 90,
   ],
 }
-
-const userIdDraft = ref(state.userId)
 
 const totals = computed(() => {
   const sum = (pick: (item: (typeof profile.models)[number]) => number) =>
@@ -73,40 +73,27 @@ const chartLabel = computed(
   () =>
     `${profile.period}每日 token 消耗，最高 ${formatTokens(peak * 1000)}，最低 ${formatTokens(low * 1000)}`,
 )
-
-function applyUserId() {
-  void setUserId(userIdDraft.value)
-}
 </script>
 
 <template>
   <div class="profile-inner">
     <div class="identity">
-      <span class="identity-avatar" aria-hidden="true">张</span>
+      <img
+        v-if="auth.user?.avatar"
+        class="identity-avatar"
+        :src="auth.user.avatar"
+        alt="头像"
+      />
+      <span v-else class="identity-avatar" aria-hidden="true">{{ avatarChar }}</span>
       <div class="identity-main">
-        <h1 class="identity-name">{{ profile.name }}</h1>
-        <div class="identity-email">{{ profile.email }}</div>
+        <h1 class="identity-name">{{ displayName }}</h1>
+        <div class="identity-email">{{ auth.user?.email || '—' }}</div>
         <div class="identity-meta">
           <span class="badge">{{ profile.plan }}</span>
           <span>{{ profile.joined }}</span>
         </div>
       </div>
       <button class="btn-ghost" type="button" disabled title="暂未开放">管理订阅</button>
-    </div>
-
-    <div class="settings-row">
-      <label class="settings-label" for="userId">用户 ID</label>
-      <input
-        id="userId"
-        v-model="userIdDraft"
-        class="settings-input"
-        type="text"
-        inputmode="numeric"
-        placeholder="例如 1"
-        @keydown.enter.prevent="applyUserId"
-      />
-      <button class="btn-ghost" type="button" @click="applyUserId">切换</button>
-      <span class="settings-note">切换后按该用户加载会话列表（当前 {{ state.userId }}）</span>
     </div>
 
     <div class="section-head">
