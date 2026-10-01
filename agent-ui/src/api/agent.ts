@@ -6,6 +6,10 @@ import type { RecentRequestItem, UsageSummary } from '../utils/usage'
 export const getSessions = () =>
   http.get<Result<AgentSession[]>>(`${API_BASE}/getSessions`).then((r) => r.data.data)
 
+/** 新建会话：写入占位标题并触发异步标题生成 */
+export const createSession = (payload: { sessionId: string; message: string }) =>
+  http.post<Result<void>>(`${API_BASE}/createSession`, payload).then((r) => r.data.data)
+
 export const getMessages = (sessionId: string) =>
   http.get<Result<Msg[]>>(`${API_BASE}/getMessages`, { params: { sessionId } }).then((r) => r.data.data)
 

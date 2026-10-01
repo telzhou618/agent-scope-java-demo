@@ -1,6 +1,6 @@
 import { computed, reactive } from 'vue'
 import { ApiError } from '../api/http'
-import { delSession, getMessages, getSessions, interrupt } from '../api/agent'
+import { createSession, delSession, getMessages, getSessions, interrupt } from '../api/agent'
 import type { AgentSession } from '../api/types'
 import { chatStream, type StreamHandle } from '../sse/chatStream'
 import { toTurns } from '../utils/history'
@@ -82,12 +82,11 @@ function dropEmptyLiveTurn() {
   }
 }
 
-/** 首条消息生成的 AI 标题：只更新侧栏，不进消息区 */
-function updateSessionSummary(sessionId: string, title?: string) {
-  const summary = title?.trim()
-  if (!summary) return
-  const session = state.sessions.find((item) => item.sessionId === sessionId)
-  if (session) session.summary = summary
+/** 与后端 Msg.timestamp 一致的本地时间格式：yyyy-MM-dd HH:mm:ss.SSS */
+function nowTimestamp(): string {
+  const d = new Date()
+  const pad = (n: number, w = 2) => String(n).padStart(w, '0')
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}.${pad(d.getMilliseconds(), 3)}`
 }
 
 /** 会话列表；用户身份由后端从 token 解析 */
@@ -151,6 +150,18 @@ async function send(text: string, attachments?: UserAttachment[]) {
 
   const sessionId = state.currentSessionId ?? crypto.randomUUID()
   const isNew = !state.currentSessionId
+
+  // 新建会话：先调创建会话接口（后端写入占位标题并异步生成正式标题），侧栏立即显示「新会话」
+  if (isNew) {
+    try {
+      await createSession({ sessionId, message: message || '请查看我发送的文件' })
+    } catch (error) {
+      state.messagesError = toMessage(error)
+      return
+    }
+    state.sessions.unshift({ userId: '', sessionId, summary: '新会话', timestamp: nowTimestamp() })
+  }
+
   state.currentSessionId = sessionId
   const requestId = crypto.randomUUID()
   state.messagesError = ''
@@ -179,13 +190,7 @@ async function send(text: string, attachments?: UserAttachment[]) {
         .map((item) => ({ id: item.id ?? '', name: item.name, ext: item.ext, size: item.size })),
     },
     {
-      onEvent: (event) => {
-        if (event.type === 'title') {
-          updateSessionSummary(sessionId, event.content)
-          return
-        }
-        live.handle(event)
-      },
+      onEvent: (event) => live.handle(event),
       onError: (error) => live.fail(error),
     },
   )

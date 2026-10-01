@@ -7,6 +7,7 @@ import com.example.agent.dto.AgentChatRequest;
 import com.example.agent.dto.AgentSession;
 import com.example.agent.dto.AgentSseEvent;
 import com.example.agent.dto.ChatAttachment;
+import com.example.agent.dto.CreateSessionRequest;
 import com.example.agent.dto.Result;
 import com.example.agent.dto.SessionMeta;
 import com.example.agent.error.BizException;
@@ -34,7 +35,6 @@ import org.springframework.http.codec.ServerSentEvent;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import reactor.core.publisher.Flux;
-import reactor.core.publisher.Mono;
 
 import java.nio.charset.StandardCharsets;
 import java.util.*;
@@ -77,7 +77,7 @@ public class AgentScopeController {
                 .put("requestId", request.getRequestId() == null ? "" : request.getRequestId())
                 .build();
 
-        Flux<ServerSentEvent<String>> mainStream = harnessAgent.streamEvents(userMessage, context)
+        return harnessAgent.streamEvents(userMessage, context)
                 .flatMap(event -> {
                     if (log.isDebugEnabled()) {
                         log.debug("Agent 流事件：{}", JSON.toJSONString(event));
@@ -95,17 +95,16 @@ public class AgentScopeController {
                             .data(error.getMessage())
                             .build());
                 });
+    }
 
-        // 首条消息并行生成会话标题，完成后以 title 事件并入流（不阻塞主回复）
-        Mono<ServerSentEvent<String>> titleEvent = sessionTitleService
-                .generateIfAbsent(userId, request.getSessionId(), message)
-                .map(title -> toSse(AgentSseEvent.builder().type("title").content(title).build()))
-                .onErrorResume(e -> {
-                    log.warn("会话标题事件推送失败", e);
-                    return Mono.empty();
-                });
-
-        return mainStream.mergeWith(titleEvent);
+    @PostMapping("/createSession")
+    @Operation(summary = "创建会话")
+    public Result<Void> createSession(@RequestBody @Validated CreateSessionRequest request) {
+        String userId = loginUserId();
+        // 先同步写入占位标题，前端可立即在会话列表看到；正式标题异步生成并更新
+        sessionTitleService.createPlaceholder(userId, request.getSessionId());
+        sessionTitleService.generateAndUpdateAsync(userId, request.getSessionId(), request.getMessage());
+        return Result.ok();
     }
 
     private String effectiveMessage(AgentChatRequest request) {
@@ -241,29 +240,32 @@ public class AgentScopeController {
         if (CollUtil.isEmpty(sessionIds)) {
             return Result.okData(new LinkedList<>());
         }
-        // 遍历会话，优先使用 AI 生成的会话标题，缺省回退首条消息摘要
+        // 遍历会话：标题优先取 meta（AI 生成/占位），缺省回退首条消息摘要；
+        // 只有占位 meta、还没有消息的新会话也纳入列表
         List<AgentSession> agentSessions = sessionIds.stream().map(sessionId -> {
                     Optional<Msg> first = agentStateStore.get(userId, sessionId, "agent_state", AgentState.class)
                             .map(AgentState::getContext)
                             .orElse(Collections.emptyList())
                             .stream().findFirst();
-                    if (first.isEmpty()) {
+                    Optional<SessionMeta> meta = agentStateStore.get(userId, sessionId, "session_meta", SessionMeta.class);
+                    String summary = meta.map(SessionMeta::getTitle)
+                            .filter(title -> !title.isBlank())
+                            .orElse(first.map(Msg::getTextContent).orElse(null));
+                    String timestamp = first.map(Msg::getTimestamp)
+                            .orElse(meta.map(SessionMeta::getCreateTime).orElse(null));
+                    if (summary == null && timestamp == null) {
                         return null;
                     }
-                    Msg msg = first.get();
-                    String summary = agentStateStore.get(userId, sessionId, "session_meta", SessionMeta.class)
-                            .map(SessionMeta::getTitle)
-                            .filter(title -> !title.isBlank())
-                            .orElse(msg.getTextContent());
                     return AgentSession.builder()
                             .userId(userId)
                             .sessionId(sessionId)
                             .summary(summary)
-                            .timestamp(msg.getTimestamp())
+                            .timestamp(timestamp)
                             .build();
                 })
                 .filter(Objects::nonNull)
-                .sorted(Comparator.comparing(AgentSession::getTimestamp)
+                .sorted(Comparator.comparing(AgentSession::getTimestamp,
+                                Comparator.nullsLast(Comparator.naturalOrder()))
                         .reversed()).toList();
         return Result.okData(agentSessions);
     }

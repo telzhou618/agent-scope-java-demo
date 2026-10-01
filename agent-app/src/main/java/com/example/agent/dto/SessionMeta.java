@@ -21,4 +21,9 @@ public class SessionMeta implements State {
      * 会话标题
      */
     private String title;
+
+    /**
+     * 会话创建时间，格式与 Msg.timestamp 一致（yyyy-MM-dd HH:mm:ss.SSS）
+     */
+    private String createTime;
 }

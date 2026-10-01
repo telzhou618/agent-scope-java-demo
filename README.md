@@ -59,6 +59,7 @@ pnpm dev
 | --- | --- |
 | 登录、退出、当前用户 | `POST /auth/login`、`POST /auth/logout`、`GET /auth/current` |
 | 侧栏会话列表、相对时间分组 | `GET /agent/scope/getSessions` |
+| 新建会话（占位标题 + 异步生成标题） | `POST /agent/scope/createSession` |
 | 打开会话、渲染历史消息（思考过程/工具调用/正文） | `GET /agent/scope/getMessages` |
 | 发送消息、流式渲染 | `POST /agent/scope/chat_sse` |
 | 停止生成（输入框右侧方块按钮） | `GET /agent/scope/interrupt` |
@@ -67,7 +68,7 @@ pnpm dev
 说明：
 
 - 登录状态由 Pinia 管理，token 存 `localStorage` 的 `agent-ui:token`（后端存 Redis，有效期 7 天）；除登录/退出外的接口由前端 Axios 拦截器自动携带 token，401 时自动回登录页。
-- 新建会话在发出第一条消息时才生成 `sessionId`（uuid），因此没有消息的空会话不会出现在列表里。
+- 新建会话在发出第一条消息时才生成 `sessionId`（uuid），前端先调用 `POST /agent/scope/createSession`：后端立即写入「新会话」占位标题并返回，侧栏马上可见；随后异步调用模型根据首条消息生成正式标题并更新数据库，首轮 AI 回答结束后前端刷新会话列表即可看到新标题。
 - 个人主页的用户信息（昵称/邮箱/头像）来自 `/auth/current`；用量/费用/图表仍是**演示数据**（后端暂无对应接口），页面上已标注。
 - 附件、选择工具、模型切换为占位控件（禁用状态）；顶栏 ⋯ 菜单可把**当前会话的对话正文导出为 Markdown / HTML / PDF**（三者内容一致，均不含思考过程与工具调用；流式中或空会话时该项置灰）。PDF 走浏览器打印，会弹出系统打印对话框，在对话框里选「另存为 PDF」。
 - 侧栏左下角头像点开是菜单（个人主页 / 退出），「退出」调用 `/auth/logout` 后回到登录页；侧栏头部按钮可收起侧栏（窄屏关抽屉，宽屏折叠整列，顶栏汉堡按钮展开）。
