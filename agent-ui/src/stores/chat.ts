@@ -102,8 +102,36 @@ async function loadSessions() {
   }
 }
 
+const TITLE_PLACEHOLDER = '新会话'
+/** 占位标题退避重试间隔：覆盖绝大多数异步标题生成耗时 */
+const TITLE_RETRY_DELAYS = [2000, 4000, 8000]
+let titleRetryTimer: ReturnType<typeof setTimeout> | null = null
+
+function cancelTitleRetry() {
+  if (titleRetryTimer) {
+    clearTimeout(titleRetryTimer)
+    titleRetryTimer = null
+  }
+}
+
+/**
+ * 首轮回答结束后刷新会话列表。异步标题可能还没生成完（拿到的仍是占位符），
+ * 此时按退避间隔重试，直到拿到正式标题、会话被删或重试次数用完（兜底：下次刷新自然更新）。
+ */
+async function refreshSessionsUntilTitled(sessionId: string, attempt = 0) {
+  await loadSessions()
+  const session = state.sessions.find((item) => item.sessionId === sessionId)
+  if (!session || session.summary !== TITLE_PLACEHOLDER) return
+  if (attempt >= TITLE_RETRY_DELAYS.length) return
+  titleRetryTimer = setTimeout(() => {
+    titleRetryTimer = null
+    void refreshSessionsUntilTitled(sessionId, attempt + 1)
+  }, TITLE_RETRY_DELAYS[attempt])
+}
+
 async function openSession(sessionId: string) {
   if (state.streaming) await stop()
+  cancelTitleRetry()
   state.currentSessionId = sessionId
   state.view = 'chat'
   closeDrawerOnNarrow()
@@ -123,6 +151,7 @@ async function openSession(sessionId: string) {
 
 async function newChat() {
   if (state.streaming) await stop()
+  cancelTitleRetry()
   state.currentSessionId = null
   state.turns = []
   state.messagesError = ''
@@ -131,6 +160,7 @@ async function newChat() {
 }
 
 async function removeSession(sessionId: string) {
+  cancelTitleRetry()
   try {
     await delSession(sessionId)
   } catch (error) {
@@ -153,13 +183,14 @@ async function send(text: string, attachments?: UserAttachment[]) {
 
   // 新建会话：先调创建会话接口（后端写入占位标题并异步生成正式标题），侧栏立即显示「新会话」
   if (isNew) {
+    cancelTitleRetry()
     try {
       await createSession({ sessionId, message: message || '请查看我发送的文件' })
     } catch (error) {
       state.messagesError = toMessage(error)
       return
     }
-    state.sessions.unshift({ userId: '', sessionId, summary: '新会话', timestamp: nowTimestamp() })
+    state.sessions.unshift({ userId: '', sessionId, summary: TITLE_PLACEHOLDER, timestamp: nowTimestamp() })
   }
 
   state.currentSessionId = sessionId
@@ -205,7 +236,10 @@ async function send(text: string, attachments?: UserAttachment[]) {
   dropEmptyLiveTurn()
   state.streaming = false
 
-  if (isNew || !state.sessions.some((item) => item.sessionId === sessionId)) {
+  if (isNew) {
+    // 首轮回答结束刷新列表；异步标题可能还没写完，仍是占位符时退避重试
+    void refreshSessionsUntilTitled(sessionId)
+  } else if (!state.sessions.some((item) => item.sessionId === sessionId)) {
     void loadSessions()
   }
 }
