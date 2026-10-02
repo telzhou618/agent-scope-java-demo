@@ -129,11 +129,41 @@
 .hljs-emphasis { font-style: italic; }
 .hljs-strong { font-weight: 650; }
 
-/* ---------- 会话项：hover 出现删除按钮 ---------- */
+/* ---------- 会话项：hover 出现置顶/删除按钮 ---------- */
 .session-item {
   position: relative;
-  padding-right: 34px;
+  padding-right: 58px;
   cursor: pointer;
+}
+
+.session-pin {
+  position: absolute;
+  top: 50%;
+  right: 30px;
+  transform: translateY(-50%);
+  width: 24px;
+  height: 24px;
+  display: grid;
+  place-items: center;
+  border-radius: 6px;
+  color: var(--fg-icon);
+  opacity: 0;
+  transition: opacity var(--dur) var(--ease), background var(--dur) var(--ease),
+    color var(--dur) var(--ease);
+}
+
+.session-item:hover .session-pin,
+.session-item:focus-within .session-pin { opacity: 1; }
+
+.session-pin:hover {
+  background: var(--bg-sidebar);
+  color: var(--fg);
+}
+
+/* 已置顶：按钮常驻显示并高亮 */
+.session-pin.active {
+  opacity: 1;
+  color: var(--accent);
 }
 
 .session-del {
@@ -161,6 +191,7 @@
 }
 
 @media (hover: none) {
+  .session-pin { opacity: 1; }
   .session-del { opacity: 1; }
 }
 

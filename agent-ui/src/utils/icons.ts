@@ -38,6 +38,7 @@ export const iconPaths = {
     '<path d="M6 9V3h12v6"/><path d="M6 18H4a1.5 1.5 0 0 1-1.5-1.5v-5A1.5 1.5 0 0 1 4 10h16a1.5 1.5 0 0 1 1.5 1.5v5A1.5 1.5 0 0 1 20 18h-2"/><rect x="6" y="13.5" width="12" height="7.5" rx="1"/>',
   trash:
     '<path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/>',
+  pin: '<path d="M12 17v5"/><path d="M9 10.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24V16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V7a1 1 0 0 1 1-1 2 2 0 0 0 0-4H8a2 2 0 0 0 0 4 1 1 0 0 1 1 1Z"/>',
 } as const
 
 export type IconName = keyof typeof iconPaths

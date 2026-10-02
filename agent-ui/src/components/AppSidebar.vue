@@ -35,7 +35,11 @@ async function onLogout() {
 
 const groups = computed(() => {
   const result: { label: string; items: typeof chat.state.sessions }[] = []
+  // 置顶会话单独成组，固定排在日期分组之前
+  const pinned = chat.state.sessions.filter((item) => item.pinned)
+  if (pinned.length) result.push({ label: '置顶', items: pinned })
   for (const session of chat.state.sessions) {
+    if (session.pinned) continue
     const label = groupLabel(session.timestamp)
     const last = result[result.length - 1]
     if (last && last.label === label) last.items.push(session)
@@ -95,6 +99,16 @@ function confirmRemove(sessionId: string, summary: string) {
           @keydown.space.prevent="router.push({ name: 'chat-session', params: { sessionId: session.sessionId } })"
         >
           <div class="session-title">{{ session.summary || session.sessionId }}</div>
+          <button
+            class="session-pin"
+            :class="{ active: session.pinned }"
+            type="button"
+            :aria-label="session.pinned ? '取消置顶' : '置顶会话'"
+            :title="session.pinned ? '取消置顶' : '置顶会话'"
+            @click.stop="chat.togglePin(session.sessionId)"
+          >
+            <AppIcon name="pin" :size="13" :filled="!!session.pinned" />
+          </button>
           <button
             class="session-del"
             type="button"

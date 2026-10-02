@@ -64,6 +64,7 @@ pnpm dev
 | 发送消息、流式渲染 | `POST /agent/scope/chat_sse` |
 | 停止生成（输入框右侧方块按钮） | `GET /agent/scope/interrupt` |
 | 会话项悬停后的删除按钮 | `GET /agent/scope/delSession` |
+| 会话项悬停后的置顶/取消置顶按钮 | `GET /agent/scope/pinSession` |
 
 说明：
 

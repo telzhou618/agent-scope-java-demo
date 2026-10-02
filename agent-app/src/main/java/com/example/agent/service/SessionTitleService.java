@@ -88,6 +88,7 @@ public class SessionTitleService {
         stateStore.save(userId, sessionId, META_KEY, SessionMeta.builder()
                 .title(title)
                 .createTime(current.map(SessionMeta::getCreateTime).orElse(null))
+                .pinned(current.map(SessionMeta::isPinned).orElse(false))
                 .build());
     }
 

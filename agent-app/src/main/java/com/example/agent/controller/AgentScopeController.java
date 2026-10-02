@@ -271,12 +271,15 @@ public class AgentScopeController {
                             .sessionId(sessionId)
                             .summary(summary)
                             .timestamp(timestamp)
+                            .pinned(meta.map(SessionMeta::isPinned).orElse(false))
                             .build();
                 })
                 .filter(Objects::nonNull)
-                .sorted(Comparator.comparing(AgentSession::getTimestamp,
-                                Comparator.nullsLast(Comparator.naturalOrder()))
-                        .reversed()).toList();
+                // 置顶优先，组内按时间倒序
+                .sorted(Comparator.comparing(AgentSession::isPinned).reversed()
+                        .thenComparing(AgentSession::getTimestamp,
+                                Comparator.nullsLast(Comparator.reverseOrder())))
+                .toList();
         return Result.okData(agentSessions);
     }
 
@@ -284,6 +287,18 @@ public class AgentScopeController {
     @Operation(summary = "删除会话")
     public Result<Void> delSessions(String sessionId) {
         agentStateStore.delete(loginUserId(), sessionId);
+        return Result.ok();
+    }
+
+    @GetMapping("/pinSession")
+    @Operation(summary = "置顶/取消置顶会话")
+    public Result<Void> pinSession(String sessionId, boolean pinned) {
+        String userId = loginUserId();
+        // 无 meta 的老会话也能置顶：新建空 meta，标题仍回退首条消息摘要
+        SessionMeta meta = agentStateStore.get(userId, sessionId, "session_meta", SessionMeta.class)
+                .orElseGet(SessionMeta::new);
+        meta.setPinned(pinned);
+        agentStateStore.save(userId, sessionId, "session_meta", meta);
         return Result.ok();
     }
 

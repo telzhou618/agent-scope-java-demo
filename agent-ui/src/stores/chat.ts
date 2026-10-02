@@ -1,6 +1,6 @@
 import { computed, reactive } from 'vue'
 import { ApiError } from '../api/http'
-import { createSession, delSession, getMessages, getSessions, interrupt } from '../api/agent'
+import { createSession, delSession, getMessages, getSessions, interrupt, pinSession } from '../api/agent'
 import type { AgentSession } from '../api/types'
 import { chatStream, type StreamHandle } from '../sse/chatStream'
 import { toTurns } from '../utils/history'
@@ -244,6 +244,24 @@ async function send(text: string, attachments?: UserAttachment[]) {
   }
 }
 
+/** 置顶/取消置顶：成功后本地更新并按「置顶优先、时间倒序」重排，不整表刷新 */
+async function togglePin(sessionId: string) {
+  const session = state.sessions.find((item) => item.sessionId === sessionId)
+  if (!session) return
+  const pinned = !session.pinned
+  try {
+    await pinSession(sessionId, pinned)
+  } catch (error) {
+    state.sessionsError = toMessage(error)
+    return
+  }
+  session.pinned = pinned
+  state.sessions.sort((a, b) => {
+    if (!!a.pinned !== !!b.pinned) return a.pinned ? -1 : 1
+    return (b.timestamp ?? '').localeCompare(a.timestamp ?? '')
+  })
+}
+
 /** 中断：先通知后端停止，再断开本地流 */
 async function stop() {
   const sessionId = state.currentSessionId
@@ -304,6 +322,7 @@ export function useChat() {
     openSession,
     newChat,
     removeSession,
+    togglePin,
     send,
     stop,
     regenerate,

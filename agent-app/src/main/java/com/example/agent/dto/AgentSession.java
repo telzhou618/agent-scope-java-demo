@@ -26,5 +26,9 @@ public class AgentSession {
      */
     private String timestamp;
 
+    /**
+     * 是否置顶
+     */
+    private boolean pinned;
 
 }

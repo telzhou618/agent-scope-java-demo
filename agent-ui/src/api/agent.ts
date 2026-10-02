@@ -16,6 +16,10 @@ export const getMessages = (sessionId: string) =>
 export const delSession = (sessionId: string) =>
   http.get<Result<void>>(`${API_BASE}/delSession`, { params: { sessionId } }).then((r) => r.data.data)
 
+/** 置顶/取消置顶会话 */
+export const pinSession = (sessionId: string, pinned: boolean) =>
+  http.get<Result<void>>(`${API_BASE}/pinSession`, { params: { sessionId, pinned } }).then((r) => r.data.data)
+
 export const interrupt = (sessionId: string) =>
   http.get<Result<void>>(`${API_BASE}/interrupt`, { params: { sessionId } }).then((r) => r.data.data)
 

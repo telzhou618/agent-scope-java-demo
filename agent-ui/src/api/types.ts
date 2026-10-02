@@ -14,6 +14,8 @@ export interface AgentSession {
   summary?: string
   /** yyyy-MM-dd HH:mm:ss.SSS */
   timestamp: string
+  /** 是否置顶 */
+  pinned?: boolean
 }
 
 export type MessageRole = 'USER' | 'ASSISTANT' | 'TOOL' | 'SYSTEM'
