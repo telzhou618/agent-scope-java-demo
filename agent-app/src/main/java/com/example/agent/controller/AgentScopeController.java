@@ -199,6 +199,16 @@ public class AgentScopeController {
                             .build())
                     .build();
 
+        } else if (event instanceof ToolResultEndEvent e) {
+            return AgentSseEvent.builder()
+                    .type("tool_end")
+                    .toolCall(AgentSseEvent.ToolCallInfo.builder()
+                            .toolCallId(e.getToolCallId())
+                            .toolName(e.getToolCallName())
+                            .state(e.getState() == null ? "success" : e.getState().getValue())
+                            .build())
+                    .build();
+
         } else if (event instanceof AgentResultEvent e) {
             String content = "";
             if (e.getResult() != null && e.getResult().getContent() != null) {

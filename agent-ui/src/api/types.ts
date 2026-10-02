@@ -84,6 +84,8 @@ export interface ToolCallInfo {
   toolName?: string
   toolParams?: string
   toolResults?: string
+  /** tool_end 时携带：success/error/interrupted/denied */
+  state?: string
 }
 
 export type SseEventType =
@@ -92,6 +94,7 @@ export type SseEventType =
   | 'text_block'
   | 'tool_call'
   | 'tool_result'
+  | 'tool_end'
   | 'agent_result'
   | 'agent_end'
 

@@ -122,6 +122,14 @@ export function createLiveTurn(id: string): LiveTurn {
         tool.output += call.toolResults ?? ''
         break
       }
+      case 'tool_end': {
+        const call = event.toolCall
+        if (!call) return
+        const tool = tools.get(call.toolCallId) ?? addTool(call.toolCallId, call.toolName ?? 'tool', '')
+        // 工具结果落定即收尾：success 为成功，其余（error/interrupted/denied）为失败
+        tool.status = call.state === 'success' ? 'ok' : 'error'
+        break
+      }
       case 'agent_end': {
         finish()
         break
