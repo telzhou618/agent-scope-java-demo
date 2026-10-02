@@ -2,9 +2,12 @@
 import { onBeforeUnmount, onMounted, ref } from 'vue'
 import AppIcon from './AppIcon.vue'
 import { formatSize } from '../utils/attachments'
+import { useLightbox } from '../composables/useLightbox'
 import type { UserAttachment } from '../utils/model'
 
 const props = defineProps<{ text: string; attachments?: UserAttachment[] }>()
+
+const { open: openImage } = useLightbox()
 
 /** 折叠态最大高度（约 6 行），明显超出才显示展开/收起按钮 */
 const COLLAPSED_HEIGHT = 164
@@ -37,7 +40,7 @@ onBeforeUnmount(() => observer?.disconnect())
     <div ref="bubbleRef" class="bubble" :class="{ collapsed: collapsible && !expanded }"
       ><span v-if="props.attachments?.length" class="bubble-attach"
         ><template v-for="(a, index) in props.attachments" :key="index"
-          ><img v-if="a.url" class="attach-thumb" :src="a.url" :alt="a.name" /><span v-else
+          ><img v-if="a.url" class="attach-thumb" :src="a.url" :alt="a.name" @click="openImage(a.url, a.name)" /><span v-else
             class="attach-file"
             ><AppIcon name="file" :size="14" /><span
               class="attach-name"

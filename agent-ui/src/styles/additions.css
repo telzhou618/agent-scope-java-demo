@@ -62,7 +62,7 @@
   border-top: 1px solid var(--border);
 }
 
-.prose img { max-width: 100%; border-radius: var(--radius); }
+.prose img { max-width: 100%; border-radius: var(--radius); cursor: zoom-in; }
 
 .prose pre {
   margin: 0 0 14px;
@@ -652,7 +652,45 @@ html.theme-transition *::after {
 
 .bubble-attach { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 4px; }
 
-.attach-thumb { width: 92px; height: 92px; object-fit: cover; border-radius: 8px; border: 1px solid var(--border); }
+.attach-thumb { width: 92px; height: 92px; object-fit: cover; border-radius: 8px; border: 1px solid var(--border); cursor: zoom-in; }
+
+/* ---------- 图片查看弹层 ---------- */
+
+.lightbox {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(2, 6, 23, 0.82);
+}
+
+.lightbox-img {
+  max-width: 92vw;
+  max-height: 92vh;
+  object-fit: contain;
+  border-radius: 8px;
+  box-shadow: var(--shadow-2);
+  cursor: zoom-out;
+}
+
+.lightbox-close {
+  position: absolute;
+  top: 18px;
+  right: 22px;
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.12);
+  color: #fff;
+  transition: background 120ms var(--ease);
+}
+
+.lightbox-close:hover { background: rgba(255, 255, 255, 0.24); }
 
 .attach-file {
   display: inline-flex; align-items: center; gap: 6px; max-width: 220px;

@@ -2,8 +2,11 @@
 import { computed, onBeforeUnmount, ref, watch } from 'vue'
 import { renderMarkdown } from '../utils/markdown'
 import { copyText, flashLabel } from '../utils/clipboard'
+import { useLightbox } from '../composables/useLightbox'
 
 const props = defineProps<{ markdown: string }>()
+
+const { open: openImage } = useLightbox()
 
 const html = ref('')
 let timer: number | null = null
@@ -33,6 +36,11 @@ onBeforeUnmount(() => {
 
 function onClick(event: MouseEvent) {
   const target = event.target as HTMLElement | null
+  // 正文里的图片：点击弹层放大查看
+  if (target instanceof HTMLImageElement && target.src) {
+    openImage(target.src, target.alt)
+    return
+  }
   const button = target?.closest<HTMLElement>('[data-copy]')
   if (!button) return
   const code = button.closest('.code')?.querySelector('code')
