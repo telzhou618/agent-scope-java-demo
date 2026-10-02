@@ -364,6 +364,7 @@ svg { display: block; flex: none; }
 }
 
 .bubble {
+  position: relative;
   max-width: 85%;
   padding: 10px 15px;
   border-radius: var(--radius-xl);
@@ -371,6 +372,49 @@ svg { display: block; flex: none; }
   background: var(--bg-subtle);
   white-space: pre-wrap;
   overflow-wrap: anywhere;
+}
+
+/* 长消息折叠：超出约 6 行时裁剪，右下角圆形按钮切换展开/收起 */
+.bubble.collapsed {
+  max-height: 164px;
+  overflow: hidden;
+}
+
+.bubble.collapsed::after {
+  content: '';
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  height: 56px;
+  background: linear-gradient(to bottom, transparent, var(--bg-subtle) 85%);
+  pointer-events: none;
+}
+
+.bubble-toggle {
+  position: absolute;
+  right: 10px;
+  bottom: 10px;
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: var(--bg);
+  color: var(--fg-muted);
+  border: 1px solid var(--border-strong);
+  box-shadow: var(--shadow-2);
+  transition: color 120ms var(--ease), border-color 120ms var(--ease);
+}
+
+.bubble-toggle:hover {
+  color: var(--fg);
+  border-color: var(--fg-icon);
+}
+
+.bubble-toggle.expanded .chevron {
+  transform: rotate(180deg);
 }
 
 /* 助手消息：无气泡，正文直接铺满列宽 */
