@@ -139,7 +139,7 @@ public class AgentConfig {
     private DashScopeChatModel buildFlashModel(boolean stream) {
         return DashScopeChatModel.builder()
                 .apiKey(dashScopeApiKey)
-                .modelName("qwen3.6-flash")
+                .modelName("qwen-flash")
                 .stream(stream)
                 .formatter(new DashScopeChatFormatter())
                 .build();
