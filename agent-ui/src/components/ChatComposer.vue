@@ -68,14 +68,12 @@ function onPicked(event: Event) {
   target.value = ''
 }
 
-/** 支持直接粘贴截图（剪贴板中的图片文件） */
+/** 支持直接粘贴剪贴板中的文件（截图、资源管理器里复制的文档等），格式/大小校验交给 attachFiles */
 function onPaste(event: ClipboardEvent) {
-  const images = Array.from(event.clipboardData?.files ?? []).filter((file) =>
-    file.type.startsWith('image/'),
-  )
-  if (!images.length) return
+  const files = Array.from(event.clipboardData?.files ?? [])
+  if (!files.length) return
   event.preventDefault()
-  attachFiles(images)
+  attachFiles(files)
 }
 
 function onKeydown(event: KeyboardEvent) {
