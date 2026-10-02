@@ -5,7 +5,7 @@ import AppIcon from './AppIcon.vue'
 import { useAuthStore } from '../stores/auth'
 import { useChat } from '../stores/chat'
 import { useDismissableMenu } from '../composables/useDismissableMenu'
-import { groupLabel, relativeTime } from '../utils/format'
+import { groupLabel } from '../utils/format'
 
 const chat = useChat()
 const auth = useAuthStore()
@@ -95,7 +95,6 @@ function confirmRemove(sessionId: string, summary: string) {
           @keydown.space.prevent="router.push({ name: 'chat-session', params: { sessionId: session.sessionId } })"
         >
           <div class="session-title">{{ session.summary || session.sessionId }}</div>
-          <div class="session-meta">{{ relativeTime(session.timestamp) }}</div>
           <button
             class="session-del"
             type="button"

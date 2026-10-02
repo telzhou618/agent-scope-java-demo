@@ -197,15 +197,6 @@ svg { display: block; flex: none; }
 
 .session-item[aria-current="true"] .session-title { font-weight: 500; }
 
-.session-meta {
-  margin-top: 2px;
-  font-size: 12px;
-  color: var(--fg-muted);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
 .sidebar-empty {
   padding: 16px 10px;
   font-size: 13px;
