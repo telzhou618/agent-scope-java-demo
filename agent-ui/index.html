@@ -7,10 +7,8 @@
 <script>
 /* 在首次绘制前定好主题：深色用户刷新时不会先闪一下白屏 */
 (() => {
-  let choice = "auto";
-  try { choice = localStorage.getItem("agent-ui:theme") || "auto"; } catch (_) {}
-  const dark = choice === "dark" ||
-    (choice === "auto" && window.matchMedia("(prefers-color-scheme: dark)").matches);
+  let dark = false;
+  try { dark = localStorage.getItem("agent-ui:theme") === "dark"; } catch (_) {}
   document.documentElement.dataset.theme = dark ? "dark" : "light";
 })();
 </script>

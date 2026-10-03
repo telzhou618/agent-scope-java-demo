@@ -465,18 +465,6 @@
   to { opacity: 1; transform: none; }
 }
 
-/* ---------- 主题切换：只在切换的 260ms 内让颜色过渡 ---------- */
-/* 不用常驻的 `* { transition }`：那会拖慢首屏并波及滚动。
-   这段用 !important 临时接管过渡，等类被移除后各元素恢复自己的过渡。 */
-html.theme-transition,
-html.theme-transition *,
-html.theme-transition *::before,
-html.theme-transition *::after {
-  transition: background-color 200ms var(--ease), color 200ms var(--ease),
-    border-color 200ms var(--ease), fill 200ms var(--ease),
-    stroke 200ms var(--ease) !important;
-}
-
 /* ============================================================
    个人中心：用量与费用
    ============================================================ */
