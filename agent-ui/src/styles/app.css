@@ -270,6 +270,9 @@ svg { display: block; flex: none; }
 }
 
 .topbar {
+  /* 形成高层级堆叠上下文：内部弹层（如导出菜单）不被消息流中带定位的元素盖住 */
+  position: relative;
+  z-index: 40;
   display: flex;
   align-items: center;
   gap: 10px;
