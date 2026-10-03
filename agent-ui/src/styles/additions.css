@@ -160,9 +160,8 @@
   color: var(--fg);
 }
 
-/* 已置顶：按钮常驻显示并高亮 */
+/* 已置顶：hover 显示时高亮（显隐规则与删除按钮一致，默认不展示） */
 .session-pin.active {
-  opacity: 1;
   color: var(--accent);
 }
 
