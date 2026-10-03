@@ -14,6 +14,9 @@ import com.example.agent.error.BizException;
 import com.example.agent.service.DocumentTextExtractor;
 import com.example.agent.service.FileStorageService;
 import com.example.agent.service.SessionTitleService;
+import com.example.agent.vo.SkillVO;
+import io.agentscope.core.skill.AgentSkill;
+import io.agentscope.core.skill.repository.ClasspathSkillRepository;
 import io.agentscope.core.ReActAgent;
 import io.agentscope.core.agent.RuntimeContext;
 import io.agentscope.core.event.*;
@@ -54,6 +57,7 @@ public class AgentScopeController {
     private final SessionTitleService sessionTitleService;
     private final FileStorageService fileStorageService;
     private final DocumentTextExtractor documentTextExtractor;
+    private final ClasspathSkillRepository skillRepository;
 
     /**
      * 从 token 解析当前登录用户 id（字符串形式，与会话状态目录名一致）
@@ -69,7 +73,8 @@ public class AgentScopeController {
         Map<String, StringBuilder> toolParamsAccumulator = new HashMap<>();
 
         String userId = loginUserId();
-        String message = effectiveMessage(request);
+        // /skill:<name> 前缀转成技能使用提示，Agent 通过 load_skill_through_path 自行加载技能详情
+        String message = applySkillHint(effectiveMessage(request));
         UserMessage userMessage = buildUserMessage(userId, message, request.getAttachments());
         RuntimeContext context = RuntimeContext.builder()
                 .sessionId(request.getSessionId())
@@ -300,6 +305,46 @@ public class AgentScopeController {
         meta.setPinned(pinned);
         agentStateStore.save(userId, sessionId, "session_meta", meta);
         return Result.ok();
+    }
+
+    @GetMapping("/skills")
+    @Operation(summary = "技能列表")
+    public Result<List<SkillVO>> skills() {
+        List<SkillVO> result = skillRepository.getAllSkills().stream()
+                .map(skill -> SkillVO.builder()
+                        .name(skill.getName())
+                        .description(skill.getDescription())
+                        .build())
+                .toList();
+        return Result.okData(result);
+    }
+
+    private static final String SKILL_PREFIX = "/skill:";
+
+    /**
+     * /skill:<name> 前缀转换为技能使用提示；技能存在时告知模型使用哪个技能，
+     * 详情由 Agent 调内置工具 load_skill_through_path 自行加载；非技能消息原样返回
+     */
+    private String applySkillHint(String message) {
+        if (message == null || !message.startsWith(SKILL_PREFIX)) {
+            return message;
+        }
+        String rest = message.substring(SKILL_PREFIX.length());
+        int split = -1;
+        for (int i = 0; i < rest.length(); i++) {
+            if (Character.isWhitespace(rest.charAt(i))) {
+                split = i;
+                break;
+            }
+        }
+        String name = split < 0 ? rest : rest.substring(0, split);
+        String requirement = split < 0 ? "" : rest.substring(split).trim();
+        AgentSkill skill = skillRepository.getSkill(name);
+        if (skill == null) {
+            log.warn("技能不存在，按普通消息处理: {}", name);
+            return message;
+        }
+        return "请使用 " + name + " 技能完成以下需求：" + requirement;
     }
 
     @GetMapping("/interrupt")

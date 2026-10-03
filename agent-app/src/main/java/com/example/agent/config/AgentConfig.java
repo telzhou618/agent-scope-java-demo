@@ -6,6 +6,7 @@ import com.example.agent.service.TokenUsageService;
 import io.agentscope.core.model.GenerateOptions;
 import io.agentscope.core.permission.PermissionContextState;
 import io.agentscope.core.permission.PermissionMode;
+import io.agentscope.core.skill.repository.ClasspathSkillRepository;
 import io.agentscope.core.state.AgentStateStore;
 import io.agentscope.core.tool.Toolkit;
 import io.agentscope.core.tool.mcp.McpClientBuilder;
@@ -24,6 +25,7 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.util.StringUtils;
 
 import javax.sql.DataSource;
+import java.io.IOException;
 import java.nio.file.Path;
 import java.time.Duration;
 
@@ -56,8 +58,17 @@ public class AgentConfig {
         return new MysqlAgentStateStore(dataSource, "agent_demo", "agentscope_sessions", false);
     }
 
+    /**
+     * Classpath 技能市场：扫描 resources/skills/<name>/SKILL.md，注册后 Agent 每轮推理
+     * 自动可见技能清单，并通过内置工具 load_skill_through_path 自行加载技能详情
+     */
     @Bean
-    public HarnessAgent harnessAgent(TokenUsageService tokenUsageService) {
+    public ClasspathSkillRepository classpathSkillRepository() throws IOException {
+        return new ClasspathSkillRepository("skills");
+    }
+
+    @Bean
+    public HarnessAgent harnessAgent(TokenUsageService tokenUsageService) throws IOException {
         // MCP连接
         var mcpClientBuilder = McpClientBuilder.create("http-mcp")
                 .streamableHttpTransport(mcpServerUrl + mcpEndpoint)
@@ -95,6 +106,8 @@ public class AgentConfig {
                 .sysPrompt("你是一个有用的助手")
                 .model(model)
                 .toolkit(toolkit)
+                // Classpath 技能市场，Agent 通过 load_skill_through_path 自行加载技能
+                .skillRepository(classpathSkillRepository())
 
                 // middleware
                 .middleware(new ToolCallBeforeMiddleware())

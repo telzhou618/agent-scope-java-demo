@@ -680,6 +680,7 @@ svg { display: block; flex: none; }
 }
 
 .composer {
+  position: relative;
   max-width: var(--read-inner);
   margin: 0 auto;
   border: 1px solid var(--border);

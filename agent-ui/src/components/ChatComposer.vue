@@ -3,6 +3,8 @@ import { computed, nextTick, ref, watch } from 'vue'
 import AppIcon from './AppIcon.vue'
 import { useComposer } from '../composables/useComposer'
 import { useChat } from '../stores/chat'
+import { getSkills } from '../api/agent'
+import type { SkillInfo } from '../api/types'
 import { ATTACHMENT_ACCEPT, formatSize } from '../utils/attachments'
 
 const chat = useChat()
@@ -76,7 +78,87 @@ function onPaste(event: ClipboardEvent) {
   attachFiles(files)
 }
 
+/* ---------- 技能快捷指令：输入 / 唤出 ---------- */
+
+const SKILL_CMD_PREFIX = '/skill:'
+
+const skills = ref<SkillInfo[]>([])
+let skillsRequested = false
+
+/** 首次输入 / 时才拉取技能列表，之后本地过滤 */
+async function ensureSkills() {
+  if (skillsRequested) return
+  skillsRequested = true
+  try {
+    skills.value = (await getSkills()) ?? []
+  } catch {
+    skillsRequested = false
+  }
+}
+
+/** 正在输入指令：以 / 开头且还没输入空格 */
+const commandQuery = computed(() => {
+  const value = draft.value
+  return value.startsWith('/') && !/\s/.test(value) ? value : null
+})
+
+const matchedSkills = computed(() => {
+  const query = commandQuery.value
+  if (query === null) return []
+  const needle = query.toLowerCase()
+  return skills.value.filter(
+    (skill) =>
+      `${SKILL_CMD_PREFIX}${skill.name}`.toLowerCase().includes(needle) ||
+      skill.description.toLowerCase().includes(needle),
+  )
+})
+
+const activeIndex = ref(0)
+/** ESC 关闭后到下一次按键前不再弹出 */
+const dismissed = ref(false)
+const popupOpen = computed(() => !dismissed.value && matchedSkills.value.length > 0)
+
+watch(commandQuery, (query) => {
+  activeIndex.value = 0
+  if (query !== null) void ensureSkills()
+})
+
+watch(draft, () => {
+  dismissed.value = false
+})
+
+function pickSkill(skill: SkillInfo) {
+  draft.value = `${SKILL_CMD_PREFIX}${skill.name} `
+  void nextTick(() => {
+    resize()
+    textarea.value?.focus()
+  })
+}
+
 function onKeydown(event: KeyboardEvent) {
+  if (popupOpen.value) {
+    if (event.key === 'ArrowDown') {
+      event.preventDefault()
+      activeIndex.value = (activeIndex.value + 1) % matchedSkills.value.length
+      return
+    }
+    if (event.key === 'ArrowUp') {
+      event.preventDefault()
+      activeIndex.value =
+        (activeIndex.value - 1 + matchedSkills.value.length) % matchedSkills.value.length
+      return
+    }
+    if (event.key === 'Escape') {
+      event.preventDefault()
+      dismissed.value = true
+      return
+    }
+    if ((event.key === 'Enter' || event.key === 'Tab') && !event.isComposing) {
+      event.preventDefault()
+      pickSkill(matchedSkills.value[activeIndex.value])
+      return
+    }
+  }
   if (event.key === 'Enter' && !event.shiftKey && !event.isComposing) {
     event.preventDefault()
     submit()
@@ -87,6 +169,21 @@ function onKeydown(event: KeyboardEvent) {
 <template>
   <div class="composer-wrap">
     <form class="composer" @submit.prevent="submit">
+      <div v-if="popupOpen" class="skill-popup" role="listbox" aria-label="技能列表">
+        <div
+          v-for="(skill, i) in matchedSkills"
+          :key="skill.name"
+          class="skill-item"
+          :class="{ active: i === activeIndex }"
+          role="option"
+          :aria-selected="i === activeIndex"
+          @mousedown.prevent="pickSkill(skill)"
+          @mouseenter="activeIndex = i"
+        >
+          <span class="skill-cmd">/skill:{{ skill.name }}</span>
+          <span class="skill-desc">{{ skill.description }}</span>
+        </div>
+      </div>
       <div v-if="attachments.length" class="attach-chips">
         <div v-for="a in attachments" :key="a.key" class="attach-chip" :title="a.name">
           <img v-if="a.url" class="chip-thumb" :src="a.url" :alt="a.name" />

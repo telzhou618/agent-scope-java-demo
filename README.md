@@ -65,13 +65,15 @@ pnpm dev
 | 停止生成（输入框右侧方块按钮） | `GET /agent/scope/interrupt` |
 | 会话项悬停后的删除按钮 | `GET /agent/scope/delSession` |
 | 会话项悬停后的置顶/取消置顶按钮 | `GET /agent/scope/pinSession` |
+| 输入框输入 `/` 唤出技能列表 | `GET /agent/scope/skills` |
 
 说明：
 
 - 登录状态由 Pinia 管理，token 存 `localStorage` 的 `agent-ui:token`（后端存 Redis，有效期 7 天）；除登录/退出外的接口由前端 Axios 拦截器自动携带 token，401 时自动回登录页。
 - 新建会话在发出第一条消息时才生成 `sessionId`（uuid），前端先调用 `POST /agent/scope/createSession`：后端立即写入「新会话」占位标题并返回，侧栏马上可见；随后异步调用模型根据首条消息生成正式标题并更新数据库，首轮 AI 回答结束后前端刷新会话列表即可看到新标题。
 - 个人主页的用户信息（昵称/邮箱/头像）来自 `/auth/current`；用量/费用/图表仍是**演示数据**（后端暂无对应接口），页面上已标注。
-- 附件、选择工具、模型切换为占位控件（禁用状态）；顶栏 ⋯ 菜单可把**当前会话的对话正文导出为 Markdown / HTML / PDF**（三者内容一致，均不含思考过程与工具调用；流式中或空会话时该项置灰）。PDF 走浏览器打印，会弹出系统打印对话框，在对话框里选「另存为 PDF」。
+- 附件支持按钮选择和直接粘贴（图片/文档/文本类，单个 10MB 以内）；选择工具、模型切换为占位控件（禁用状态）；顶栏 ⋯ 菜单可把**当前会话的对话正文导出为 Markdown / HTML / PDF**（三者内容一致，均不含思考过程与工具调用；流式中或空会话时该项置灰）。PDF 走浏览器打印，会弹出系统打印对话框，在对话框里选「另存为 PDF」。
+- 技能快捷指令：输入框输入 `/` 唤出已安装技能列表（`/skill:名称` + 描述，支持模糊过滤、↑↓ 选择、Enter/Tab 确认、ESC 关闭）；技能定义在 `agent-app/src/main/resources/skills/<name>/SKILL.md`（YAML frontmatter 写 name/description，正文为技能指令），消息以 `/skill:<name>` 开头时后端把技能指令注入用户消息再交给 Agent。新增技能需重启 agent-app。
 - 侧栏左下角头像点开是菜单（个人主页 / 退出），「退出」调用 `/auth/logout` 后回到登录页；侧栏头部按钮可收起侧栏（窄屏关抽屉，宽屏折叠整列，顶栏汉堡按钮展开）。
 - 流式过程中后端通过 `tool_end` 事件返回工具结果状态（`success/error/interrupted/denied`），工具结果返回成功即标记「成功」，其余状态标记「失败」，无需等待整轮回答结束；历史消息里同样依据 `state` 字段还原。
 

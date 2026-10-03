@@ -74,6 +74,12 @@ export interface ChatAttachment {
   size: number
 }
 
+/** 已安装技能（/skill:<name> 快捷指令） */
+export interface SkillInfo {
+  name: string
+  description: string
+}
+
 export interface ChatRequest {
   message: string
   sessionId: string
