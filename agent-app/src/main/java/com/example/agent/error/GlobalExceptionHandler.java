@@ -4,6 +4,7 @@ import cn.dev33.satoken.exception.NotLoginException;
 import com.example.agent.dto.Result;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
+import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
@@ -30,6 +31,18 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(BizException.class)
     public Result<Void> biz(BizException e) {
         return Result.error(e.getCode(), e.getMessage());
+    }
+
+    /**
+     * 参数校验失败（@NotBlank/@Size 等）：返回第一条校验消息
+     */
+    @ExceptionHandler(MethodArgumentNotValidException.class)
+    public Result<Void> invalid(MethodArgumentNotValidException e) {
+        String msg = e.getBindingResult().getFieldErrors().stream()
+                .findFirst()
+                .map(error -> error.getDefaultMessage() == null ? "参数不合法" : error.getDefaultMessage())
+                .orElse("参数不合法");
+        return Result.error(ErrorCode.PARAMS_GET_ERROR, msg);
     }
 
     /**

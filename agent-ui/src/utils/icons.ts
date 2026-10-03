@@ -27,6 +27,8 @@ export const iconPaths = {
   menu: '<path d="M3 6h18M3 12h18M3 18h18"/>',
   sidebarCollapse: '<rect x="3" y="4" width="18" height="16" rx="2"/><path d="M9 4v16"/><path d="m16 9-3 3 3 3"/>',
   more: '<circle cx="12" cy="5" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="12" cy="19" r="1.5"/>',
+  message:
+    '<path d="M21 15a2 2 0 0 1-2 2H8l-5 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>',
   clip: '<path d="M21.4 11.05 12.3 20.2a5.5 5.5 0 0 1-7.8-7.8l9.2-9.2a3.7 3.7 0 0 1 5.2 5.2l-9.2 9.2a1.8 1.8 0 0 1-2.6-2.6l8.5-8.5"/>',
   wrench:
     '<path d="M14.7 6.3a4 4 0 0 0 5.3 5.3l-6.4 6.4a2 2 0 0 1-2.8-2.8z"/><path d="M6.3 3.7 3.7 6.3l3 3 2.6-2.6z"/>',

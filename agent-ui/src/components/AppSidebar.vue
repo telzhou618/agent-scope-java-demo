@@ -1,7 +1,8 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import AppIcon from './AppIcon.vue'
+import FeedbackDialog from './FeedbackDialog.vue'
 import { useAuthStore } from '../stores/auth'
 import { useChat } from '../stores/chat'
 import { useDismissableMenu } from '../composables/useDismissableMenu'
@@ -24,6 +25,14 @@ const accountAvatar = computed(() => accountName.value.charAt(0) || 'A')
 function openProfile() {
   closeAccount()
   void router.push('/profile')
+}
+
+/** 意见反馈弹窗 */
+const feedbackOpen = ref(false)
+
+function openFeedback() {
+  closeAccount()
+  feedbackOpen.value = true
 }
 
 /** 退出登录后跳转到登录页（需求 9） */
@@ -145,6 +154,10 @@ function confirmRemove(sessionId: string, summary: string) {
             <AppIcon name="user" :size="14" />
             个人主页
           </button>
+          <button class="more-item" type="button" role="menuitem" @click="openFeedback">
+            <AppIcon name="message" :size="14" />
+            意见反馈
+          </button>
           <button class="more-item" type="button" role="menuitem" @click="onLogout">
             <AppIcon name="logout" :size="14" />
             退出
@@ -152,5 +165,7 @@ function confirmRemove(sessionId: string, summary: string) {
         </div>
       </div>
     </div>
+
+    <FeedbackDialog v-if="feedbackOpen" @close="feedbackOpen = false" />
   </aside>
 </template>

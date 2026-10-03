@@ -89,3 +89,19 @@ CREATE TABLE IF NOT EXISTS t_message_feedback (
   PRIMARY KEY (id),
   UNIQUE KEY uk_user_session_msg (user_id, session_id, message_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='消息反馈';
+
+-- ------------------------------------------------------------
+-- 用户反馈（意见反馈入口）
+-- ------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS t_user_feedback (
+  id          BIGINT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '主键ID',
+  user_id     BIGINT       NOT NULL COMMENT '提交用户ID',
+  type        VARCHAR(16)  NOT NULL DEFAULT 'idea' COMMENT '类型：bug问题 idea建议 other其他',
+  content     VARCHAR(500) NOT NULL COMMENT '反馈内容',
+  contact     VARCHAR(100) NOT NULL DEFAULT '' COMMENT '联系方式（选填）',
+  status      TINYINT      NOT NULL DEFAULT 0 COMMENT '状态：0待处理 1已处理',
+  create_time DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  update_time DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+  PRIMARY KEY (id),
+  KEY idx_user_time (user_id, create_time)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='用户反馈';
