@@ -40,3 +40,11 @@ export const uploadFile = (file: File) => {
 /** 已安装技能列表（输入 / 唤出） */
 export const getSkills = () =>
   http.get<Result<SkillInfo[]>>(`${API_BASE}/skills`).then((r) => r.data.data)
+
+/** 消息反馈：feedback 为 null 表示取消 */
+export const sendFeedback = (payload: { sessionId: string; messageId: string; feedback: 'up' | 'down' | null }) =>
+  http.post<Result<void>>(`${API_BASE}/feedback`, payload).then((r) => r.data.data)
+
+/** 会话的反馈映射：messageId -> up/down */
+export const getFeedbacks = (sessionId: string) =>
+  http.get<Result<Record<string, 'up' | 'down'>>>(`${API_BASE}/getFeedbacks`, { params: { sessionId } }).then((r) => r.data.data)

@@ -8,11 +8,13 @@ import com.example.agent.dto.AgentSession;
 import com.example.agent.dto.AgentSseEvent;
 import com.example.agent.dto.ChatAttachment;
 import com.example.agent.dto.CreateSessionRequest;
+import com.example.agent.dto.FeedbackRequest;
 import com.example.agent.dto.Result;
 import com.example.agent.dto.SessionMeta;
 import com.example.agent.error.BizException;
 import com.example.agent.service.DocumentTextExtractor;
 import com.example.agent.service.FileStorageService;
+import com.example.agent.service.MessageFeedbackService;
 import com.example.agent.service.SessionTitleService;
 import com.example.agent.vo.SkillVO;
 import io.agentscope.core.skill.AgentSkill;
@@ -58,6 +60,7 @@ public class AgentScopeController {
     private final FileStorageService fileStorageService;
     private final DocumentTextExtractor documentTextExtractor;
     private final ClasspathSkillRepository skillRepository;
+    private final MessageFeedbackService feedbackService;
 
     /**
      * 从 token 解析当前登录用户 id（字符串形式，与会话状态目录名一致）
@@ -222,6 +225,7 @@ public class AgentScopeController {
             return AgentSseEvent.builder()
                     .type("agent_result")
                     .content(content)
+                    .messageId(e.getResult() == null ? null : e.getResult().getId())
                     .build();
         } else if (event instanceof AgentEndEvent e) {
 
@@ -292,6 +296,8 @@ public class AgentScopeController {
     @Operation(summary = "删除会话")
     public Result<Void> delSessions(String sessionId) {
         agentStateStore.delete(loginUserId(), sessionId);
+        // 级联清理该会话的反馈记录
+        feedbackService.deleteForSession(StpUtil.getLoginIdAsLong(), sessionId);
         return Result.ok();
     }
 
@@ -317,6 +323,20 @@ public class AgentScopeController {
                         .build())
                 .toList();
         return Result.okData(result);
+    }
+
+    @PostMapping("/feedback")
+    @Operation(summary = "消息反馈（有帮助/没帮助，feedback 为空表示取消）")
+    public Result<Void> feedback(@RequestBody @Validated FeedbackRequest request) {
+        feedbackService.submit(StpUtil.getLoginIdAsLong(),
+                request.getSessionId(), request.getMessageId(), request.getFeedback());
+        return Result.ok();
+    }
+
+    @GetMapping("/getFeedbacks")
+    @Operation(summary = "会话的反馈映射（messageId -> up/down）")
+    public Result<Map<String, String>> getFeedbacks(String sessionId) {
+        return Result.okData(feedbackService.listForSession(StpUtil.getLoginIdAsLong(), sessionId));
     }
 
     private static final String SKILL_PREFIX = "/skill:";

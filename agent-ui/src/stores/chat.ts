@@ -1,6 +1,6 @@
 import { computed, reactive } from 'vue'
 import { ApiError } from '../api/http'
-import { createSession, delSession, getMessages, getSessions, interrupt, pinSession } from '../api/agent'
+import { createSession, delSession, getFeedbacks, getMessages, getSessions, interrupt, pinSession, sendFeedback } from '../api/agent'
 import type { AgentSession } from '../api/types'
 import { chatStream, type StreamHandle } from '../sse/chatStream'
 import { toTurns } from '../utils/history'
@@ -139,9 +139,18 @@ async function openSession(sessionId: string) {
   state.turns = []
   state.loadingMessages = true
   try {
-    const messages = await getMessages(sessionId)
+    // 历史消息与反馈映射并行拉取
+    const [messages, feedbacks] = await Promise.all([
+      getMessages(sessionId),
+      getFeedbacks(sessionId).catch(() => ({}) as Record<string, 'up' | 'down'>),
+    ])
     if (state.currentSessionId !== sessionId) return
     state.turns = toTurns(messages ?? [])
+    for (const turn of state.turns) {
+      if (turn.kind === 'assistant' && turn.messageId && feedbacks[turn.messageId]) {
+        turn.feedback = feedbacks[turn.messageId]
+      }
+    }
   } catch (error) {
     state.messagesError = toMessage(error)
   } finally {
@@ -281,8 +290,19 @@ function regenerate() {
   }
 }
 
-function setFeedback(turn: AssistantTurn, feedback: 'up' | 'down' | null) {
+/** 反馈落库：先乐观更新本地，接口失败则回滚 */
+async function setFeedback(turn: AssistantTurn, feedback: 'up' | 'down' | null) {
+  const sessionId = state.currentSessionId
+  const messageId = turn.messageId
+  if (!sessionId || !messageId) return
+  const prev = turn.feedback
   turn.feedback = feedback
+  try {
+    await sendFeedback({ sessionId, messageId, feedback })
+  } catch (error) {
+    turn.feedback = prev
+    state.messagesError = toMessage(error)
+  }
 }
 
 function setView(view: 'chat' | 'profile') {

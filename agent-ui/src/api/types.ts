@@ -110,6 +110,8 @@ export interface AgentSseEvent {
   type: SseEventType
   content?: string
   role?: string
+  /** agent_result 时携带：最终 Assistant 消息 ID（反馈锚点） */
+  messageId?: string
   toolCall?: ToolCallInfo
 }
 

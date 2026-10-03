@@ -130,6 +130,11 @@ export function createLiveTurn(id: string): LiveTurn {
         tool.status = call.state === 'success' ? 'ok' : 'error'
         break
       }
+      case 'agent_result': {
+        // 最终消息 ID：反馈功能的持久化锚点
+        if (event.messageId) turn.messageId = event.messageId
+        break
+      }
       case 'agent_end': {
         finish()
         break

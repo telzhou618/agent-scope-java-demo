@@ -13,6 +13,7 @@ public class AgentSseEvent {
     private String type;       // agent_start | thinking | text_block | tool_call | tool_result | tool_end | agent_result | agent_end
     private String content;    // 文本增量或完整文本
     private String role;
+    private String messageId;  // agent_result 时携带：最终 Assistant 消息 ID（反馈锚点）
     private ToolCallInfo toolCall;  // 工具调用信息
 
     @Data

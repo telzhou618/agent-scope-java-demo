@@ -44,6 +44,8 @@ export interface UserTurn {
 export interface AssistantTurn {
   kind: 'assistant'
   id: string
+  /** 最终 Assistant 消息 ID（反馈锚点；实时回合在 agent_result 时回填，历史回合取消息自身 id） */
+  messageId?: string
   blocks: AssistantBlock[]
   streaming: boolean
   error: string

@@ -74,3 +74,18 @@ CREATE TABLE IF NOT EXISTS agentscope_sessions (
   updated_at DATETIME     DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
   PRIMARY KEY (session_id, state_key, item_index)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='AgentScope会话状态';
+
+-- ------------------------------------------------------------
+-- 消息反馈（有帮助/没帮助）
+-- ------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS t_message_feedback (
+  id          BIGINT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '主键ID',
+  user_id     BIGINT      NOT NULL COMMENT '用户ID',
+  session_id  VARCHAR(64) NOT NULL COMMENT '会话ID',
+  message_id  VARCHAR(64) NOT NULL COMMENT 'Assistant消息ID',
+  feedback    VARCHAR(8)  NOT NULL COMMENT '反馈：up有帮助 down没帮助',
+  create_time DATETIME    NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  update_time DATETIME    NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+  PRIMARY KEY (id),
+  UNIQUE KEY uk_user_session_msg (user_id, session_id, message_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='消息反馈';

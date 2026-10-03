@@ -47,7 +47,7 @@ export function toTurns(messages: Msg[]): Turn[] {
   let seq = 0
 
   const openAssistant = (id: string): AssistantTurn => {
-    current = { kind: 'assistant', id, blocks: [], streaming: false, error: '', feedback: null }
+    current = { kind: 'assistant', id, messageId: id, blocks: [], streaming: false, error: '', feedback: null }
     toolsById = new Map()
     turns.push(current)
     return current

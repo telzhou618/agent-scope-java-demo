@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
 import AppIcon from './AppIcon.vue'
 import MarkdownBlock from './MarkdownBlock.vue'
 import ThinkingCard from './ThinkingCard.vue'
@@ -15,6 +15,9 @@ const props = defineProps<{
 
 const copyLabel = ref<HTMLElement | null>(null)
 
+/** 没有消息 ID（中断/报错的回合）时反馈无处锚定，禁用 */
+const feedbackDisabled = computed(() => !props.turn.messageId || !!props.turn.error)
+
 function copyTurn() {
   const text = props.turn.blocks
     .filter((block) => block.kind === 'text')
@@ -25,6 +28,7 @@ function copyTurn() {
 }
 
 function vote(value: 'up' | 'down') {
+  if (feedbackDisabled.value) return
   props.onFeedback(props.turn.feedback === value ? null : value)
 }
 </script>
@@ -60,6 +64,8 @@ function vote(value: 'up' | 'down') {
       <button
         class="act-btn"
         type="button"
+        :disabled="feedbackDisabled"
+        :title="feedbackDisabled ? '本条回复无法反馈' : '有帮助'"
         :aria-pressed="props.turn.feedback === 'up'"
         @click="vote('up')"
       >
@@ -69,6 +75,8 @@ function vote(value: 'up' | 'down') {
         class="act-btn"
         type="button"
         aria-label="没帮助"
+        :disabled="feedbackDisabled"
+        :title="feedbackDisabled ? '本条回复无法反馈' : '没帮助'"
         :aria-pressed="props.turn.feedback === 'down'"
         @click="vote('down')"
       >
