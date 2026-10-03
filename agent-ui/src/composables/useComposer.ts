@@ -6,6 +6,8 @@ import { MAX_ATTACHMENTS, MAX_FILE_SIZE, attachmentKind, fileExt, isAllowedExt, 
 
 const draft = ref('')
 const focusToken = ref(0)
+/** 当前选中的技能名（/skill:<name>），发送时拼回消息前缀 */
+const skill = ref<string | null>(null)
 const attachments = ref<ComposerAttachment[]>([])
 const uploading = ref(0)
 const uploadError = ref('')
@@ -40,9 +42,18 @@ export function useComposer() {
   return {
     draft,
     focusToken,
+    skill,
     attachments,
     uploading,
     uploadError,
+    /** 选中技能：输入框只保留参数文本，技能以标签形式展示 */
+    setSkill(name: string) {
+      skill.value = name
+      draft.value = ''
+    },
+    clearSkill() {
+      skill.value = null
+    },
     /** 由推荐卡片填入输入框并聚焦 */
     fill(text: string) {
       draft.value = text

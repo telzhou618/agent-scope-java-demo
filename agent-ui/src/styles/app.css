@@ -695,10 +695,19 @@ svg { display: block; flex: none; }
   box-shadow: 0 0 0 3px var(--ring), var(--shadow-2);
 }
 
+/* 输入区：技能标签 + 输入框同行排列 */
+.composer-input {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  padding: 13px 15px 4px;
+}
+
 .composer textarea {
   display: block;
-  width: 100%;
-  padding: 13px 15px 4px;
+  flex: 1;
+  min-width: 0;
+  padding: 0;
   border: 0;
   background: none;
   resize: none;

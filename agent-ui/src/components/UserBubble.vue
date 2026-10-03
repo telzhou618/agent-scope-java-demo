@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onBeforeUnmount, onMounted, ref } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import AppIcon from './AppIcon.vue'
 import { formatSize } from '../utils/attachments'
 import { useLightbox } from '../composables/useLightbox'
@@ -8,6 +8,12 @@ import type { UserAttachment } from '../utils/model'
 const props = defineProps<{ text: string; attachments?: UserAttachment[] }>()
 
 const { open: openImage } = useLightbox()
+
+/** 技能前缀（/skill:<name>）解析成标签，与正文区分展示 */
+const skillName = computed(() => /^\/skill:([\w-]+)/.exec(props.text)?.[1] ?? null)
+const restText = computed(() =>
+  skillName.value ? props.text.replace(/^\/skill:[\w-]+\s*/, '') : props.text,
+)
 
 /** 折叠态最大高度（约 6 行），明显超出才显示展开/收起按钮 */
 const COLLAPSED_HEIGHT = 164
@@ -48,7 +54,8 @@ onBeforeUnmount(() => observer?.disconnect())
             ><span v-if="a.size > 0" class="attach-size">{{ formatSize(a.size) }}</span></span
           ></template
         ></span
-      ><span v-if="props.text">{{ props.text }}</span
+      ><span v-if="skillName" class="skill-tag">/skill:{{ skillName }}</span
+      ><span v-if="restText">{{ restText }}</span
       ><button
         v-if="collapsible"
         type="button"

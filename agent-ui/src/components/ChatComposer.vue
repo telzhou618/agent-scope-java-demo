@@ -11,10 +11,13 @@ const chat = useChat()
 const {
   draft,
   focusToken,
+  skill,
   attachments,
   uploading,
   uploadError,
   clear,
+  setSkill,
+  clearSkill,
   attachFiles,
   removeAttachment,
   resetAttachments,
@@ -29,7 +32,7 @@ const canSend = computed(
     !chat.state.streaming &&
     uploading.value === 0 &&
     allUploaded() &&
-    (draft.value.trim().length > 0 || attachments.value.length > 0),
+    (draft.value.trim().length > 0 || attachments.value.length > 0 || !!skill.value),
 )
 
 function resize() {
@@ -51,10 +54,13 @@ const DEFAULT_ATTACHMENT_MESSAGE = '请帮我分析这些附件'
 
 function submit() {
   if (chat.state.streaming || uploading.value > 0) return
-  const text = draft.value.trim()
+  const raw = draft.value.trim()
+  // 选中技能时拼回 /skill:<name> 前缀，后端据此提示 Agent 使用该技能
+  const text = skill.value ? `/skill:${skill.value}${raw ? ' ' + raw : ''}` : raw
   if (!text && attachments.value.length === 0) return
   const list = attachments.value.map((item) => ({ ...item }))
   clear()
+  clearSkill()
   resetAttachments()
   nextTick(resize)
   void chat.send(text || DEFAULT_ATTACHMENT_MESSAGE, list)
@@ -96,8 +102,9 @@ async function ensureSkills() {
   }
 }
 
-/** 正在输入指令：以 / 开头且还没输入空格 */
+/** 正在输入指令：以 / 开头且还没输入空格；已选中技能时不再弹出 */
 const commandQuery = computed(() => {
+  if (skill.value) return null
   const value = draft.value
   return value.startsWith('/') && !/\s/.test(value) ? value : null
 })
@@ -127,8 +134,8 @@ watch(draft, () => {
   dismissed.value = false
 })
 
-function pickSkill(skill: SkillInfo) {
-  draft.value = `${SKILL_CMD_PREFIX}${skill.name} `
+function pickSkill(skillInfo: SkillInfo) {
+  setSkill(skillInfo.name)
   void nextTick(() => {
     resize()
     textarea.value?.focus()
@@ -136,6 +143,15 @@ function pickSkill(skill: SkillInfo) {
 }
 
 function onKeydown(event: KeyboardEvent) {
+  // 光标在输入框最前面时按退格：整体移除技能标签，而不是逐字母删除
+  if (event.key === 'Backspace' && skill.value) {
+    const el = textarea.value
+    if (el && el.selectionStart === 0 && el.selectionEnd === 0) {
+      event.preventDefault()
+      clearSkill()
+      return
+    }
+  }
   if (popupOpen.value) {
     if (event.key === 'ArrowDown') {
       event.preventDefault()
@@ -203,15 +219,27 @@ function onKeydown(event: KeyboardEvent) {
       </div>
       <p v-if="uploadError" class="attach-error">{{ uploadError }}</p>
       <label class="sr-only" for="input">消息输入框</label>
-      <textarea
-        id="input"
-        ref="textarea"
-        v-model="draft"
-        rows="1"
-        placeholder="给 Agent 发消息…"
-        @keydown="onKeydown"
-        @paste="onPaste"
-      />
+      <div class="composer-input">
+        <span v-if="skill" class="skill-tag"
+          >/skill:{{ skill
+          }}<button
+            class="skill-tag-x"
+            type="button"
+            aria-label="移除技能"
+            title="移除技能（退格键同效）"
+            @click="clearSkill"
+            ><AppIcon name="x" :size="11" /></button
+        ></span>
+        <textarea
+          id="input"
+          ref="textarea"
+          v-model="draft"
+          rows="1"
+          placeholder="给 Agent 发消息…"
+          @keydown="onKeydown"
+          @paste="onPaste"
+        />
+      </div>
       <div class="composer-bar">
         <button class="icon-btn" type="button" aria-label="添加文件" title="添加文件" @click="pickFiles">
           <AppIcon name="clip" :size="17" />

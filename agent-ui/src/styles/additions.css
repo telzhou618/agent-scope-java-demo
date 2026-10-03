@@ -765,3 +765,38 @@ html.theme-transition *::after {
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+
+/* ---------- 技能标签（输入框 + 消息气泡共用） ---------- */
+
+.skill-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  flex: none;
+  padding: 1px 8px;
+  border-radius: 6px;
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-size: 13px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+/* 气泡内：标签与正文之间留空 */
+.bubble .skill-tag { margin-right: 6px; }
+
+/* 输入框内：与首行文字对齐，略放大 */
+.composer-input .skill-tag { margin-top: 1px; padding: 2px 8px; font-size: 14px; }
+
+.skill-tag-x {
+  display: grid;
+  place-items: center;
+  width: 16px;
+  height: 16px;
+  border-radius: 4px;
+  color: inherit;
+  opacity: 0.6;
+  transition: opacity var(--dur) var(--ease);
+}
+
+.skill-tag-x:hover { opacity: 1; }
