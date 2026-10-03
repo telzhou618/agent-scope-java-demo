@@ -6,7 +6,11 @@ import {
   isToolUseBlock,
 } from '../api/types'
 import type { AssistantTurn, ToolBlockModel, Turn, UserAttachment, UserTurn } from './model'
+import { fileExt } from './attachments'
 import { prettyJson } from './format'
+
+/** 后端存库时附件文本块的标记格式：【附件：文件名】\n<内容>（见 AgentScopeController.attachmentText） */
+const ATTACHMENT_MARK = /^【附件：([^\n】]+)】/
 
 /** tool_result.output 在 HTTP 返回是内容块数组，兼容字符串形式 */
 export function toolResultText(output: ToolResultBlock['output']): string {
@@ -55,7 +59,14 @@ export function toTurns(messages: Msg[]): Turn[] {
       const attachments: UserAttachment[] = []
       for (const block of message.content ?? []) {
         if (isTextBlock(block)) {
-          text += block.text
+          // 附件文本块（【附件：文件名】\n内容）还原成文件 chip，与首次发送的展示一致；
+          // 大小未存库传 0，chip 自动不显示大小
+          const matched = ATTACHMENT_MARK.exec(block.text)
+          if (matched) {
+            attachments.push({ name: matched[1], ext: fileExt(matched[1]), size: 0 })
+          } else {
+            text += block.text
+          }
           continue
         }
         const image = imageAttachment(block, seq)
