@@ -6,6 +6,7 @@ import { useChat } from '../stores/chat'
 import { getSkills } from '../api/agent'
 import type { SkillInfo } from '../api/types'
 import { ATTACHMENT_ACCEPT, formatSize } from '../utils/attachments'
+import { fileIconName } from '../utils/icons'
 
 const chat = useChat()
 const {
@@ -203,7 +204,7 @@ function onKeydown(event: KeyboardEvent) {
       <div v-if="attachments.length" class="attach-chips">
         <div v-for="a in attachments" :key="a.key" class="attach-chip" :title="a.name">
           <img v-if="a.url" class="chip-thumb" :src="a.url" :alt="a.name" />
-          <AppIcon v-else name="file" :size="16" />
+          <AppIcon v-else :name="fileIconName(a.ext)" :size="16" />
           <span class="chip-name">{{ a.name }}</span>
           <span v-if="a.size > 0" class="chip-size">{{ formatSize(a.size) }}</span>
           <span v-if="!a.id" class="chip-loading"><AppIcon name="loader" :size="14" /></span>

@@ -2,6 +2,7 @@
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import AppIcon from './AppIcon.vue'
 import { formatSize } from '../utils/attachments'
+import { fileIconName } from '../utils/icons'
 import { useLightbox } from '../composables/useLightbox'
 import type { UserAttachment } from '../utils/model'
 
@@ -48,7 +49,7 @@ onBeforeUnmount(() => observer?.disconnect())
         ><template v-for="(a, index) in props.attachments" :key="index"
           ><img v-if="a.url" class="attach-thumb" :src="a.url" :alt="a.name" @click="openImage(a.url, a.name)" /><span v-else
             class="attach-file"
-            ><AppIcon name="file" :size="14" /><span
+            ><AppIcon :name="fileIconName(a.ext)" :size="14" /><span
               class="attach-name"
               >{{ a.name }}</span
             ><span v-if="a.size > 0" class="attach-size">{{ formatSize(a.size) }}</span></span

@@ -38,9 +38,34 @@ export const iconPaths = {
   trash:
     '<path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/>',
   pin: '<path d="M12 17v5"/><path d="M9 10.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24V16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V7a1 1 0 0 1 1-1 2 2 0 0 0 0-4H8a2 2 0 0 0 0 4 1 1 0 0 1 1 1Z"/>',
+  fileText:
+    '<path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/><path d="M9 13h6M9 17h6"/>',
+  fileCode:
+    '<path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/><path d="m10 12.5-2 2 2 2M14 12.5l2 2-2 2"/>',
+  filePdf:
+    '<path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/><text x="12" y="17.5" text-anchor="middle" font-size="6" font-weight="700" font-family="sans-serif" fill="currentColor" stroke="none">PDF</text>',
+  fileDoc:
+    '<path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/><text x="12" y="17.5" text-anchor="middle" font-size="5.5" font-weight="700" font-family="sans-serif" fill="currentColor" stroke="none">DOC</text>',
+  fileXls:
+    '<path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/><text x="12" y="17.5" text-anchor="middle" font-size="5.5" font-weight="700" font-family="sans-serif" fill="currentColor" stroke="none">XLS</text>',
 } as const
 
 export type IconName = keyof typeof iconPaths
+
+/** 附件按扩展名区分图标 */
+export function fileIconName(ext: string): IconName {
+  const value = ext.toLowerCase()
+  if (value === 'pdf') return 'filePdf'
+  if (value === 'doc' || value === 'docx') return 'fileDoc'
+  if (value === 'xls' || value === 'xlsx') return 'fileXls'
+  if (
+    ['csv', 'json', 'xml', 'yaml', 'yml', 'html', 'sql', 'java', 'py', 'js', 'ts', 'vue', 'css', 'c', 'cpp', 'h', 'go', 'rs', 'sh', 'properties', 'ini', 'toml'].includes(value)
+  ) {
+    return 'fileCode'
+  }
+  if (value === 'txt' || value === 'md' || value === 'log') return 'fileText'
+  return 'file'
+}
 
 /** 按工具名推断一个像样的图标 */
 export function toolIconName(name: string): IconName {
