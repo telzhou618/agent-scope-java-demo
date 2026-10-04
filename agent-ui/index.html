@@ -5,11 +5,14 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Agent — 对话</title>
 <script>
-/* 在首次绘制前定好主题：深色用户刷新时不会先闪一下白屏 */
+/* 在首次绘制前定好皮肤：非默认皮肤刷新时不会先闪一下默认色 */
 (() => {
-  let dark = false;
-  try { dark = localStorage.getItem("agent-ui:theme") === "dark"; } catch (_) {}
-  document.documentElement.dataset.theme = dark ? "dark" : "light";
+  let theme = "classic";
+  try {
+    const stored = localStorage.getItem("agent-ui:theme");
+    if (stored === "obsidian" || stored === "amber" || stored === "classic") theme = stored;
+  } catch (_) {}
+  document.documentElement.dataset.theme = theme;
 })();
 </script>
 </head>

@@ -1,0 +1,353 @@
+<!doctype html>
+<html lang="zh-CN" data-skin="classic">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>皮肤主题原型预览</title>
+<style>
+/* ============================================================
+   皮肤令牌：每套皮肤是一组完整的设计令牌，与项目 tokens.css 同名
+   ============================================================ */
+
+/* 1. 经典蓝（现有浅色，对照组） */
+html[data-skin="classic"] {
+  color-scheme: light;
+  --bg:#ffffff; --bg-sidebar:#f8fafc; --bg-subtle:#f1f5f9; --bg-code:#f8fafc;
+  --surface:#ffffff; --surface-press:#e2e8f0;
+  --border:#e2e8f0; --border-strong:#cbd5e1;
+  --fg:#1e293b; --fg-muted:#64748b; --fg-icon:#94a3b8;
+  --accent:#2563eb; --accent-soft:#eff6ff; --on-accent:#ffffff;
+  --ok:#15803d; --ok-soft:#f0fdf4;
+  --err:#b91c1c; --err-soft:#fef2f2;
+  --ring:rgba(37,99,235,.13); --topbar-bg:rgba(255,255,255,.85);
+  --shadow-2:0 1px 2px rgba(15,23,42,.05),0 4px 12px rgba(15,23,42,.05);
+}
+
+/* 2. 曜石黑（现有深色，对照组） */
+html[data-skin="obsidian"] {
+  color-scheme: dark;
+  --bg:#0f172a; --bg-sidebar:#0b1120; --bg-subtle:#1e293b; --bg-code:#0b1120;
+  --surface:#1b2536; --surface-press:#26344a;
+  --border:#1e293b; --border-strong:#334155;
+  --fg:#e6edf6; --fg-muted:#94a3b8; --fg-icon:#64748b;
+  --accent:#60a5fa; --accent-soft:#172554; --on-accent:#0b1120;
+  --ok:#4ade80; --ok-soft:#0a2e1a;
+  --err:#f87171; --err-soft:#3b1218;
+  --ring:rgba(96,165,250,.28); --topbar-bg:rgba(15,23,42,.85);
+  --shadow-2:0 1px 2px rgba(0,0,0,.5),0 4px 12px rgba(0,0,0,.45);
+}
+
+/* 3. 翡翠森林（浅色 · 绿） */
+html[data-skin="forest"] {
+  color-scheme: light;
+  --bg:#ffffff; --bg-sidebar:#f4f8f3; --bg-subtle:#ebf3e9; --bg-code:#f4f8f3;
+  --surface:#ffffff; --surface-press:#dcead6;
+  --border:#dfe9da; --border-strong:#bed2b5;
+  --fg:#1e2d22; --fg-muted:#59705f; --fg-icon:#8fa694;
+  --accent:#059669; --accent-soft:#e6f6ee; --on-accent:#ffffff;
+  --ok:#15803d; --ok-soft:#f0fdf4;
+  --err:#b91c1c; --err-soft:#fef2f2;
+  --ring:rgba(5,150,105,.15); --topbar-bg:rgba(255,255,255,.85);
+  --shadow-2:0 1px 2px rgba(24,43,30,.06),0 4px 12px rgba(24,43,30,.06);
+}
+
+/* 4. 落樱粉（浅色 · 粉） */
+html[data-skin="sakura"] {
+  color-scheme: light;
+  --bg:#ffffff; --bg-sidebar:#fdf6f7; --bg-subtle:#fbeef1; --bg-code:#fdf6f7;
+  --surface:#ffffff; --surface-press:#f4dbe1;
+  --border:#f2dde2; --border-strong:#e2bfca;
+  --fg:#352128; --fg-muted:#84616c; --fg-icon:#bd94a0;
+  --accent:#e11d48; --accent-soft:#fdeef2; --on-accent:#ffffff;
+  --ok:#15803d; --ok-soft:#f0fdf4;
+  --err:#b91c1c; --err-soft:#fef2f2;
+  --ring:rgba(225,29,72,.13); --topbar-bg:rgba(255,255,255,.85);
+  --shadow-2:0 1px 2px rgba(53,33,40,.05),0 4px 12px rgba(53,33,40,.06);
+}
+
+/* 5. 琥珀暖阳（暖白 · 琥珀） */
+html[data-skin="amber"] {
+  color-scheme: light;
+  --bg:#fffcf5; --bg-sidebar:#faf3e6; --bg-subtle:#f4ead5; --bg-code:#faf3e6;
+  --surface:#fffdf8; --surface-press:#eadbbd;
+  --border:#eadfc6; --border-strong:#d6c49c;
+  --fg:#3a2d17; --fg-muted:#7c6a49; --fg-icon:#b1a07b;
+  --accent:#d97706; --accent-soft:#fdf0da; --on-accent:#ffffff;
+  --ok:#15803d; --ok-soft:#f0fdf4;
+  --err:#b91c1c; --err-soft:#fef2f2;
+  --ring:rgba(217,119,6,.16); --topbar-bg:rgba(255,252,245,.85);
+  --shadow-2:0 1px 2px rgba(58,45,23,.06),0 4px 12px rgba(58,45,23,.07);
+}
+
+/* 6. 薰衣草（浅色 · 紫） */
+html[data-skin="lavender"] {
+  color-scheme: light;
+  --bg:#ffffff; --bg-sidebar:#f7f5fc; --bg-subtle:#efebf9; --bg-code:#f7f5fc;
+  --surface:#ffffff; --surface-press:#ddd5f0;
+  --border:#e4def2; --border-strong:#c7bce3;
+  --fg:#2a2340; --fg-muted:#6b6386; --fg-icon:#a095c1;
+  --accent:#7c3aed; --accent-soft:#f1eafd; --on-accent:#ffffff;
+  --ok:#15803d; --ok-soft:#f0fdf4;
+  --err:#b91c1c; --err-soft:#fef2f2;
+  --ring:rgba(124,58,237,.13); --topbar-bg:rgba(255,255,255,.85);
+  --shadow-2:0 1px 2px rgba(42,35,64,.05),0 4px 12px rgba(42,35,64,.07);
+}
+
+/* 7. 深海蓝（深色 · 青） */
+html[data-skin="ocean"] {
+  color-scheme: dark;
+  --bg:#0c1a26; --bg-sidebar:#081521; --bg-subtle:#12293a; --bg-code:#081521;
+  --surface:#12293a; --surface-press:#1d3b51;
+  --border:#173349; --border-strong:#27516e;
+  --fg:#dcebf5; --fg-muted:#88a7bc; --fg-icon:#5b7f97;
+  --accent:#22d3ee; --accent-soft:#0e3a47; --on-accent:#062530;
+  --ok:#4ade80; --ok-soft:#0a2e1a;
+  --err:#f87171; --err-soft:#3b1218;
+  --ring:rgba(34,211,238,.25); --topbar-bg:rgba(12,26,38,.85);
+  --shadow-2:0 1px 2px rgba(0,0,0,.5),0 4px 12px rgba(0,0,0,.45);
+}
+
+/* ============================================================
+   布局与组件（与项目类名/结构一致，仅用于预览）
+   ============================================================ */
+* { box-sizing: border-box; margin: 0; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC",
+    "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+  font-size: 15px; line-height: 1.6;
+  background: var(--bg); color: var(--fg);
+  height: 100vh; display: flex; flex-direction: column; overflow: hidden;
+}
+
+.skin-bar {
+  flex: none; display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+  padding: 10px 16px; border-bottom: 1px solid var(--border); background: var(--surface);
+}
+.skin-bar .label { font-size: 13px; color: var(--fg-muted); margin-right: 4px; }
+.skin-btn {
+  display: inline-flex; align-items: center; gap: 7px;
+  padding: 5px 12px; border: 1px solid var(--border); border-radius: 999px;
+  background: var(--surface); color: var(--fg-muted); font-size: 13px; cursor: pointer;
+}
+.skin-btn .dot { width: 10px; height: 10px; border-radius: 50%; }
+.skin-btn.active { border-color: var(--accent); color: var(--accent); font-weight: 600; background: var(--accent-soft); }
+
+.app { flex: 1; display: flex; min-height: 0; }
+
+/* ---------- 侧栏 ---------- */
+.sidebar {
+  width: 240px; flex: none; display: flex; flex-direction: column;
+  background: var(--bg-sidebar); border-right: 1px solid var(--border);
+}
+.side-head { display: flex; align-items: center; gap: 8px; padding: 14px 14px 10px; font-weight: 600; }
+.brand-mark {
+  width: 24px; height: 24px; border-radius: 7px; display: grid; place-items: center;
+  background: var(--accent); color: var(--on-accent); font-size: 13px; font-weight: 700;
+}
+.new-chat {
+  margin: 4px 10px 8px; padding: 8px 12px; display: flex; align-items: center; gap: 7px;
+  border: 1px solid var(--border); border-radius: 8px; background: var(--surface);
+  color: var(--fg); font-size: 13.5px; cursor: pointer;
+}
+.group-label { padding: 12px 16px 4px; font-size: 11.5px; font-weight: 600; color: var(--fg-muted); letter-spacing: .04em; }
+.session {
+  position: relative; margin: 1px 8px; padding: 8px 30px 8px 10px;
+  border: 1px solid transparent; border-radius: 8px; font-size: 14px;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap; cursor: pointer;
+}
+.session:hover { background: var(--bg-subtle); }
+.session.cur { background: var(--surface); border-color: var(--border); box-shadow: var(--shadow-2); font-weight: 500; }
+.session .pin {
+  position: absolute; right: 8px; top: 50%; transform: translateY(-50%);
+  color: var(--fg-icon); opacity: 0; font-size: 12px;
+}
+.session:hover .pin, .session .pin.on { opacity: 1; }
+.session .pin.on { color: var(--accent); }
+.side-foot { margin-top: auto; border-top: 1px solid var(--border); padding: 10px 12px; display: flex; align-items: center; gap: 10px; }
+.avatar {
+  width: 28px; height: 28px; border-radius: 50%; display: grid; place-items: center;
+  background: var(--accent-soft); color: var(--accent); font-size: 13px; font-weight: 600;
+}
+.side-foot .name { font-size: 13.5px; } .side-foot .plan { font-size: 11.5px; color: var(--fg-muted); }
+
+/* ---------- 主区 ---------- */
+.main { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+.topbar {
+  flex: none; height: 54px; display: flex; align-items: center; gap: 10px; padding: 0 16px;
+  border-bottom: 1px solid var(--border); background: var(--topbar-bg);
+}
+.topbar .title { font-size: 14.5px; font-weight: 600; }
+.topbar .chip {
+  padding: 3px 10px; border: 1px solid var(--border); border-radius: 999px;
+  font-size: 12px; color: var(--fg-muted); display: inline-flex; align-items: center; gap: 6px;
+}
+.topbar .chip .live { width: 7px; height: 7px; border-radius: 50%; background: var(--ok); }
+.icon-btn {
+  width: 30px; height: 30px; display: grid; place-items: center; border-radius: 8px;
+  border: 0; background: none; color: var(--fg-icon); cursor: pointer; font-size: 15px;
+}
+.icon-btn:hover { background: var(--bg-subtle); color: var(--fg); }
+.spacer { flex: 1; }
+
+.thread { flex: 1; overflow: auto; padding: 22px 24px; display: flex; flex-direction: column; gap: 18px; }
+
+.msg-user { display: flex; justify-content: flex-end; }
+.bubble {
+  position: relative; max-width: 80%; padding: 10px 15px;
+  background: var(--bg-subtle); border-radius: 18px; border-bottom-right-radius: 6px;
+  white-space: pre-wrap;
+}
+.skill-tag {
+  display: inline-flex; align-items: center; padding: 1px 8px; margin-right: 6px;
+  border-radius: 6px; background: var(--accent-soft); color: var(--accent);
+  font-size: 13px; font-weight: 500;
+}
+.attach-file {
+  display: inline-flex; align-items: center; gap: 6px; margin: 0 8px 6px 0;
+  padding: 5px 10px; background: var(--bg-sidebar); border: 1px solid var(--border);
+  border-radius: 8px; font-size: 12px; color: var(--fg-muted);
+}
+
+.msg-assistant { display: flex; flex-direction: column; gap: 12px; }
+.thinking, .tool {
+  border: 1px solid var(--border); border-radius: 10px; background: var(--surface);
+  padding: 8px 12px; font-size: 13px; color: var(--fg-muted);
+  display: flex; align-items: center; gap: 8px; width: fit-content;
+}
+.tool .ok { color: var(--ok); font-size: 12px; margin-left: 6px; }
+.tool code { font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 12px; color: var(--fg); }
+.prose p { margin: 0 0 8px; }
+.prose strong { color: var(--fg); }
+.prose table { border-collapse: collapse; margin: 6px 0; font-size: 14px; }
+.prose td, .prose th { border: 1px solid var(--border-strong); padding: 4px 12px; }
+.code {
+  border: 1px solid var(--border); border-radius: 10px; overflow: hidden; font-size: 13px;
+}
+.code-head {
+  display: flex; justify-content: space-between; padding: 5px 12px;
+  background: var(--bg-code); border-bottom: 1px solid var(--border);
+  font-size: 12px; color: var(--fg-muted);
+}
+.code pre { margin: 0; padding: 10px 12px; background: var(--bg-code); font-family: ui-monospace, Menlo, Consolas, monospace; }
+.act { display: flex; gap: 6px; }
+.act-btn {
+  display: inline-flex; align-items: center; gap: 5px; padding: 4px 9px;
+  border: 1px solid var(--border); border-radius: 7px; background: var(--surface);
+  color: var(--fg-muted); font-size: 12px; cursor: pointer;
+}
+.act-btn:hover { background: var(--bg-subtle); color: var(--fg); }
+.act-btn.on { color: var(--accent); border-color: var(--accent); background: var(--accent-soft); }
+
+.composer-wrap { flex: none; padding: 10px 24px 16px; }
+.composer {
+  max-width: 680px; margin: 0 auto; border: 1px solid var(--border); border-radius: 14px;
+  background: var(--surface); box-shadow: var(--shadow-2);
+}
+.composer-input { display: flex; align-items: flex-start; gap: 6px; padding: 12px 14px 4px; }
+.composer-input .text { flex: 1; color: var(--fg-muted); font-size: 15px; }
+.composer-bar { display: flex; align-items: center; gap: 6px; padding: 4px 8px 8px 10px; }
+.send-btn {
+  width: 32px; height: 32px; border: 0; border-radius: 50%; display: grid; place-items: center;
+  background: var(--accent); color: var(--on-accent); cursor: pointer; font-size: 15px;
+}
+</style>
+</head>
+<body>
+
+<div class="skin-bar">
+  <span class="label">皮肤主题（7 套，点击切换）</span>
+  <button class="skin-btn active" data-skin="classic"><span class="dot" style="background:#2563eb"></span>经典蓝</button>
+  <button class="skin-btn" data-skin="obsidian"><span class="dot" style="background:#60a5fa"></span>曜石黑</button>
+  <button class="skin-btn" data-skin="forest"><span class="dot" style="background:#059669"></span>翡翠森林</button>
+  <button class="skin-btn" data-skin="sakura"><span class="dot" style="background:#e11d48"></span>落樱粉</button>
+  <button class="skin-btn" data-skin="amber"><span class="dot" style="background:#d97706"></span>琥珀暖阳</button>
+  <button class="skin-btn" data-skin="lavender"><span class="dot" style="background:#7c3aed"></span>薰衣草</button>
+  <button class="skin-btn" data-skin="ocean"><span class="dot" style="background:#22d3ee"></span>深海蓝</button>
+</div>
+
+<div class="app">
+  <aside class="sidebar">
+    <div class="side-head"><span class="brand-mark">A</span>Agent</div>
+    <button class="new-chat">＋ 新对话</button>
+    <div class="group-label">置顶</div>
+    <div class="session cur">杭州天气情况<span class="pin on">📌</span></div>
+    <div class="group-label">今天</div>
+    <div class="session">翻译天气<span class="pin">📌</span></div>
+    <div class="session">查询杭州天气<span class="pin">📌</span></div>
+    <div class="group-label">昨天</div>
+    <div class="session">上海天气如何<span class="pin">📌</span></div>
+    <div class="side-foot">
+      <span class="avatar">管</span>
+      <span><div class="name">管理员</div><div class="plan">Pro 计划</div></span>
+    </div>
+  </aside>
+
+  <div class="main">
+    <div class="topbar">
+      <span class="title">杭州天气情况</span>
+      <span class="spacer"></span>
+      <span class="chip"><span class="live"></span>Agent Pro</span>
+      <button class="icon-btn">✦</button>
+      <button class="icon-btn">☀</button>
+      <button class="icon-btn">⋯</button>
+    </div>
+
+    <div class="thread">
+      <div class="msg-user">
+        <div class="bubble"><span class="attach-file">📄 report.pdf</span><span class="attach-file">📝 notes.txt</span>帮我总结这两份文件</div>
+      </div>
+      <div class="msg-user">
+        <div class="bubble"><span class="skill-tag">/skill:weather-report</span>杭州</div>
+      </div>
+      <div class="msg-assistant">
+        <div class="thinking">✦ 思考过程 · 3s</div>
+        <div class="tool">🔍 <code>queryWeather {"city": "杭州"}</code><span class="ok">✓ 成功</span></div>
+        <div class="prose">
+          <p>杭州今天（2026年10月4日）的天气信息：</p>
+          <table>
+            <tr><th>项目</th><th>详情</th></tr>
+            <tr><td>🌡️ 温度</td><td><strong>19°C</strong></td></tr>
+            <tr><td>💧 湿度</td><td><strong>97%</strong></td></tr>
+            <tr><td>🌧️ 天气状况</td><td><strong>小雨</strong></td></tr>
+          </table>
+          <div class="code">
+            <div class="code-head"><span>python</span><span>复制</span></div>
+            <pre>print("杭州今天小雨，记得带伞")</pre>
+          </div>
+        </div>
+        <div class="act">
+          <button class="act-btn">⧉ 复制</button>
+          <button class="act-btn">↻ 重新生成</button>
+          <button class="act-btn on">👍 有帮助</button>
+          <button class="act-btn">👎</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="composer-wrap">
+      <div class="composer">
+        <div class="composer-input">
+          <span class="skill-tag">/skill:translate</span>
+          <span class="text">给 Agent 发消息…</span>
+        </div>
+        <div class="composer-bar">
+          <button class="icon-btn">📎</button>
+          <span class="spacer"></span>
+          <button class="send-btn">↑</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+document.querySelectorAll('.skin-btn').forEach((btn) => {
+  btn.addEventListener('click', () => {
+    document.documentElement.dataset.skin = btn.dataset.skin
+    document.querySelector('.skin-btn.active')?.classList.remove('active')
+    btn.classList.add('active')
+  })
+})
+</script>
+</body>
+</html>

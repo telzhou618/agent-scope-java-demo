@@ -3,7 +3,7 @@ import { computed } from 'vue'
 import AppIcon from './AppIcon.vue'
 import { useAuthStore } from '../stores/auth'
 import { useChat } from '../stores/chat'
-import { useTheme } from '../composables/useTheme'
+import { useTheme, THEME_LIST, type ThemeChoice } from '../composables/useTheme'
 import { useWide } from '../composables/useWide'
 import { useDismissableMenu } from '../composables/useDismissableMenu'
 import { downloadText, exportFilename, turnsToHtml, turnsToMarkdown } from '../utils/export'
@@ -20,6 +20,22 @@ const {
   close: closeMenu,
   toggle: toggleMenu,
 } = useDismissableMenu()
+const {
+  open: skinOpen,
+  bindRoot: bindSkinRoot,
+  close: closeSkin,
+  toggle: toggleSkin,
+} = useDismissableMenu()
+
+const skinItems = (Object.keys(THEME_LIST) as ThemeChoice[]).map((key) => ({
+  key,
+  ...THEME_LIST[key],
+}))
+
+function pickSkin(key: ThemeChoice) {
+  theme.set(key)
+  closeSkin()
+}
 
 const canExport = computed(() => !state.streaming && state.turns.length > 0)
 
@@ -97,15 +113,34 @@ function exportSession(format: 'md' | 'html' | 'pdf') {
       <AppIcon :name="wide.wide.value ? 'collapse' : 'expand'" :size="16" />
     </button>
 
-    <button
-      class="icon-btn theme-btn"
-      type="button"
-      :aria-label="theme.label.value"
-      :title="theme.label.value"
-      @click="theme.cycle()"
-    >
-      <AppIcon :name="theme.meta.value.icon" :size="16" />
-    </button>
+    <div :ref="bindSkinRoot" class="more-wrap">
+      <button
+        class="icon-btn theme-btn"
+        type="button"
+        aria-label="切换皮肤主题"
+        title="切换皮肤主题"
+        aria-haspopup="menu"
+        :aria-expanded="skinOpen"
+        @click="toggleSkin()"
+      >
+        <span class="skin-dot" :style="{ background: theme.meta.value.swatch }" aria-hidden="true" />
+      </button>
+      <div v-if="skinOpen" class="more-menu" role="menu">
+        <button
+          v-for="item in skinItems"
+          :key="item.key"
+          class="more-item"
+          type="button"
+          role="menuitemradio"
+          :aria-checked="theme.choice.value === item.key"
+          @click="pickSkin(item.key)"
+        >
+          <span class="skin-dot" :style="{ background: item.swatch }" aria-hidden="true" />
+          {{ item.name }}
+          <AppIcon v-if="theme.choice.value === item.key" name="check" :size="14" class="skin-check" />
+        </button>
+      </div>
+    </div>
 
     <div :ref="bindMenuRoot" class="more-wrap">
       <button

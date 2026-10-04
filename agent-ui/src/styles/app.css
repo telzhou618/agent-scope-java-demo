@@ -663,7 +663,7 @@ svg { display: block; flex: none; }
 
 .code pre code { font: inherit; }
 
-/* 语法高亮（浅色 = One Light；深色值见 html[data-theme="dark"]） */
+/* 语法高亮（浅色 = One Light；深色值见 html[data-theme="obsidian"]） */
 .tok-kw  { color: var(--tok-kw); }
 .tok-str { color: var(--tok-str); }
 .tok-com { color: var(--tok-com); font-style: italic; }

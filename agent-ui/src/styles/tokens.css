@@ -64,11 +64,11 @@
 }
 
 /* ============================================================
-   深色主题
+   曜石黑（深色）
    挂在 html 上而不是 body，因为 color-scheme 要用它一起切换
    滚动条、输入光标和原生控件。
    ============================================================ */
-html[data-theme="dark"] {
+html[data-theme="obsidian"] {
   color-scheme: dark;
 
   --bg:            #0f172a;
@@ -108,4 +108,42 @@ html[data-theme="dark"] {
 
   --shadow-1: 0 1px 2px rgba(0, 0, 0, .5);
   --shadow-2: 0 1px 2px rgba(0, 0, 0, .5), 0 4px 12px rgba(0, 0, 0, .45);
+}
+
+/* ============================================================
+   琥珀暖阳（暖白浅色）
+   ============================================================ */
+html[data-theme="amber"] {
+  color-scheme: light;
+
+  --bg:            #fffcf5;
+  --bg-sidebar:    #faf3e6;
+  --bg-subtle:     #f4ead5;
+  --bg-code:       #faf3e6;
+  --surface:       #fffdf8;
+  --surface-press: #eadbbd;
+
+  --border:        #eadfc6;
+  --border-strong: #d6c49c;
+
+  --fg:            #3a2d17;
+  --fg-muted:      #7c6a49;
+  --fg-icon:       #b1a07b;
+
+  --accent:        #d97706;
+  --accent-soft:   #fdf0da;
+  --on-accent:     #ffffff;
+  --ok:            #15803d;
+  --ok-soft:       #f0fdf4;
+  --err:           #b91c1c;
+  --err-soft:      #fef2f2;
+  --err-border:    #fecaca;
+
+  /* 语法高亮：沿用 One Light（暖白底上可读性一致） */
+  --ring:      rgba(217, 119, 6, .16);
+  --scrim:     rgba(58, 45, 23, .45);
+  --topbar-bg: rgba(255, 252, 245, .85);
+
+  --shadow-1: 0 1px 2px rgba(58, 45, 23, .05);
+  --shadow-2: 0 1px 2px rgba(58, 45, 23, .06), 0 4px 12px rgba(58, 45, 23, .07);
 }
