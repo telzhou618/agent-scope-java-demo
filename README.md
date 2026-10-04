@@ -8,7 +8,7 @@ Agent + MCP 演示工程：基于 [AgentScope Java](https://github.com/agentscop
 
 | 模块 | 端口 | 说明 |
 | --- | --- | --- |
-| `mcp-server` | 8081 | 基于 Spring AI MCP Server（STREAMABLE 协议），提供示例工具：当前时间、模拟天气查询 |
+| `mcp-server` | 8081 | 基于 Spring AI MCP Server（STREAMABLE 协议），提供示例工具：当前时间、真实天气查询（wttr.in 免费接口） |
 | `agent-app` | 8082 | 基于 AgentScope HarnessAgent 的智能体服务，连接 MCP server 获取工具，对外提供 SSE 流式对话接口；含 Sa-Token + MyBatis-Plus 的用户登录（MySQL 存用户、Redis 存 token） |
 | `agent-ui` | 5173 | 基于 Vite + Vue 3 的对话界面（登录页 + Vue Router + Pinia + Axios），对接 agent-app；原型见 `agent-ui/原型/index.html` |
 
