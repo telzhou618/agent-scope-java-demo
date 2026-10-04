@@ -918,3 +918,24 @@
 }
 
 .skin-check { margin-left: auto; color: var(--accent); }
+
+/* ---------- echarts 图表块 ---------- */
+
+.echarts-block {
+  height: 340px;
+  margin: 0 0 14px;
+  padding: 8px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  overflow: hidden;
+}
+
+/* JSON 未写完/非法时的源码兜底 */
+.echarts-block.echarts-fallback {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--fg-muted);
+  white-space: pre-wrap;
+  overflow: auto;
+}
