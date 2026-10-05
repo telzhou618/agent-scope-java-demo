@@ -55,6 +55,8 @@ export { echarts }
 const cssVar = (name: string) =>
   getComputedStyle(document.documentElement).getPropertyValue(name).trim()
 
+export { cssVar }
+
 /** 跟随当前皮肤的图表配色与文字色 */
 export function chartTheme() {
   return {

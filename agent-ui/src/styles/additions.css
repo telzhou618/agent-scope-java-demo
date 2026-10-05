@@ -939,3 +939,36 @@
   white-space: pre-wrap;
   overflow: auto;
 }
+
+/* ---------- echarts 图表块工具栏（下载/放大，hover 显示） ---------- */
+
+.echarts-block { position: relative; }
+
+.echarts-toolbar {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  z-index: 2;
+  display: flex;
+  gap: 6px;
+  opacity: 0;
+  transition: opacity var(--dur) var(--ease);
+}
+
+.echarts-block:hover .echarts-toolbar,
+.echarts-toolbar:focus-within { opacity: 1; }
+
+.echarts-tool {
+  width: 26px;
+  height: 26px;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  background: var(--surface);
+  color: var(--fg-muted);
+  cursor: pointer;
+  transition: background var(--dur) var(--ease), color var(--dur) var(--ease);
+}
+
+.echarts-tool:hover { background: var(--bg-subtle); color: var(--fg); }
