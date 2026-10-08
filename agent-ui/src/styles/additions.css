@@ -931,6 +931,15 @@
   overflow: hidden;
 }
 
+/* 图表画布容器（ChartBlock 组件内的挂载点） */
+.echarts-canvas {
+  width: 100%;
+  height: 100%;
+}
+
+/* Markdown 分段包裹层：不参与布局，保持 .prose 原有排版 */
+.md-segment { display: contents; }
+
 /* 图表 JSON 流式生成中：动画遮罩，不回显源码 */
 .echarts-block.echarts-loading {
   display: grid;
