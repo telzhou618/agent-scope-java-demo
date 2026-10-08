@@ -135,6 +135,7 @@ public class AgentConfig {
                 .disableMemoryTools()            // 不注册 memory_search / memory_get / session_search 工具.di
                 .disableWorkspaceContext()       // 止把 workspace 中的结构化上下文注入 system prompt,system prompt 更干净
                 .disableFilesystemTools()        // 禁用框架自带的文件读写操作工具
+                .disableShellTool()              // 禁用框架自带的 shell execute 工具，杜绝借 shell 间接操作文件
 
                 .build();
     }
