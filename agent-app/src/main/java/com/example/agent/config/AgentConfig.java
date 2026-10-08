@@ -136,6 +136,8 @@ public class AgentConfig {
                 .disableWorkspaceContext()       // 止把 workspace 中的结构化上下文注入 system prompt,system prompt 更干净
                 .disableFilesystemTools()        // 禁用框架自带的文件读写操作工具
                 .disableShellTool()              // 禁用框架自带的 shell execute 工具，杜绝借 shell 间接操作文件
+                .disableSubagents()              // 禁用子代理工具 agent_spawn / agent_send / agent_list 及配套任务工具
+                .disableDynamicSubagents()       // 禁用动态子代理（运行时生成子代理规格）
 
                 .build();
     }
