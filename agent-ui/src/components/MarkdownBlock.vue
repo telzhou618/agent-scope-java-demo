@@ -5,7 +5,7 @@ import { copyText, flashLabel } from '../utils/clipboard'
 import { useLightbox } from '../composables/useLightbox'
 import { iconPaths } from '../utils/icons'
 
-const props = defineProps<{ markdown: string }>()
+const props = defineProps<{ markdown: string; streaming?: boolean }>()
 
 const { open: openImage } = useLightbox()
 
@@ -88,28 +88,42 @@ function attachToolbar(el: HTMLElement, chart: ChartInstance, option: Record<str
   el.appendChild(bar)
 }
 
-/** 扫描 echarts 占位块并渲染；JSON 未写完/非法时按源码兜底 */
+/** 扫描 echarts 占位块并渲染；JSON 未写完时显示加载动画遮罩，流结束仍非法则提示解析失败（均不回显 JSON 源码） */
 async function mountCharts() {
   disposeCharts()
   const blocks = proseRef.value?.querySelectorAll<HTMLElement>('.echarts-block')
   if (!blocks?.length) return
-  if (!echartsLib) echartsLib = await import('../utils/echarts')
   for (const el of blocks) {
     const raw = el.dataset.config ?? ''
     let option: Record<string, unknown>
     try {
       option = JSON.parse(raw)
     } catch {
-      el.textContent = raw
-      el.classList.add('echarts-fallback')
+      if (props.streaming) {
+        el.classList.add('echarts-loading')
+        el.innerHTML =
+          '<div class="echarts-loading-mask"><span class="echarts-spinner"></span><span>图表生成中…</span></div>'
+      } else {
+        el.classList.add('echarts-error')
+        el.textContent = '图表数据解析失败'
+      }
       continue
     }
+    if (!echartsLib) echartsLib = await import('../utils/echarts')
     const chart = echartsLib.echarts.init(el, undefined, { renderer: 'canvas' })
     chart.setOption(echartsLib.withTheme(option))
     attachToolbar(el, chart, option)
     charts.push(chart)
   }
 }
+
+// 流结束时再跑一次：仍在加载态的块切换为「解析失败」或正常渲染
+watch(
+  () => props.streaming,
+  (streaming) => {
+    if (streaming === false) void mountCharts()
+  },
+)
 
 // 流式增量很密，节流到 50ms 再跑一次 Markdown 解析
 watch(

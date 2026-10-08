@@ -46,7 +46,7 @@ function vote(value: 'up' | 'down') {
     <template v-for="(block, index) in props.turn.blocks" :key="index">
       <ThinkingCard v-if="block.kind === 'thinking'" :block="block" />
       <ToolCard v-else-if="block.kind === 'tool'" :block="block" />
-      <MarkdownBlock v-else :markdown="block.markdown" />
+      <MarkdownBlock v-else :markdown="block.markdown" :streaming="props.turn.streaming" />
     </template>
 
     <div v-if="props.turn.error" class="turn-error">
