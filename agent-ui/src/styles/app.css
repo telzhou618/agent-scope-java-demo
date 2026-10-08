@@ -698,6 +698,16 @@ svg { display: block; flex: none; }
   box-shadow: 0 0 0 3px var(--ring), var(--shadow-2);
 }
 
+/* 输入框下方版权信息 */
+.composer-copyright {
+  max-width: var(--read-inner);
+  margin: 8px auto 0;
+  text-align: center;
+  font-size: 12px;
+  color: var(--fg-muted);
+  user-select: none;
+}
+
 /* 输入区：技能标签 + 输入框同行排列 */
 .composer-input {
   display: flex;

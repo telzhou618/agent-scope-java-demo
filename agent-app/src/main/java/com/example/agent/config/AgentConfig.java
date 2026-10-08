@@ -134,6 +134,7 @@ public class AgentConfig {
                 .disableMemoryHooks()            // 停掉 flush + 后台 consolidation，不生成 memory/*.md / MEMORY.md
                 .disableMemoryTools()            // 不注册 memory_search / memory_get / session_search 工具.di
                 .disableWorkspaceContext()       // 止把 workspace 中的结构化上下文注入 system prompt,system prompt 更干净
+                .disableFilesystemTools()        // 禁用框架自带的文件读写操作工具
 
                 .build();
     }

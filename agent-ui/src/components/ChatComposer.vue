@@ -87,8 +87,6 @@ function onPaste(event: ClipboardEvent) {
 
 /* ---------- 技能快捷指令：输入 / 唤出 ---------- */
 
-const SKILL_CMD_PREFIX = '/skill:'
-
 const skills = ref<SkillInfo[]>([])
 let skillsRequested = false
 
@@ -113,10 +111,11 @@ const commandQuery = computed(() => {
 const matchedSkills = computed(() => {
   const query = commandQuery.value
   if (query === null) return []
-  const needle = query.toLowerCase()
+  // 去掉前导 /（及可选的 skill:），对名称和描述做任意位置子串匹配
+  const needle = query.toLowerCase().replace(/^\//, '').replace(/^skill:/, '')
   return skills.value.filter(
     (skill) =>
-      `${SKILL_CMD_PREFIX}${skill.name}`.toLowerCase().includes(needle) ||
+      skill.name.toLowerCase().includes(needle) ||
       skill.description.toLowerCase().includes(needle),
   )
 })
@@ -269,5 +268,6 @@ function onKeydown(event: KeyboardEvent) {
         @change="onPicked"
       />
     </form>
+    <p class="composer-copyright">© 2026 agent-scope-java-demo. All rights reserved.</p>
   </div>
 </template>
