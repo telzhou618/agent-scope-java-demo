@@ -1219,3 +1219,169 @@
   font-size: 12px;
   color: var(--fg-muted);
 }
+
+
+/* ---------- 管理中心：Tab 切换与反馈/日志面板 ---------- */
+
+.admin-tabs {
+  display: flex;
+  gap: 18px;
+  margin-bottom: 14px;
+  border-bottom: 1px solid var(--border);
+}
+
+.admin-tab {
+  position: relative;
+  padding: 6px 2px 9px;
+  font-size: 13.5px;
+  color: var(--fg-muted);
+  cursor: pointer;
+  transition: color var(--dur) var(--ease);
+}
+
+.admin-tab:hover { color: var(--fg); }
+
+.admin-tab.active { color: var(--accent); font-weight: 600; }
+
+.admin-tab.active::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -1px;
+  height: 2px;
+  border-radius: 2px;
+  background: var(--accent);
+}
+
+/* 工具行右侧筛选下拉 */
+.admin-select {
+  flex: none;
+  padding: 7px 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg);
+  color: var(--fg);
+  font-size: 13px;
+  font-family: inherit;
+  outline: none;
+  cursor: pointer;
+}
+
+.admin-select:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--ring); }
+
+/* 反馈状态徽章（复用 .user-status 的胶囊外形） */
+.fb-status-pending { color: var(--accent); background: var(--accent-soft); }
+.fb-status-done { color: var(--fg-muted); background: var(--bg-subtle); }
+
+/* 日志结果徽章 */
+.log-result-ok { color: var(--ok); background: var(--ok-soft); }
+.log-result-fail { color: var(--err); background: var(--err-soft); }
+
+/* 长文本列截断，完整内容放 title */
+.cell-clip {
+  display: inline-block;
+  max-width: 240px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  vertical-align: bottom;
+}
+
+/* ---------- 失败回合的重试按钮 ---------- */
+.turn-error .retry-btn {
+  margin-left: auto;
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 10px;
+  border: 1px solid var(--err-border);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--err);
+  font-size: 12px;
+  transition: background var(--dur) var(--ease), border-color var(--dur) var(--ease);
+}
+
+.turn-error .retry-btn:hover {
+  background: var(--err-soft);
+  border-color: var(--err);
+}
+
+/* ---------- 快捷键说明弹窗 ---------- */
+.shortcut-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 4px;
+}
+
+.shortcut-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 7px 2px;
+  font-size: 13px;
+}
+
+.shortcut-row + .shortcut-row { border-top: 1px solid var(--border); }
+
+.shortcut-label { color: var(--fg); }
+
+.shortcut-keys {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  flex: none;
+}
+
+.shortcut-kbd {
+  min-width: 24px;
+  padding: 3px 7px;
+  border: 1px solid var(--border);
+  border-bottom-width: 2px;
+  border-radius: 6px;
+  background: var(--bg-subtle);
+  color: var(--fg);
+  font-size: 11.5px;
+  font-family: inherit;
+  text-align: center;
+}
+
+.shortcut-plus { font-size: 11px; color: var(--fg-muted); }
+
+.shortcut-tip {
+  margin: 12px 0 0;
+  font-size: 12px;
+  color: var(--fg-muted);
+}
+
+/* ---------- 个人资料弹窗 ---------- */
+.profile-dialog .login-field { margin-bottom: 12px; }
+
+.dialog-error { padding: 0; }
+
+/* ---------- 身份卡操作按钮 ---------- */
+.identity-actions {
+  flex: none;
+  display: flex;
+  gap: 8px;
+}
+
+/* ---------- Tokens 卡的输入/输出拆分 ---------- */
+.stat-sub {
+  margin-top: 4px;
+  font-size: 12px;
+  color: var(--fg-muted);
+}
+
+/* ---------- 柱状图维度选择：与时间维度选择器同一套样式 ---------- */
+.metric-picker { margin-left: 0; }
+
+/* ---------- 最近请求记录：可点击行 ---------- */
+.recent-table tbody tr.clickable { cursor: pointer; }
+
+.recent-table tbody tr.clickable:hover td { background: var(--bg-subtle); }

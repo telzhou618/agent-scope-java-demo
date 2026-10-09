@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { onBeforeUnmount, onMounted, watch } from 'vue'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import AppSidebar from '../components/AppSidebar.vue'
 import AppTopBar from '../components/AppTopBar.vue'
 import ChatComposer from '../components/ChatComposer.vue'
@@ -9,10 +9,13 @@ import ProfileView from '../components/ProfileView.vue'
 import UsersView from '../components/UsersView.vue'
 import { useAuthStore } from '../stores/auth'
 import { useChat } from '../stores/chat'
+import { useComposer } from '../composables/useComposer'
 
-const { state, loadSessions, openSession, newChat, setView, closeDrawerOnNarrow } = useChat()
+const { state, loadSessions, openSession, newChat, stop, setView, toggleSidebar, closeDrawerOnNarrow } = useChat()
+const composer = useComposer()
 const auth = useAuthStore()
 const route = useRoute()
+const router = useRouter()
 
 // 布局状态写在 body 上，样式表全权负责两种布局下的呈现
 watch(
@@ -60,12 +63,31 @@ watch(
 
 function onKeydown(event: KeyboardEvent) {
   if (event.key === 'Escape') {
+    // 流式生成中 Esc 优先停止生成；未在生成时才收起窄屏抽屉
+    if (state.streaming) {
+      void stop()
+      return
+    }
     closeDrawerOnNarrow()
     return
   }
-  if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'k') {
+  if (!(event.ctrlKey || event.metaKey)) return
+  const key = event.key.toLowerCase()
+  if (key === 'k') {
     event.preventDefault()
     void newChat()
+    return
+  }
+  if (key === 'b') {
+    event.preventDefault()
+    toggleSidebar()
+    return
+  }
+  // Ctrl/Cmd+J 聚焦聊天输入框；不在聊天路由时先导航回聊天页
+  if (key === 'j') {
+    event.preventDefault()
+    if (route.name !== 'chat' && route.name !== 'chat-session') void router.push('/chat')
+    composer.focus()
   }
 }
 

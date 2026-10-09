@@ -76,6 +76,7 @@ function onFeedback(turn: AssistantTurnModel, value: 'up' | 'down' | null) {
           v-else
           :turn="turn"
           :on-regenerate="chat.regenerate"
+          :on-retry="() => chat.retryFailed(turn)"
           :on-feedback="(value) => onFeedback(turn, value)"
         />
       </template>

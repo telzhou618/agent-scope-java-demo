@@ -61,6 +61,10 @@ export function useComposer() {
       draft.value = text
       focusToken.value += 1
     },
+    /** 外部触发聚焦输入框（快捷键等），ChatComposer 监听 focusToken */
+    focus() {
+      focusToken.value += 1
+    },
     clear() {
       draft.value = ''
     },

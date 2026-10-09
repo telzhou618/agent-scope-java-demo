@@ -15,8 +15,28 @@ import {
 } from '../api/user'
 import { useAuthStore } from '../stores/auth'
 import { agentShortLabel } from '../stores/agents'
+import FeedbacksPanel from './admin/FeedbacksPanel.vue'
+import LogsPanel from './admin/LogsPanel.vue'
 
 const auth = useAuthStore()
+
+/* ---- Tab 切换：各面板自行管理分页/搜索状态，v-show 保持挂载不丢状态 ---- */
+type AdminTab = 'users' | 'feedbacks' | 'logs'
+
+const tabs: { key: AdminTab; label: string }[] = [
+  { key: 'users', label: '用户' },
+  { key: 'feedbacks', label: '意见反馈' },
+  { key: 'logs', label: '操作日志' },
+]
+
+const activeTab = ref<AdminTab>('users')
+/** 面板懒挂载：首次切到才渲染，之后保持挂载 */
+const visited = reactive<Record<AdminTab, boolean>>({ users: true, feedbacks: false, logs: false })
+
+function switchTab(key: AdminTab) {
+  activeTab.value = key
+  visited[key] = true
+}
 
 /* ---- 列表与分页 ---- */
 const PAGE_SIZE = 10
@@ -242,6 +262,22 @@ onMounted(() => {
 
 <template>
   <div class="profile-inner">
+    <div class="admin-tabs" role="tablist" aria-label="管理中心">
+      <button
+        v-for="tab in tabs"
+        :key="tab.key"
+        class="admin-tab"
+        :class="{ active: activeTab === tab.key }"
+        type="button"
+        role="tab"
+        :aria-selected="activeTab === tab.key"
+        @click="switchTab(tab.key)"
+      >
+        {{ tab.label }}
+      </button>
+    </div>
+
+    <div v-show="activeTab === 'users'">
     <div class="section-head users-head">
       <h2 class="section-title">用户管理</h2>
       <span class="section-sub">共 {{ total }} 个用户</span>
@@ -347,6 +383,10 @@ onMounted(() => {
         下一页
       </button>
     </div>
+    </div>
+
+    <FeedbacksPanel v-if="visited.feedbacks" v-show="activeTab === 'feedbacks'" />
+    <LogsPanel v-if="visited.logs" v-show="activeTab === 'logs'" />
 
     <Teleport to="body">
       <div v-if="dialogOpen" class="dialog-mask" @click.self="closeDialog">

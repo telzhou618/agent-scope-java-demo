@@ -1,7 +1,8 @@
 <script setup lang="ts">
-import { computed, onMounted } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import AppIcon from './AppIcon.vue'
+import ShortcutsDialog from './ShortcutsDialog.vue'
 import { useAuthStore } from '../stores/auth'
 import { useChat } from '../stores/chat'
 import { agentShortLabel, useAgents } from '../stores/agents'
@@ -97,6 +98,13 @@ function pickSkin(key: ThemeChoice) {
 }
 
 const canExport = computed(() => !state.streaming && state.turns.length > 0)
+
+const shortcutsOpen = ref(false)
+
+function openShortcuts() {
+  closeMenu()
+  shortcutsOpen.value = true
+}
 
 const exportItems: { key: 'md' | 'html' | 'pdf'; label: string; icon: IconName; hint: string }[] = [
   { key: 'md', label: '导出 Markdown', icon: 'download', hint: '' },
@@ -271,7 +279,13 @@ async function exportSession(format: 'md' | 'html' | 'pdf') {
           <AppIcon :name="item.icon" :size="14" />
           {{ item.label }}
         </button>
+        <button class="more-item" type="button" role="menuitem" @click="openShortcuts">
+          <AppIcon name="terminal" :size="14" />
+          快捷键
+        </button>
       </div>
     </div>
+
+    <ShortcutsDialog v-if="shortcutsOpen" @close="shortcutsOpen = false" />
   </header>
 </template>

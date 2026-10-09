@@ -6,12 +6,17 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.example.agent.annotation.OperationLog;
 import com.example.agent.dto.Result;
+import com.example.agent.dto.FeedbackStatusRequest;
 import com.example.agent.dto.UserCreateRequest;
 import com.example.agent.dto.UserStatusRequest;
 import com.example.agent.dto.UserUpdateRequest;
 import com.example.agent.entity.User;
+import com.example.agent.entity.UserFeedback;
 import com.example.agent.error.BizException;
+import com.example.agent.mapper.OperationLogMapper;
+import com.example.agent.mapper.UserFeedbackMapper;
 import com.example.agent.mapper.UserMapper;
+import com.example.agent.vo.UserFeedbackVO;
 import com.example.agent.vo.UserManageVO;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -31,6 +36,9 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 /**
  * 用户管理：仅管理员可用
@@ -45,6 +53,8 @@ public class UserManageController {
 
     private final UserMapper userMapper;
     private final BCryptPasswordEncoder passwordEncoder;
+    private final OperationLogMapper operationLogMapper;
+    private final UserFeedbackMapper userFeedbackMapper;
 
     @GetMapping("/page")
     @Operation(summary = "用户分页列表")
@@ -172,6 +182,79 @@ public class UserManageController {
         if (request.getStatus() == 0) {
             StpUtil.kickout(request.getId());
         }
+        return Result.ok();
+    }
+
+    @GetMapping("/logs/page")
+    @Operation(summary = "操作日志分页列表")
+    public Result<Page<com.example.agent.entity.OperationLog>> logPage(@RequestParam(defaultValue = "1") long page,
+                                              @RequestParam(defaultValue = "10") long size,
+                                              @RequestParam(required = false) String keyword) {
+        // 实体类与 @OperationLog 注解同名，此处使用全限定名引用实体
+        LambdaQueryWrapper<com.example.agent.entity.OperationLog> wrapper = new LambdaQueryWrapper<>();
+        if (StringUtils.hasText(keyword)) {
+            // 用户名/操作描述/请求路径任一模糊命中
+            wrapper.and(w -> w.like(com.example.agent.entity.OperationLog::getUsername, keyword)
+                    .or().like(com.example.agent.entity.OperationLog::getOperation, keyword)
+                    .or().like(com.example.agent.entity.OperationLog::getPath, keyword));
+        }
+        wrapper.orderByDesc(com.example.agent.entity.OperationLog::getId);
+        Page<com.example.agent.entity.OperationLog> logPage = operationLogMapper.selectPage(new Page<>(page, size), wrapper);
+        return Result.okData(logPage);
+    }
+
+    @GetMapping("/feedbacks/page")
+    @Operation(summary = "意见反馈分页列表")
+    public Result<Page<UserFeedbackVO>> feedbackPage(@RequestParam(defaultValue = "1") long page,
+                                                     @RequestParam(defaultValue = "10") long size,
+                                                     @RequestParam(required = false) Integer status,
+                                                     @RequestParam(required = false) String keyword) {
+        LambdaQueryWrapper<UserFeedback> wrapper = new LambdaQueryWrapper<>();
+        if (status != null) {
+            wrapper.eq(UserFeedback::getStatus, status);
+        }
+        if (StringUtils.hasText(keyword)) {
+            // 反馈内容/联系方式任一模糊命中
+            wrapper.and(w -> w.like(UserFeedback::getContent, keyword)
+                    .or().like(UserFeedback::getContact, keyword));
+        }
+        wrapper.orderByDesc(UserFeedback::getId);
+        Page<UserFeedback> feedbackPage = userFeedbackMapper.selectPage(new Page<>(page, size), wrapper);
+
+        // 批量查提交人，回填 username（用户已删除时填空串）
+        List<Long> userIds = feedbackPage.getRecords().stream()
+                .map(UserFeedback::getUserId)
+                .filter(java.util.Objects::nonNull)
+                .distinct()
+                .toList();
+        Map<Long, User> userMap = userIds.isEmpty()
+                ? Map.of()
+                : userMapper.selectByIds(userIds).stream()
+                        .collect(Collectors.toMap(User::getId, Function.identity()));
+
+        Page<UserFeedbackVO> voPage = new Page<>(feedbackPage.getCurrent(), feedbackPage.getSize(), feedbackPage.getTotal());
+        voPage.setRecords(feedbackPage.getRecords().stream().map(feedback -> {
+            UserFeedbackVO vo = UserFeedbackVO.from(feedback);
+            User submitter = userMap.get(feedback.getUserId());
+            vo.setUsername(submitter == null ? "" : submitter.getUsername());
+            return vo;
+        }).toList());
+        return Result.okData(voPage);
+    }
+
+    @PostMapping("/feedbacks/status")
+    @Operation(summary = "处理意见反馈")
+    @OperationLog("处理意见反馈")
+    public Result<Void> feedbackStatus(@RequestBody @Validated FeedbackStatusRequest request) {
+        UserFeedback existing = userFeedbackMapper.selectById(request.getId());
+        if (existing == null) {
+            throw new BizException("反馈不存在");
+        }
+        UserFeedback update = new UserFeedback();
+        update.setId(request.getId());
+        update.setStatus(request.getStatus());
+        update.setUpdateTime(LocalDateTime.now());
+        userFeedbackMapper.updateById(update);
         return Result.ok();
     }
 

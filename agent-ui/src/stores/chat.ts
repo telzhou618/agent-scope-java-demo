@@ -284,7 +284,12 @@ function ensureSessionId(): string {
   return pendingSessionId
 }
 
-async function send(text: string, attachments?: UserAttachment[]) {
+interface SendOptions {
+  /** 重试失败回合：复用已存在的用户气泡，不再 push 新的用户回合 */
+  reuseUserTurn?: boolean
+}
+
+async function send(text: string, attachments?: UserAttachment[], options?: SendOptions) {
   const message = text.trim()
   if ((!message && !attachments?.length) || state.streaming) return
 
@@ -312,7 +317,7 @@ async function send(text: string, attachments?: UserAttachment[]) {
   const turns = state.turns
   const userTurn: UserTurn = { kind: 'user', id: newId('user'), text: message, timestamp: '' }
   if (attachments?.length) userTurn.attachments = attachments.map((item) => ({ ...item }))
-  turns.push(userTurn)
+  if (!options?.reuseUserTurn) turns.push(userTurn)
 
   const live = createLiveTurn(newId('live'))
   turns.push(live.turn)
@@ -391,6 +396,27 @@ function regenerate() {
   }
 }
 
+/**
+ * 失败回合重试：本地移除失败的助手回合，沿用它前面最近的用户回合重新发起流式请求。
+ * 用户气泡复用（send 的 reuseUserTurn 选项），不会像 regenerate 那样多出一条用户消息。
+ */
+function retryFailed(turn: AssistantTurn) {
+  if (state.streaming || !turn.error) return
+  const index = state.turns.indexOf(turn)
+  if (index < 0) return
+  let userTurn: UserTurn | null = null
+  for (let i = index - 1; i >= 0; i -= 1) {
+    const item = state.turns[i]
+    if (item.kind === 'user') {
+      userTurn = item
+      break
+    }
+  }
+  if (!userTurn) return
+  state.turns.splice(index, 1)
+  void send(userTurn.text, userTurn.attachments, { reuseUserTurn: true })
+}
+
 /** 反馈落库：先乐观更新本地，接口失败则回滚 */
 async function setFeedback(turn: AssistantTurn, feedback: 'up' | 'down' | null) {
   const sessionId = state.currentSessionId
@@ -453,7 +479,7 @@ function reset() {
 
 const title = computed(() => {
   if (state.view === 'profile') return '个人主页'
-  if (state.view === 'users') return '用户管理'
+  if (state.view === 'users') return '管理中心'
   const session = state.sessions.find((item) => item.sessionId === state.currentSessionId)
   if (session?.summary) return session.summary
   const firstUser = state.turns.find((turn) => turn.kind === 'user')
@@ -473,6 +499,7 @@ export function useChat() {
     send,
     stop,
     regenerate,
+    retryFailed,
     setFeedback,
     ensureSessionId,
     reset,

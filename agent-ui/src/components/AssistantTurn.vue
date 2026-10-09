@@ -10,6 +10,7 @@ import type { AssistantTurn } from '../utils/model'
 const props = defineProps<{
   turn: AssistantTurn
   onRegenerate: () => void
+  onRetry: () => void
   onFeedback: (value: 'up' | 'down' | null) => void
 }>()
 
@@ -52,6 +53,9 @@ function vote(value: 'up' | 'down') {
     <div v-if="props.turn.error" class="turn-error">
       <AppIcon name="x" :size="14" />
       <span>{{ props.turn.error }}</span>
+      <button class="retry-btn" type="button" @click="props.onRetry">
+        <AppIcon name="refresh" :size="12" /><span>重试</span>
+      </button>
     </div>
 
     <div v-if="!props.turn.streaming" class="msg-actions">

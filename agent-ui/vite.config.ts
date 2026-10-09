@@ -15,7 +15,7 @@ export default defineConfig({
         changeOrigin: true,
       },
       // 精确匹配后端 API,避免 /users 等前端页面路由被误代理到后端
-      '^/user/(feedback|manage)': {
+      '^/user/(feedback|manage|profile|password)': {
         target: 'http://localhost:8082',
         changeOrigin: true,
       },
