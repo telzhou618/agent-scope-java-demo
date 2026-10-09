@@ -83,6 +83,11 @@ public class AgentScopeController {
         String userId = loginUserId();
         // /skill:<name> 前缀转成技能使用提示，Agent 通过 load_skill_through_path 自行加载技能详情
         String message = applySkillHint(effectiveMessage(request));
+        // URL 直达等路径进入的会话可能没有 meta：补建占位标题并异步生成正式标题（已有 meta 则跳过）
+        if (!sessionTitleService.hasMeta(userId, request.getSessionId())) {
+            sessionTitleService.createPlaceholder(userId, request.getSessionId());
+            sessionTitleService.generateAndUpdateAsync(userId, request.getSessionId(), message);
+        }
         UserMessage userMessage = buildUserMessage(userId, request.getSessionId(), message,
                 request.getAttachments());
         RuntimeContext context = RuntimeContext.builder()
@@ -277,35 +282,21 @@ public class AgentScopeController {
         if (CollUtil.isEmpty(sessionIds)) {
             return Result.okData(new LinkedList<>());
         }
-        // 批量读 session_meta（标题/置顶/创建时间，小 JSON）；
-        // 只有没有 meta 的老会话才批量回退读首条消息，不再逐会话读取 LONGTEXT 消息上下文
+        // 标题/置顶/创建时间全部来自 session_meta（小 JSON），不读消息上下文；
+        // 无 meta 的会话视为脏数据，直接从列表排除
         Map<String, SessionMeta> metas = sessionQueryService.listSessionMetas(userId);
-        List<String> legacyIds = sessionIds.stream()
-                .filter(sessionId -> !metas.containsKey(sessionId))
-                .toList();
-        Map<String, Msg> firstMessages = sessionQueryService.listFirstMessages(userId, legacyIds);
-
-        // 标题优先取 meta（AI 生成/占位），缺省回退首条消息摘要；
-        // 只有占位 meta、还没有消息的新会话也纳入列表
-        List<AgentSession> agentSessions = sessionIds.stream().map(sessionId -> {
+        List<AgentSession> agentSessions = sessionIds.stream()
+                .map(sessionId -> {
                     SessionMeta meta = metas.get(sessionId);
-                    Msg first = firstMessages.get(sessionId);
-                    String summary = Optional.ofNullable(meta)
-                            .map(SessionMeta::getTitle)
-                            .filter(title -> !title.isBlank())
-                            .orElse(first == null ? null : first.getTextContent());
-                    String timestamp = first != null && first.getTimestamp() != null
-                            ? first.getTimestamp()
-                            : Optional.ofNullable(meta).map(SessionMeta::getCreateTime).orElse(null);
-                    if (summary == null && timestamp == null) {
+                    if (meta == null) {
                         return null;
                     }
                     return AgentSession.builder()
                             .userId(userId)
                             .sessionId(sessionId)
-                            .summary(summary)
-                            .timestamp(timestamp)
-                            .pinned(meta != null && meta.isPinned())
+                            .summary(meta.getTitle())
+                            .timestamp(meta.getCreateTime())
+                            .pinned(meta.isPinned())
                             .build();
                 })
                 .filter(Objects::nonNull)
@@ -333,9 +324,8 @@ public class AgentScopeController {
     @Operation(summary = "置顶/取消置顶会话")
     public Result<Void> pinSession(@RequestBody @Validated PinSessionRequest request) {
         String userId = loginUserId();
-        // 无 meta 的老会话也能置顶：新建空 meta，标题仍回退首条消息摘要
         SessionMeta meta = agentStateStore.get(userId, request.getSessionId(), "session_meta", SessionMeta.class)
-                .orElseGet(SessionMeta::new);
+                .orElseThrow(() -> new BizException("会话不存在"));
         meta.setPinned(request.isPinned());
         agentStateStore.save(userId, request.getSessionId(), "session_meta", meta);
         return Result.ok();

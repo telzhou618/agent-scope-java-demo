@@ -11,15 +11,4 @@
           AND state_key = 'session_meta'
     </select>
 
-    <select id="listAgentStates" resultType="com.example.agent.vo.SessionStateRow">
-        SELECT session_id AS sessionId,
-               state_data AS stateData
-        FROM agent_demo.agentscope_sessions
-        WHERE state_key = 'agent_state'
-          AND session_id IN
-        <foreach collection="slotIds" item="slotId" open="(" separator="," close=")">
-            #{slotId}
-        </foreach>
-    </select>
-
 </mapper>

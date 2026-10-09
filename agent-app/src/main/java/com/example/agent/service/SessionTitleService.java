@@ -41,6 +41,13 @@ public class SessionTitleService {
     private final DashScopeChatModel titleModel;
 
     /**
+     * 会话是否已有 meta（URL 直达等路径进入的会话可能没有）
+     */
+    public boolean hasMeta(String userId, String sessionId) {
+        return stateStore.get(userId, sessionId, META_KEY, SessionMeta.class).isPresent();
+    }
+
+    /**
      * 创建会话占位标题：同步写入，立即返回；已有 meta（重复创建）则跳过
      */
     public void createPlaceholder(String userId, String sessionId) {
