@@ -1,0 +1,50 @@
+html,
+body,
+#app {
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  font-family:
+    'Inter',
+    -apple-system,
+    BlinkMacSystemFont,
+    'Segoe UI',
+    'PingFang SC',
+    'Hiragino Sans GB',
+    'Microsoft YaHei',
+    sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+/*
+ * hover 才显色的细滚动条：gutter 常驻（6px 透明），thumb 只在 hover 时上色，
+ * 出现/消失都不占布局宽度，内容不抖动
+ */
+.hover-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: transparent transparent;
+}
+
+.hover-scroll:hover {
+  scrollbar-color: rgba(100, 116, 139, 0.4) transparent;
+}
+
+.hover-scroll::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+.hover-scroll::-webkit-scrollbar-thumb {
+  background: transparent;
+  border-radius: 3px;
+}
+
+.hover-scroll:hover::-webkit-scrollbar-thumb {
+  background: rgba(100, 116, 139, 0.35);
+}
+
+.hover-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}

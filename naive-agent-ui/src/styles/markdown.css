@@ -1,0 +1,256 @@
+/*
+ * Markdown 正文 / 代码块 / echarts 块样式。
+ * 这部分内容不走 Naive 组件体系（v-html 渲染），靠 <html data-theme> 做明暗适配，
+ * 变量与 naive-theme.ts 的靛蓝主色保持同族。
+ */
+
+.md-body {
+  --md-fg: #1e293b;
+  --md-muted: #64748b;
+  --md-border: #e2e8f0;
+  --md-bg-subtle: #f1f5f9;
+  --md-accent: #6366f1;
+  --tok-kw: #a626a4;
+  --tok-str: #4d7c0f;
+  --tok-com: #6b7280;
+  --tok-fn: #4f46e5;
+  --tok-num: #b45309;
+  --tok-typ: #0e7490;
+
+  color: var(--md-fg);
+  font-size: 14px;
+  line-height: 1.75;
+  word-break: break-word;
+}
+
+html[data-theme='dark'] .md-body {
+  --md-fg: #e6edf6;
+  --md-muted: #94a3b8;
+  --md-border: #28303f;
+  --md-bg-subtle: #1b2230;
+  --md-accent: #818cf8;
+  --tok-kw: #c678dd;
+  --tok-str: #98c379;
+  --tok-com: #7f8ea3;
+  --tok-fn: #61afef;
+  --tok-num: #d19a66;
+  --tok-typ: #56b6c2;
+}
+
+.md-body > *:first-child {
+  margin-top: 0;
+}
+
+.md-body > *:last-child {
+  margin-bottom: 0;
+}
+
+.md-body p {
+  margin: 0 0 12px;
+}
+
+.md-body h1,
+.md-body h2,
+.md-body h3,
+.md-body h4,
+.md-body h5,
+.md-body h6 {
+  margin: 20px 0 10px;
+  line-height: 1.4;
+}
+
+.md-body h1 { font-size: 20px; }
+.md-body h2 { font-size: 18px; }
+.md-body h3 { font-size: 16px; }
+.md-body h4,
+.md-body h5,
+.md-body h6 { font-size: 14.5px; }
+
+.md-body ul,
+.md-body ol {
+  margin: 0 0 12px;
+  padding-left: 22px;
+}
+
+.md-body li { margin-bottom: 4px; }
+
+.md-body a {
+  color: var(--md-accent);
+  text-decoration: none;
+}
+
+.md-body a:hover { text-decoration: underline; }
+
+.md-body blockquote {
+  margin: 0 0 12px;
+  padding-left: 12px;
+  border-left: 3px solid var(--md-border);
+  color: var(--md-muted);
+}
+
+.md-body hr {
+  margin: 16px 0;
+  border: 0;
+  border-top: 1px solid var(--md-border);
+}
+
+.md-body img {
+  max-width: 100%;
+  border-radius: 8px;
+  cursor: zoom-in;
+}
+
+.md-body table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 0 0 12px;
+  font-size: 13px;
+}
+
+.md-body th,
+.md-body td {
+  border: 1px solid var(--md-border);
+  padding: 6px 10px;
+  text-align: left;
+  vertical-align: top;
+}
+
+.md-body th {
+  background: var(--md-bg-subtle);
+  font-weight: 600;
+}
+
+.md-body code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.875em;
+}
+
+.md-body :not(pre) > code {
+  padding: 1.5px 5px;
+  border-radius: 5px;
+  background: var(--md-bg-subtle);
+  border: 1px solid var(--md-border);
+}
+
+/* 代码块卡片（utils/markdown.ts 渲染的结构） */
+.md-code {
+  margin: 0 0 12px;
+  border: 1px solid var(--md-border);
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.md-code-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 5px 10px;
+  border-bottom: 1px solid var(--md-border);
+  background: var(--md-bg-subtle);
+}
+
+.md-code-lang {
+  font-size: 12px;
+  color: var(--md-muted);
+}
+
+.md-code-copy {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--md-muted);
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.md-code-copy:hover {
+  background: var(--md-border);
+  color: var(--md-fg);
+}
+
+.md-code pre {
+  margin: 0;
+  padding: 11px 12px;
+  overflow: auto;
+  font-size: 12.5px;
+  line-height: 1.7;
+  background: transparent;
+}
+
+/* hljs 配色（github / github-dark 风格，按主题切换） */
+.hljs-comment, .hljs-quote { color: var(--tok-com); font-style: italic; }
+.hljs-keyword, .hljs-selector-tag, .hljs-literal, .hljs-section, .hljs-doctag, .hljs-name, .hljs-meta { color: var(--tok-kw); }
+.hljs-string, .hljs-regexp, .hljs-addition, .hljs-attribute, .hljs-meta .hljs-string { color: var(--tok-str); }
+.hljs-title, .hljs-title.function_, .hljs-function .hljs-title { color: var(--tok-fn); }
+.hljs-number, .hljs-symbol, .hljs-bullet, .hljs-link { color: var(--tok-num); }
+.hljs-type, .hljs-class .hljs-title, .hljs-built_in, .hljs-builtin-name, .hljs-params, .hljs-attr, .hljs-property, .hljs-variable, .hljs-template-variable { color: var(--tok-typ); }
+
+/* echarts 块 */
+.echarts-block {
+  position: relative;
+  margin: 0 0 12px;
+  border: 1px solid var(--md-border);
+  border-radius: 10px;
+  padding: 8px;
+}
+
+.echarts-canvas {
+  width: 100%;
+  height: 340px;
+}
+
+.echarts-loading-mask {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  height: 120px;
+  color: var(--md-muted);
+  font-size: 13px;
+}
+
+.echarts-spinner {
+  width: 14px;
+  height: 14px;
+  border: 2px solid var(--md-border);
+  border-top-color: var(--md-accent);
+  border-radius: 50%;
+  animation: echarts-spin 0.8s linear infinite;
+}
+
+@keyframes echarts-spin {
+  to { transform: rotate(360deg); }
+}
+
+.echarts-toolbar {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  display: none;
+  gap: 4px;
+}
+
+.echarts-block:hover .echarts-toolbar {
+  display: flex;
+}
+
+.echarts-tool {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border: 1px solid var(--md-border);
+  border-radius: 6px;
+  background: var(--md-bg-subtle);
+  color: var(--md-muted);
+  cursor: pointer;
+}
+
+.echarts-tool:hover {
+  color: var(--md-fg);
+}
