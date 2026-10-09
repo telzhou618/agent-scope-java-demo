@@ -14,7 +14,8 @@ export default defineConfig({
         target: 'http://localhost:8082',
         changeOrigin: true,
       },
-      '/user': {
+      // 精确匹配后端 API,避免 /users 等前端页面路由被误代理到后端
+      '^/user/(feedback|manage)': {
         target: 'http://localhost:8082',
         changeOrigin: true,
       },

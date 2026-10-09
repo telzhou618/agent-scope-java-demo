@@ -7,6 +7,10 @@ export interface UserInfo {
   nickname: string
   email: string
   avatar: string
+  /** 是否管理员（用户管理入口按此显示） */
+  isAdmin: boolean
+  /** 当前用户可用的 Agent 名称列表；管理员为全量 */
+  agents: string[]
 }
 
 export interface LoginResult {

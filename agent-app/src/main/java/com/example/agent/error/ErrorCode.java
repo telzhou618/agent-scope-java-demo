@@ -11,6 +11,7 @@ package com.example.agent.error;
 public interface ErrorCode {
     int INTERNAL_SERVER_ERROR = 500;
     int UNAUTHORIZED = 401;
+    int FORBIDDEN = 403;
 
     int NOT_NULL = 10001;
     int PARAMS_GET_ERROR = 10003;

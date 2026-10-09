@@ -1,6 +1,8 @@
 package com.example.agent.error;
 
 import cn.dev33.satoken.exception.NotLoginException;
+import cn.dev33.satoken.exception.NotPermissionException;
+import cn.dev33.satoken.exception.NotRoleException;
 import com.example.agent.dto.Result;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
@@ -31,6 +33,14 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(BizException.class)
     public Result<Void> biz(BizException e) {
         return Result.error(e.getCode(), e.getMessage());
+    }
+
+    /**
+     * Sa-Token 角色/权限校验失败：HTTP 200 + code=403，与业务异常风格一致
+     */
+    @ExceptionHandler({NotRoleException.class, NotPermissionException.class})
+    public Result<Void> noPermission(RuntimeException e) {
+        return Result.error(ErrorCode.FORBIDDEN, "无权限执行此操作");
     }
 
     /**

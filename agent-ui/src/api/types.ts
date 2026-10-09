@@ -7,6 +7,14 @@ export interface Result<T> {
   traceId?: string
 }
 
+/** MyBatis-Plus Page 的分页结构 */
+export interface PageResult<T> {
+  records: T[]
+  total: number
+  current: number
+  size: number
+}
+
 export interface AgentSession {
   userId: string
   sessionId: string

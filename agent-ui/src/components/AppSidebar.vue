@@ -28,6 +28,11 @@ function openProfile() {
   void router.push('/profile')
 }
 
+function openUsers() {
+  closeAccount()
+  void router.push('/users')
+}
+
 /** 意见反馈弹窗 */
 const feedbackOpen = ref(false)
 
@@ -143,7 +148,7 @@ function confirmRemove(sessionId: string, summary: string) {
           type="button"
           aria-haspopup="menu"
           :aria-expanded="accountOpen"
-          :aria-current="chat.state.view === 'profile'"
+          :aria-current="chat.state.view === 'profile' || chat.state.view === 'users'"
           @click="toggleAccount()"
         >
           <span class="avatar" aria-hidden="true">{{ accountAvatar }}</span>
@@ -158,6 +163,16 @@ function confirmRemove(sessionId: string, summary: string) {
           <button class="more-item" type="button" role="menuitem" @click="openProfile">
             <AppIcon name="user" :size="14" />
             个人主页
+          </button>
+          <button
+            v-if="auth.user?.isAdmin"
+            class="more-item"
+            type="button"
+            role="menuitem"
+            @click="openUsers"
+          >
+            <AppIcon name="users" :size="14" />
+            用户管理
           </button>
           <button class="more-item" type="button" role="menuitem" @click="openFeedback">
             <AppIcon name="message" :size="14" />

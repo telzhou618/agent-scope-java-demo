@@ -6,6 +6,7 @@ import AppTopBar from '../components/AppTopBar.vue'
 import ChatComposer from '../components/ChatComposer.vue'
 import ChatThread from '../components/ChatThread.vue'
 import ProfileView from '../components/ProfileView.vue'
+import UsersView from '../components/UsersView.vue'
 import { useAuthStore } from '../stores/auth'
 import { useChat } from '../stores/chat'
 
@@ -39,6 +40,11 @@ watch(
   () => {
     if (route.name === 'profile') {
       setView('profile')
+      return
+    }
+    if (route.name === 'users') {
+      // 用户管理页不碰会话状态（守卫已拦截非管理员）
+      setView('users')
       return
     }
     setView('chat')
@@ -81,6 +87,10 @@ onBeforeUnmount(() => {
       <ChatThread />
       <div class="profile">
         <ProfileView />
+      </div>
+      <div class="users">
+        <!-- 仅进入用户管理页时挂载：避免非管理员触发 403 请求 -->
+        <UsersView v-if="state.view === 'users'" />
       </div>
       <ChatComposer />
     </main>

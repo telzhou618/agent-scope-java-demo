@@ -5,6 +5,7 @@ import cn.hutool.core.collection.CollUtil;
 import com.alibaba.fastjson2.JSON;
 import com.example.agent.agent.AgentInfo;
 import com.example.agent.agent.AgentRegistry;
+import com.example.agent.annotation.OperationLog;
 import com.example.agent.dto.AgentChatRequest;
 import com.example.agent.dto.AgentSession;
 import com.example.agent.dto.AgentSseEvent;
@@ -17,6 +18,7 @@ import com.example.agent.dto.Result;
 import com.example.agent.dto.SessionIdRequest;
 import com.example.agent.dto.SessionMeta;
 import com.example.agent.error.BizException;
+import com.example.agent.service.AgentPermissionService;
 import com.example.agent.service.DocumentTextExtractor;
 import com.example.agent.service.FileStorageService;
 import com.example.agent.service.MessageFeedbackService;
@@ -63,6 +65,7 @@ import java.util.*;
 public class AgentScopeController {
 
     private final AgentRegistry agentRegistry;
+    private final AgentPermissionService agentPermissionService;
     private final AgentStateStore agentStateStore;
     private final SessionTitleService sessionTitleService;
     private final SessionQueryService sessionQueryService;
@@ -85,7 +88,8 @@ public class AgentScopeController {
         Map<String, StringBuilder> toolParamsAccumulator = new HashMap<>();
 
         String userId = loginUserId();
-        // 按请求指定档位取 Agent，未知名称抛业务异常
+        // 按请求指定档位取 Agent，未知名称抛业务异常；先校验当前用户是否有该档位使用权限
+        agentPermissionService.checkAgent(StpUtil.getLoginIdAsLong(), request.getAgentName());
         HarnessAgent agent = agentRegistry.getAgent(request.getAgentName());
         // /skill:<name> 前缀转成技能使用提示，Agent 通过 load_skill_through_path 自行加载技能详情
         String message = applySkillHint(effectiveMessage(request));
@@ -140,7 +144,8 @@ public class AgentScopeController {
         // agentName 为空时落默认 Agent（flash）；未知名称抛业务异常
         String agentName = StringUtils.hasText(request.getAgentName())
                 ? request.getAgentName() : agentRegistry.getDefaultAgentName();
-        agentRegistry.getAgent(agentName);
+        // 校验存在性与使用权限（未知名称抛业务异常，无权限抛 403）
+        agentPermissionService.checkAgent(StpUtil.getLoginIdAsLong(), agentName);
         // 先同步写入占位标题，前端可立即在会话列表看到；正式标题异步生成并更新
         sessionTitleService.createPlaceholder(userId, request.getSessionId(), agentName);
         sessionTitleService.generateAndUpdateAsync(userId, request.getSessionId(), request.getMessage());
@@ -321,6 +326,7 @@ public class AgentScopeController {
 
     @PostMapping("/delSession")
     @Operation(summary = "删除会话")
+    @OperationLog("删除会话")
     public Result<Void> delSessions(@RequestBody @Validated SessionIdRequest request) {
         String userId = loginUserId();
         agentStateStore.delete(userId, request.getSessionId());
@@ -333,6 +339,7 @@ public class AgentScopeController {
 
     @PostMapping("/pinSession")
     @Operation(summary = "置顶/取消置顶会话")
+    @OperationLog("置顶会话")
     public Result<Void> pinSession(@RequestBody @Validated PinSessionRequest request) {
         String userId = loginUserId();
         SessionMeta meta = agentStateStore.get(userId, request.getSessionId(), "session_meta", SessionMeta.class)
@@ -343,14 +350,18 @@ public class AgentScopeController {
     }
 
     @GetMapping("/agents")
-    @Operation(summary = "Agent 档位列表（含能力标记与默认档位）")
+    @Operation(summary = "Agent 档位列表（含能力标记与默认档位，按当前用户权限过滤）")
     public Result<List<AgentInfo>> agents() {
-        return Result.okData(agentRegistry.listAgents());
+        return Result.okData(agentPermissionService.filterAgents(StpUtil.getLoginIdAsLong()));
     }
 
     @GetMapping("/skills")
     @Operation(summary = "技能列表")
     public Result<List<SkillVO>> skills(@RequestParam(required = false) String agentName) {
+        // 指定了 Agent 时先校验使用权限
+        if (StringUtils.hasText(agentName)) {
+            agentPermissionService.checkAgent(StpUtil.getLoginIdAsLong(), agentName);
+        }
         // 指定了 Agent 且该档位不支持技能时返回空列表
         if (StringUtils.hasText(agentName) && !agentRegistry.getAgentInfo(agentName).isSkills()) {
             return Result.okData(List.of());
@@ -366,6 +377,7 @@ public class AgentScopeController {
 
     @PostMapping("/feedback")
     @Operation(summary = "消息反馈（有帮助/没帮助，feedback 为空表示取消）")
+    @OperationLog("提交消息反馈")
     public Result<Void> feedback(@RequestBody @Validated FeedbackRequest request) {
         feedbackService.submit(StpUtil.getLoginIdAsLong(),
                 request.getSessionId(), request.getMessageId(), request.getFeedback());
@@ -409,6 +421,8 @@ public class AgentScopeController {
     @PostMapping("/interrupt")
     @Operation(summary = "中断会话")
     public Result<Void> interrupt(@RequestBody @Validated InterruptRequest request) {
+        // 校验当前用户是否有该档位使用权限
+        agentPermissionService.checkAgent(StpUtil.getLoginIdAsLong(), request.getAgentName());
         RuntimeContext target = RuntimeContext.builder()
                 .userId(loginUserId())
                 .sessionId(request.getSessionId())

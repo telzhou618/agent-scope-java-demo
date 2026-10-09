@@ -41,6 +41,20 @@ public class User {
      */
     private Integer status;
 
+    /**
+     * 1=管理员
+     */
+    private Integer isAdmin;
+
+    /**
+     * 逗号分隔的可用 Agent 名，空=无权限（管理员不受限）
+     */
+    private String agents;
+
+    private String createdBy;
+
+    private String updatedBy;
+
     private LocalDateTime registerTime;
 
     private LocalDateTime createTime;

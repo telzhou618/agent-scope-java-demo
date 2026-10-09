@@ -24,6 +24,10 @@ CREATE TABLE IF NOT EXISTS t_user (
   email         VARCHAR(100) NOT NULL DEFAULT '' COMMENT '邮箱',
   avatar        VARCHAR(500) NOT NULL DEFAULT '' COMMENT '头像URL',
   status        TINYINT      NOT NULL DEFAULT 1  COMMENT '状态：1正常 0禁用',
+  is_admin      TINYINT      NOT NULL DEFAULT 0  COMMENT '1=管理员',
+  agents        VARCHAR(200) NOT NULL DEFAULT '' COMMENT '逗号分隔agent名，空=无权限',
+  created_by    VARCHAR(50)  NOT NULL DEFAULT '' COMMENT '创建人',
+  updated_by    VARCHAR(50)  NOT NULL DEFAULT '' COMMENT '更新人',
   register_time DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '注册时间',
   create_time   DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
   update_time   DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
@@ -36,8 +40,8 @@ CREATE TABLE IF NOT EXISTS t_user (
 -- 种子用户：admin / admin123（密码为 BCrypt 哈希）
 -- 哈希由 PasswordGeneratorTest 生成
 -- ------------------------------------------------------------
-INSERT IGNORE INTO t_user (username, password, nickname, email, status)
-VALUES ('admin', '$2a$10$cR0QnMeMK65z9w87FD7SQOAJKYLnUHryvwR8gCg99GzkGb5tTZv3a', '管理员', 'admin@example.com', 1);
+INSERT IGNORE INTO t_user (username, password, nickname, email, status, is_admin)
+VALUES ('admin', '$2a$10$cR0QnMeMK65z9w87FD7SQOAJKYLnUHryvwR8gCg99GzkGb5tTZv3a', '管理员', 'admin@example.com', 1, 1);
 
 -- ------------------------------------------------------------
 -- token 消耗记录
@@ -117,4 +121,35 @@ CREATE TABLE IF NOT EXISTS t_user_feedback (
 --   ALTER TABLE t_user DROP INDEX uk_email, ADD INDEX idx_email (email);
 --   -- t_token_usage 补查询索引
 --   ALTER TABLE t_token_usage ADD INDEX idx_session (session_id), ADD INDEX idx_request (request_id);
+-- ------------------------------------------------------------
+
+-- ------------------------------------------------------------
+-- 操作日志（AOP 记录用户管理、登录、会话与文件等关键操作）
+-- ------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS t_operation_log (
+  id          BIGINT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '主键ID',
+  user_id     BIGINT       NOT NULL DEFAULT 0 COMMENT '操作用户ID（0=未登录）',
+  username    VARCHAR(50)  NOT NULL DEFAULT '' COMMENT '操作人用户名',
+  operation   VARCHAR(100) NOT NULL DEFAULT '' COMMENT '操作描述',
+  method      VARCHAR(10)  NOT NULL DEFAULT '' COMMENT 'HTTP方法',
+  path        VARCHAR(255) NOT NULL DEFAULT '' COMMENT '请求路径',
+  params      TEXT         NULL COMMENT '请求参数JSON（密码已脱敏）',
+  ip          VARCHAR(50)  NOT NULL DEFAULT '' COMMENT '客户端IP',
+  cost_ms     BIGINT       NOT NULL DEFAULT 0 COMMENT '耗时（毫秒）',
+  result      VARCHAR(500) NOT NULL DEFAULT '' COMMENT '结果：success 或 fail:原因',
+  create_time DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  PRIMARY KEY (id),
+  KEY idx_create_time (create_time),
+  KEY idx_user_id (user_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='操作日志';
+
+-- ------------------------------------------------------------
+-- 已有库升级（用户管理 + 权限控制新增列/表），已初始化过的库请手工执行：
+--
+--   USE agent_demo;
+--   ALTER TABLE t_user ADD COLUMN is_admin TINYINT NOT NULL DEFAULT 0 COMMENT '1=管理员' AFTER status;
+--   ALTER TABLE t_user ADD COLUMN agents VARCHAR(200) NOT NULL DEFAULT '' COMMENT '逗号分隔agent名，空=无权限' AFTER is_admin;
+--   ALTER TABLE t_user ADD COLUMN created_by VARCHAR(50) NOT NULL DEFAULT '' COMMENT '创建人' AFTER agents;
+--   ALTER TABLE t_user ADD COLUMN updated_by VARCHAR(50) NOT NULL DEFAULT '' COMMENT '更新人' AFTER created_by;
+--   UPDATE t_user SET is_admin = 1 WHERE username = 'admin';
 -- ------------------------------------------------------------

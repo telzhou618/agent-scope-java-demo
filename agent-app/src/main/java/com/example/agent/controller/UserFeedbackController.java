@@ -1,6 +1,7 @@
 package com.example.agent.controller;
 
 import cn.dev33.satoken.stp.StpUtil;
+import com.example.agent.annotation.OperationLog;
 import com.example.agent.dto.Result;
 import com.example.agent.dto.UserFeedbackRequest;
 import com.example.agent.service.UserFeedbackService;
@@ -26,6 +27,7 @@ public class UserFeedbackController {
 
     @PostMapping("/submit")
     @Operation(summary = "提交反馈")
+    @OperationLog("提交意见反馈")
     public Result<Void> submit(@RequestBody @Validated UserFeedbackRequest request) {
         feedbackService.submit(StpUtil.getLoginIdAsLong(), request);
         return Result.ok();

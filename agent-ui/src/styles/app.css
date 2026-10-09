@@ -858,10 +858,11 @@ svg { display: block; flex: none; }
 }
 
 /* ============================================================
-   个人主页
+   个人主页 / 用户管理
    与对话区互斥，靠 body[data-view] 切换
    ============================================================ */
-.profile {
+.profile,
+.users {
   flex: 1;
   min-height: 0;
   overflow-y: auto;
@@ -870,11 +871,16 @@ svg { display: block; flex: none; }
 }
 
 body[data-view="profile"] .profile { display: block; }
+body[data-view="users"] .users { display: block; }
 
 body[data-view="profile"] .scroll,
 body[data-view="profile"] .composer-wrap,
 body[data-view="profile"] .model-chip,
-body[data-view="profile"] .wide-btn { display: none; }
+body[data-view="profile"] .wide-btn,
+body[data-view="users"] .scroll,
+body[data-view="users"] .composer-wrap,
+body[data-view="users"] .model-chip,
+body[data-view="users"] .wide-btn { display: none; }
 
 .profile-inner {
   max-width: 860px;

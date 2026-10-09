@@ -32,8 +32,7 @@ public class AuthService {
 
     private final UserMapper userMapper;
     private final StringRedisTemplate redisTemplate;
-
-    private final BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
+    private final BCryptPasswordEncoder passwordEncoder;
 
     /**
      * 登录：支持用户名或邮箱 + 密码，返回 token 与用户信息

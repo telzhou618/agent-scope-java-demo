@@ -1086,3 +1086,136 @@
 }
 
 .echarts-tool:hover { background: var(--bg-subtle); color: var(--fg); }
+
+/* ---------- 用户管理（管理员） ---------- */
+
+.users-head { margin-top: 0; }
+
+.users-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.users-search { position: relative; flex: 1; min-width: 0; }
+
+.users-search-icon {
+  position: absolute;
+  left: 11px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--fg-muted);
+  pointer-events: none;
+}
+
+.users-search-input {
+  padding: 7px 12px 7px 31px;
+  font-size: 13.5px;
+  border-radius: var(--radius-sm);
+}
+
+.users-add {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 7px 14px;
+  font-size: 13px;
+}
+
+.users-none { color: var(--fg-muted); }
+
+.user-status {
+  display: inline-block;
+  padding: 1px 9px;
+  border-radius: 999px;
+  font-size: 11.5px;
+}
+
+.user-status.on { color: var(--ok); background: var(--ok-soft); }
+.user-status.off { color: var(--fg-muted); background: var(--bg-subtle); }
+
+.row-actions { display: flex; align-items: center; gap: 4px; }
+
+.row-action {
+  padding: 3px 8px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--surface);
+  font-size: 12px;
+  color: var(--fg);
+  cursor: pointer;
+  transition: background var(--dur) var(--ease), border-color var(--dur) var(--ease);
+}
+
+.row-action:hover:not([disabled]) { background: var(--bg-subtle); border-color: var(--border-strong); }
+
+.row-action.danger { color: var(--err); }
+.row-action.danger:hover:not([disabled]) { background: var(--err-soft); border-color: var(--err-border); }
+
+.row-action[disabled] { opacity: 0.45; cursor: default; }
+
+.users-pager {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  margin-top: 14px;
+}
+
+.users-pager .btn-ghost[disabled] { opacity: 0.45; cursor: default; }
+
+.users-pager-info {
+  font-size: 12.5px;
+  color: var(--fg-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+/* 新建/编辑用户弹窗：表单字段多，比通用弹窗略宽 */
+.user-dialog { width: min(520px, calc(100vw - 32px)); }
+
+.user-dialog .login-field { margin-bottom: 12px; }
+.user-dialog .login-input { font-size: 13.5px; padding: 7px 12px; }
+.user-dialog .login-input[disabled] { background: var(--bg-subtle); color: var(--fg-muted); }
+
+.user-status-radios { display: flex; gap: 14px; }
+
+.user-status-radio {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.user-admin-check {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 12px;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.user-agents {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 14px;
+}
+
+.user-agents.disabled { opacity: 0.55; }
+
+.user-agent-check {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.user-agents-tip {
+  margin: 6px 0 0;
+  font-size: 12px;
+  color: var(--fg-muted);
+}

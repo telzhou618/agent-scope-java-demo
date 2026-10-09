@@ -44,7 +44,7 @@ function toMessage(error: unknown): string {
 }
 
 interface ChatState {
-  view: 'chat' | 'profile'
+  view: 'chat' | 'profile' | 'users'
   sidebarOpen: boolean
   sessions: AgentSession[]
   currentSessionId: string | null
@@ -406,7 +406,7 @@ async function setFeedback(turn: AssistantTurn, feedback: 'up' | 'down' | null) 
   }
 }
 
-function setView(view: 'chat' | 'profile') {
+function setView(view: 'chat' | 'profile' | 'users') {
   state.view = view
   closeDrawerOnNarrow()
 }
@@ -453,6 +453,7 @@ function reset() {
 
 const title = computed(() => {
   if (state.view === 'profile') return '个人主页'
+  if (state.view === 'users') return '用户管理'
   const session = state.sessions.find((item) => item.sessionId === state.currentSessionId)
   if (session?.summary) return session.summary
   const firstUser = state.turns.find((turn) => turn.kind === 'user')

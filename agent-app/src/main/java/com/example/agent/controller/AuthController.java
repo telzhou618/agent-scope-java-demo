@@ -1,6 +1,7 @@
 package com.example.agent.controller;
 
 import cn.dev33.satoken.stp.StpUtil;
+import com.example.agent.annotation.OperationLog;
 import com.example.agent.dto.LoginRequest;
 import com.example.agent.dto.LoginResponse;
 import com.example.agent.dto.Result;
@@ -29,6 +30,7 @@ public class AuthController {
 
     @PostMapping("/login")
     @Operation(summary = "登录（用户名或邮箱 + 密码）")
+    @OperationLog("登录")
     public Result<LoginResponse> login(@RequestBody @Validated LoginRequest request) {
         return Result.okData(authService.login(request));
     }

@@ -45,9 +45,19 @@ onMounted(() => {
 })
 
 /** 列表未加载到时按 name 的简称兜底显示 */
-const currentAgentLabel = computed(
-  () => agents.currentAgent.value?.displayName ?? agentShortLabel(agents.state.current),
-)
+const currentAgentLabel = computed(() => {
+  // 已加载但为空：当前用户没有任何 Agent 权限
+  if (agents.state.loaded && agents.state.agents.length === 0) return '无可用 Agent'
+  return agents.currentAgent.value?.displayName ?? agentShortLabel(agents.state.current)
+})
+
+/** 无任何 Agent 权限：chip 只作提示，不展开菜单（发送不拦截，后端会 403） */
+const noAgents = computed(() => agents.state.loaded && agents.state.agents.length === 0)
+
+function onAgentChip() {
+  if (noAgents.value) return
+  toggleAgent()
+}
 
 /** 菜单项视图模型：列表未加载时只有名称等少数字段，能力标签不渲染 */
 type AgentMenuItem = Pick<AgentInfo, 'name' | 'displayName'> & Partial<AgentInfo>
@@ -151,14 +161,15 @@ async function exportSession(format: 'md' | 'html' | 'pdf') {
       <button
         class="model-chip"
         type="button"
-        title="选择 Agent"
+        :title="noAgents ? '当前账号没有可用 Agent' : '选择 Agent'"
         aria-haspopup="menu"
         :aria-expanded="agentOpen"
-        @click="toggleAgent()"
+        :aria-disabled="noAgents"
+        @click="onAgentChip()"
       >
         <span class="dot" aria-hidden="true" />
         {{ currentAgentLabel }}
-        <AppIcon name="chevron" :size="13" />
+        <AppIcon v-if="!noAgents" name="chevron" :size="13" />
       </button>
       <div v-if="agentOpen" class="more-menu agent-menu" role="menu">
         <button

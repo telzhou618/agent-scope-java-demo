@@ -1,6 +1,7 @@
 package com.example.agent.controller;
 
 import cn.dev33.satoken.stp.StpUtil;
+import com.example.agent.annotation.OperationLog;
 import com.example.agent.dto.ChatAttachment;
 import com.example.agent.dto.Result;
 import com.example.agent.service.FileStorageService;
@@ -25,6 +26,7 @@ public class FileController {
 
     @Operation(summary = "上传聊天附件")
     @PostMapping("/upload")
+    @OperationLog("上传文件")
     public Result<ChatAttachment> upload(@RequestParam("file") MultipartFile file,
                                          @RequestParam("sessionId") String sessionId) {
         String userId = String.valueOf(StpUtil.getLoginIdAsLong());
