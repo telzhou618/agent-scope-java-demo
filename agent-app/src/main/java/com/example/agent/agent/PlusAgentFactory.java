@@ -51,6 +51,6 @@ public class PlusAgentFactory extends AbstractAgentFactory {
 
     @Override
     protected boolean attachmentsEnabled() {
-        return true;
+        return false;
     }
 }
