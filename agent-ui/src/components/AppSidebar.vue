@@ -5,6 +5,7 @@ import AppIcon from './AppIcon.vue'
 import FeedbackDialog from './FeedbackDialog.vue'
 import { useAuthStore } from '../stores/auth'
 import { useChat } from '../stores/chat'
+import { agentShortLabel } from '../stores/agents'
 import { useDismissableMenu } from '../composables/useDismissableMenu'
 import { groupLabel } from '../utils/format'
 
@@ -108,7 +109,10 @@ function confirmRemove(sessionId: string, summary: string) {
           @keydown.enter.prevent="router.push({ name: 'chat-session', params: { sessionId: session.sessionId } })"
           @keydown.space.prevent="router.push({ name: 'chat-session', params: { sessionId: session.sessionId } })"
         >
-          <div class="session-title">{{ session.summary || session.sessionId }}</div>
+          <div class="session-title">
+            {{ session.summary || session.sessionId
+            }}<span v-if="session.agentName" class="session-agent">{{ agentShortLabel(session.agentName) }}</span>
+          </div>
           <button
             class="session-pin"
             :class="{ active: session.pinned }"

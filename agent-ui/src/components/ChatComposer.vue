@@ -3,12 +3,14 @@ import { computed, nextTick, ref, watch } from 'vue'
 import AppIcon from './AppIcon.vue'
 import { useComposer } from '../composables/useComposer'
 import { useChat } from '../stores/chat'
+import { useAgents } from '../stores/agents'
 import { getSkills } from '../api/agent'
 import type { SkillInfo } from '../api/types'
 import { ATTACHMENT_ACCEPT, formatSize } from '../utils/attachments'
 import { fileIconName } from '../utils/icons'
 
 const chat = useChat()
+const agents = useAgents()
 const {
   draft,
   focusToken,
@@ -79,6 +81,7 @@ function onPicked(event: Event) {
 
 /** 支持直接粘贴剪贴板中的文件（截图、资源管理器里复制的文档等），格式/大小校验交给 attachFiles */
 function onPaste(event: ClipboardEvent) {
+  if (!attachmentsEnabled.value) return
   const files = Array.from(event.clipboardData?.files ?? [])
   if (!files.length) return
   event.preventDefault()
@@ -87,23 +90,37 @@ function onPaste(event: ClipboardEvent) {
 
 /* ---------- 技能快捷指令：输入 / 唤出 ---------- */
 
+/** 能力开关：列表未加载到时按「全部可用」处理，只有显式 false 才隐藏入口 */
+const skillsEnabled = computed(() => agents.currentAgent.value?.skills !== false)
+const attachmentsEnabled = computed(() => agents.currentAgent.value?.attachments !== false)
+
 const skills = ref<SkillInfo[]>([])
 let skillsRequested = false
 
-/** 首次输入 / 时才拉取技能列表，之后本地过滤 */
+/** 首次输入 / 时才拉取技能列表，之后本地过滤；技能按当前 agent 过滤 */
 async function ensureSkills() {
   if (skillsRequested) return
   skillsRequested = true
   try {
-    skills.value = (await getSkills()) ?? []
+    skills.value = (await getSkills(agents.state.current || undefined)) ?? []
   } catch {
     skillsRequested = false
   }
 }
 
-/** 正在输入指令：以 / 开头且还没输入空格；已选中技能时不再弹出 */
+// 切换 Agent 后技能缓存作废（不同 agent 的技能集可能不同）；不支持技能时清掉已选技能
+watch(
+  () => agents.state.current,
+  () => {
+    skillsRequested = false
+    skills.value = []
+    if (!skillsEnabled.value) clearSkill()
+  },
+)
+
+/** 正在输入指令：以 / 开头且还没输入空格；已选中技能或当前 agent 不支持技能时不再弹出 */
 const commandQuery = computed(() => {
-  if (skill.value) return null
+  if (!skillsEnabled.value || skill.value) return null
   const value = draft.value
   return value.startsWith('/') && !/\s/.test(value) ? value : null
 })
@@ -241,7 +258,14 @@ function onKeydown(event: KeyboardEvent) {
         />
       </div>
       <div class="composer-bar">
-        <button class="icon-btn" type="button" aria-label="添加文件" title="添加文件" @click="pickFiles">
+        <button
+          v-if="attachmentsEnabled"
+          class="icon-btn"
+          type="button"
+          aria-label="添加文件"
+          title="添加文件"
+          @click="pickFiles"
+        >
           <AppIcon name="clip" :size="17" />
         </button>
         <span class="spacer" />

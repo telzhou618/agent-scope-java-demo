@@ -1,13 +1,17 @@
 import { API_BASE, http } from './http'
-import type { AgentSession, ChatAttachment, Msg, Result, SkillInfo } from './types'
+import type { AgentInfo, AgentSession, ChatAttachment, Msg, Result, SkillInfo } from './types'
 import type { RecentRequestItem, UsageSummary } from '../utils/usage'
+
+/** 可用 Agent 列表（顶栏选择器） */
+export const getAgents = () =>
+  http.get<Result<AgentInfo[]>>(`${API_BASE}/agents`).then((r) => r.data.data)
 
 /** 会话列表；用户身份由后端从 token 解析 */
 export const getSessions = () =>
   http.get<Result<AgentSession[]>>(`${API_BASE}/getSessions`).then((r) => r.data.data)
 
 /** 新建会话：写入占位标题并触发异步标题生成 */
-export const createSession = (payload: { sessionId: string; message: string }) =>
+export const createSession = (payload: { sessionId: string; message: string; agentName: string }) =>
   http.post<Result<void>>(`${API_BASE}/createSession`, payload).then((r) => r.data.data)
 
 export const getMessages = (sessionId: string) =>
@@ -20,8 +24,8 @@ export const delSession = (sessionId: string) =>
 export const pinSession = (sessionId: string, pinned: boolean) =>
   http.post<Result<void>>(`${API_BASE}/pinSession`, { sessionId, pinned }).then((r) => r.data.data)
 
-export const interrupt = (sessionId: string) =>
-  http.post<Result<void>>(`${API_BASE}/interrupt`, { sessionId }).then((r) => r.data.data)
+export const interrupt = (sessionId: string, agentName: string) =>
+  http.post<Result<void>>(`${API_BASE}/interrupt`, { sessionId, agentName }).then((r) => r.data.data)
 
 /** token 消耗统计（按区间；用户身份由后端从 token 解析） */
 export const getUsageSummary = (params: { start: string; end: string; granularity: 'hour' | 'day' }) =>
@@ -39,9 +43,9 @@ export const uploadFile = (file: File, sessionId: string) => {
   return http.post<Result<ChatAttachment>>(`${API_BASE}/files/upload`, form).then((r) => r.data.data)
 }
 
-/** 已安装技能列表（输入 / 唤出） */
-export const getSkills = () =>
-  http.get<Result<SkillInfo[]>>(`${API_BASE}/skills`).then((r) => r.data.data)
+/** 已安装技能列表（输入 / 唤出）；可按 agent 过滤 */
+export const getSkills = (agentName?: string) =>
+  http.get<Result<SkillInfo[]>>(`${API_BASE}/skills`, { params: agentName ? { agentName } : undefined }).then((r) => r.data.data)
 
 /** 消息反馈：feedback 为 null 表示取消 */
 export const sendFeedback = (payload: { sessionId: string; messageId: string; feedback: 'up' | 'down' | null }) =>

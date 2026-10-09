@@ -1,8 +1,10 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, onMounted } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import AppIcon from './AppIcon.vue'
 import { useAuthStore } from '../stores/auth'
 import { useChat } from '../stores/chat'
+import { agentShortLabel, useAgents } from '../stores/agents'
 import { useTheme, THEME_LIST, type ThemeChoice } from '../composables/useTheme'
 import { useWide } from '../composables/useWide'
 import { useDismissableMenu } from '../composables/useDismissableMenu'
@@ -11,10 +13,13 @@ import { withChartImages } from '../utils/exportCharts'
 import { printHtmlDocument } from '../utils/print'
 import type { IconName } from '../utils/icons'
 
-const { state, title, toggleSidebar } = useChat()
+const { state, title, toggleSidebar, newChat } = useChat()
 const auth = useAuthStore()
+const agents = useAgents()
 const theme = useTheme()
 const wide = useWide()
+const route = useRoute()
+const router = useRouter()
 const {
   open: menuOpen,
   bindRoot: bindMenuRoot,
@@ -27,6 +32,36 @@ const {
   close: closeSkin,
   toggle: toggleSkin,
 } = useDismissableMenu()
+const {
+  open: agentOpen,
+  bindRoot: bindAgentRoot,
+  close: closeAgent,
+  toggle: toggleAgent,
+} = useDismissableMenu()
+
+onMounted(() => {
+  void agents.loadAgents()
+})
+
+/** 列表未加载到时按 name 的简称兜底显示 */
+const currentAgentLabel = computed(
+  () => agents.currentAgent.value?.displayName ?? agentShortLabel(agents.state.current),
+)
+
+/** 列表加载失败时菜单里至少给出当前项，选择器不至于空白 */
+const agentItems = computed(() => {
+  if (agents.state.agents.length) return agents.state.agents
+  return [{ name: agents.state.current, displayName: agentShortLabel(agents.state.current), description: '' }]
+})
+
+/** 主动切换 Agent：回写偏好并开新会话（不动已有老会话） */
+function pickAgent(name: string) {
+  closeAgent()
+  if (name === agents.state.current) return
+  agents.selectAgent(name)
+  newChat()
+  if (route.path !== '/chat') void router.push('/chat')
+}
 
 const skinItems = (Object.keys(THEME_LIST) as ThemeChoice[]).map((key) => ({
   key,
@@ -99,11 +134,40 @@ async function exportSession(format: 'md' | 'html' | 'pdf') {
 
     <div class="topbar-spacer" />
 
-    <button class="model-chip" type="button" title="模型由后端配置" disabled>
-      <span class="dot" aria-hidden="true" />
-      Agent Pro
-      <AppIcon name="chevron" :size="13" />
-    </button>
+    <div :ref="bindAgentRoot" class="more-wrap">
+      <button
+        class="model-chip"
+        type="button"
+        title="选择 Agent"
+        aria-haspopup="menu"
+        :aria-expanded="agentOpen"
+        @click="toggleAgent()"
+      >
+        <span class="dot" aria-hidden="true" />
+        {{ currentAgentLabel }}
+        <AppIcon name="chevron" :size="13" />
+      </button>
+      <div v-if="agentOpen" class="more-menu" role="menu">
+        <button
+          v-for="item in agentItems"
+          :key="item.name"
+          class="more-item"
+          type="button"
+          role="menuitemradio"
+          :aria-checked="agents.state.current === item.name"
+          :title="item.description"
+          @click="pickAgent(item.name)"
+        >
+          {{ item.displayName }}
+          <AppIcon
+            v-if="agents.state.current === item.name"
+            name="check"
+            :size="14"
+            class="skin-check"
+          />
+        </button>
+      </div>
+    </div>
 
     <button
       class="icon-btn wide-btn"

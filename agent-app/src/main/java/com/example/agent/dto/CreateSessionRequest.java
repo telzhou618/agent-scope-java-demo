@@ -21,4 +21,7 @@ public class CreateSessionRequest {
     @NotBlank(message = "首次消息内容不能为空")
     @Schema(description = "首次消息内容", requiredMode = Schema.RequiredMode.REQUIRED)
     private String message;
+
+    @Schema(description = "Agent 标识名（flash/plus/max），为空时使用默认 Agent")
+    private String agentName;
 }

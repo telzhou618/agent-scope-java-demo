@@ -305,7 +305,7 @@ svg { display: block; flex: none; }
   background: var(--accent-soft);
 }
 
-/* 模型选择器（展示用） */
+/* Agent 选择器（顶栏下拉） */
 .model-chip {
   display: flex;
   align-items: center;

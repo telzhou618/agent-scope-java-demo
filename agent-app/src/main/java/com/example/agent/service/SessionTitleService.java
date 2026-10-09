@@ -50,7 +50,7 @@ public class SessionTitleService {
     /**
      * 创建会话占位标题：同步写入，立即返回；已有 meta（重复创建）则跳过
      */
-    public void createPlaceholder(String userId, String sessionId) {
+    public void createPlaceholder(String userId, String sessionId, String agentName) {
         Optional<SessionMeta> existing = stateStore.get(userId, sessionId, META_KEY, SessionMeta.class);
         if (existing.isPresent()) {
             return;
@@ -58,6 +58,7 @@ public class SessionTitleService {
         stateStore.save(userId, sessionId, META_KEY, SessionMeta.builder()
                 .title(PLACEHOLDER_TITLE)
                 .createTime(TIME_FORMATTER.format(LocalDateTime.now()))
+                .agentName(agentName)
                 .build());
     }
 
@@ -96,6 +97,7 @@ public class SessionTitleService {
                 .title(title)
                 .createTime(current.map(SessionMeta::getCreateTime).orElse(null))
                 .pinned(current.map(SessionMeta::isPinned).orElse(false))
+                .agentName(current.map(SessionMeta::getAgentName).orElse(null))
                 .build());
     }
 

@@ -136,6 +136,19 @@
   cursor: pointer;
 }
 
+/* 会话所属 Agent 的小标签（老数据无 agentName 时不渲染） */
+.session-agent {
+  margin-left: 6px;
+  padding: 0 6px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  font-size: 10.5px;
+  font-weight: 400;
+  color: var(--fg-muted);
+  background: var(--bg-subtle);
+  vertical-align: 1px;
+}
+
 .session-pin {
   position: absolute;
   top: 50%;
@@ -346,15 +359,13 @@
 /* ---------- 未开放的占位控件 ---------- */
 .icon-btn[disabled],
 .act-btn[disabled],
-.btn-ghost[disabled],
-.model-chip[disabled] {
+.btn-ghost[disabled] {
   opacity: .45;
   cursor: default;
 }
 
 .icon-btn[disabled]:hover,
-.act-btn[disabled]:hover,
-.model-chip[disabled]:hover {
+.act-btn[disabled]:hover {
   background: none;
   color: var(--fg-icon);
 }

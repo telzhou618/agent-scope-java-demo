@@ -16,6 +16,22 @@ export interface AgentSession {
   timestamp: string
   /** 是否置顶 */
   pinned?: boolean
+  /** 会话使用的 Agent（老数据可能没有） */
+  agentName?: string
+}
+
+/** Agent 元信息：能力开关平铺，为 false 时前端隐藏对应入口 */
+export interface AgentInfo {
+  name: string
+  displayName: string
+  description: string
+  model: string
+  thinking: boolean
+  tools: boolean
+  mcp: boolean
+  skills: boolean
+  attachments: boolean
+  defaultAgent: boolean
 }
 
 export type MessageRole = 'USER' | 'ASSISTANT' | 'TOOL' | 'SYSTEM'
@@ -83,6 +99,7 @@ export interface SkillInfo {
 export interface ChatRequest {
   message: string
   sessionId: string
+  agentName: string
   requestId?: string
   attachments?: ChatAttachment[]
 }

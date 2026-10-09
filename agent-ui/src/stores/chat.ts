@@ -6,6 +6,9 @@ import { chatStream, type StreamHandle } from '../sse/chatStream'
 import { toTurns } from '../utils/history'
 import { createLiveTurn, type LiveTurn } from '../utils/stream'
 import type { AssistantTurn, Turn, UserAttachment, UserTurn } from '../utils/model'
+import { useAgents } from './agents'
+
+const agents = useAgents()
 
 const SIDEBAR_KEY = 'agent-ui:sidebar'
 const narrowMedia = window.matchMedia('(max-width: 900px)')
@@ -129,6 +132,10 @@ async function loadSessions() {
   state.sessionsError = ''
   try {
     state.sessions = (await getSessions()) ?? []
+    // 刷新直链打开会话的场景：列表晚于 openSession 到达，这里补上选择器的会话跟随
+    if (state.currentSessionId) {
+      agents.followSession(state.sessions.find((item) => item.sessionId === state.currentSessionId)?.agentName)
+    }
   } catch (error) {
     state.sessionsError = toMessage(error)
   } finally {
@@ -170,6 +177,8 @@ async function openSession(sessionId: string) {
   state.view = 'chat'
   closeDrawerOnNarrow()
   state.messagesError = ''
+  // 顶栏选择器跟随会话的 Agent（只改当前选择，不回写偏好）
+  agents.followSession(state.sessions.find((item) => item.sessionId === sessionId)?.agentName)
 
   // 流式中途切走的会话：恢复后台暂存的现场（比历史接口新），流继续实时渲染
   const cached = background.get(sessionId)
@@ -213,6 +222,8 @@ function newChat() {
   state.messagesError = ''
   state.view = 'chat'
   closeDrawerOnNarrow()
+  // 新对话回到持久化偏好，不沿用上一个老会话的 Agent
+  agents.resetToPreference()
 }
 
 async function removeSession(sessionId: string) {
@@ -279,17 +290,18 @@ async function send(text: string, attachments?: UserAttachment[]) {
 
   const sessionId = state.currentSessionId ?? pendingSessionId ?? crypto.randomUUID()
   const isNew = !state.currentSessionId
+  const agentName = agents.state.current
 
   // 新建会话：先调创建会话接口（后端写入占位标题并异步生成正式标题），侧栏立即显示「新会话」
   if (isNew) {
     cancelTitleRetry()
     try {
-      await createSession({ sessionId, message: message || '请查看我发送的文件' })
+      await createSession({ sessionId, message: message || '请查看我发送的文件', agentName })
     } catch (error) {
       state.messagesError = toMessage(error)
       return
     }
-    state.sessions.unshift({ userId: '', sessionId, summary: TITLE_PLACEHOLDER, timestamp: nowTimestamp() })
+    state.sessions.unshift({ userId: '', sessionId, summary: TITLE_PLACEHOLDER, timestamp: nowTimestamp(), agentName })
     pendingSessionId = null
   }
 
@@ -311,6 +323,7 @@ async function send(text: string, attachments?: UserAttachment[]) {
     {
       message,
       sessionId,
+      agentName,
       requestId,
       attachments: attachments
         ?.filter((item) => item.id)
@@ -362,7 +375,7 @@ async function togglePin(sessionId: string) {
 /** 中断：先通知后端停止，再断开本地流 */
 async function stop() {
   const sessionId = state.currentSessionId
-  const pending = sessionId ? interrupt(sessionId).catch(() => undefined) : null
+  const pending = sessionId ? interrupt(sessionId, agents.state.current).catch(() => undefined) : null
   handle?.abort()
   if (pending) await pending
 }
@@ -416,6 +429,7 @@ function closeDrawerOnNarrow() {
 /** 退出登录/401：断开所有流（含后台暂存），清空全部会话状态与 blob 预览 */
 function reset() {
   cancelTitleRetry()
+  agents.reset()
   handle?.abort()
   handle = null
   liveTurn = null

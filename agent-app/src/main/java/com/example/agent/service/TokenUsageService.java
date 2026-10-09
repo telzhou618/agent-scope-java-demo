@@ -12,6 +12,7 @@ import jakarta.annotation.PreDestroy;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.env.Environment;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
@@ -37,6 +38,8 @@ public class TokenUsageService {
 
     private final TokenUsageMapper tokenUsageMapper;
 
+    private final Environment environment;
+
     /**
      * 专门的落库线程：事件线程只负责组装实体，JDBC insert 异步执行，失败仅记日志。
      * 守护线程 + shutdown 保证应用退出时不阻塞。
@@ -47,6 +50,9 @@ public class TokenUsageService {
         return thread;
     });
 
+    /**
+     * 默认单价（元 / 百万 token）：usage.price 按模型 map 查不到时回落到此费率
+     */
     @Value("${usage.input-price-per-million}")
     private double inputPricePerMillion;
 
@@ -71,7 +77,7 @@ public class TokenUsageService {
         record.setOutputTokens(usage.getOutputTokens());
         record.setCachedTokens(usage.getCachedTokens());
         record.setDurationSeconds(usage.getTime());
-        record.setCost(computeCost(usage));
+        record.setCost(computeCost(modelName, usage));
         record.setReplyId(event.getReplyId() == null ? "" : event.getReplyId());
         Object requestIdValue = ctx.get("requestId");
         record.setRequestId(requestIdValue == null ? "" : String.valueOf(requestIdValue));
@@ -90,10 +96,29 @@ public class TokenUsageService {
         insertExecutor.shutdown();
     }
 
-    private BigDecimal computeCost(ChatUsage usage) {
-        double input = usage.getInputTokens() / 1_000_000.0 * inputPricePerMillion;
-        double output = usage.getOutputTokens() / 1_000_000.0 * outputPricePerMillion;
+    private BigDecimal computeCost(String modelName, ChatUsage usage) {
+        double inputPrice = priceFor(modelName, "input", inputPricePerMillion);
+        double outputPrice = priceFor(modelName, "output", outputPricePerMillion);
+        double input = usage.getInputTokens() / 1_000_000.0 * inputPrice;
+        double output = usage.getOutputTokens() / 1_000_000.0 * outputPrice;
         return BigDecimal.valueOf(input + output).setScale(6, RoundingMode.HALF_UP);
+    }
+
+    /**
+     * 按模型名查单价（usage.price.<model>.<input|output>），查不到或配置非法时回落默认费率
+     */
+    private double priceFor(String modelName, String direction, double fallback) {
+        if (modelName != null) {
+            String value = environment.getProperty("usage.price." + modelName + "." + direction);
+            if (value != null) {
+                try {
+                    return Double.parseDouble(value);
+                } catch (NumberFormatException e) {
+                    log.warn("计费单价配置非法, usage.price.{}.{}={}", modelName, direction, value);
+                }
+            }
+        }
+        return fallback;
     }
 
     /**

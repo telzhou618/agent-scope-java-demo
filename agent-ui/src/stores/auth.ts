@@ -2,6 +2,7 @@ import { computed, ref } from 'vue'
 import { defineStore } from 'pinia'
 import { currentUser, login as loginApi, logoutApi, type UserInfo } from '../api/auth'
 import { clearToken, getToken, setToken } from '../api/token'
+import { useAgentPreference } from '../composables/useAgentPreference'
 
 /**
  * 用户登录状态（Pinia，需求 13）。
@@ -18,6 +19,7 @@ export const useAuthStore = defineStore('auth', () => {
     const response = await loginApi(account.trim(), password)
     setToken(response.token)
     user.value = response.user
+    useAgentPreference().bindUser(String(response.user.id))
   }
 
   /** 退出：通知后端失效 token，失败也清空本地状态 */
@@ -34,12 +36,14 @@ export const useAuthStore = defineStore('auth', () => {
   function clearLocalState() {
     clearToken()
     user.value = null
+    useAgentPreference().bindUser(null)
   }
 
   /** 刷新场景下根据 token 重新拉取用户信息 */
   async function fetchCurrent() {
     if (!getToken()) return
     user.value = await currentUser()
+    useAgentPreference().bindUser(String(user.value.id))
   }
 
   return { user, token, isLoggedIn, login, logout, clearLocalState, fetchCurrent }

@@ -31,4 +31,9 @@ public class AgentSession {
      */
     private boolean pinned;
 
+    /**
+     * 会话所属 Agent 标识名（flash/plus/max）
+     */
+    private String agentName;
+
 }

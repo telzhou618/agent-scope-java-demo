@@ -3,12 +3,15 @@ package com.example.agent.controller;
 import cn.dev33.satoken.stp.StpUtil;
 import cn.hutool.core.collection.CollUtil;
 import com.alibaba.fastjson2.JSON;
+import com.example.agent.agent.AgentInfo;
+import com.example.agent.agent.AgentRegistry;
 import com.example.agent.dto.AgentChatRequest;
 import com.example.agent.dto.AgentSession;
 import com.example.agent.dto.AgentSseEvent;
 import com.example.agent.dto.ChatAttachment;
 import com.example.agent.dto.CreateSessionRequest;
 import com.example.agent.dto.FeedbackRequest;
+import com.example.agent.dto.InterruptRequest;
 import com.example.agent.dto.PinSessionRequest;
 import com.example.agent.dto.Result;
 import com.example.agent.dto.SessionIdRequest;
@@ -40,6 +43,7 @@ import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.MediaType;
 import org.springframework.http.codec.ServerSentEvent;
+import org.springframework.util.StringUtils;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import reactor.core.publisher.Flux;
@@ -58,7 +62,7 @@ import java.util.*;
 @Tag(name = "AgentScope 智能体")
 public class AgentScopeController {
 
-    private final HarnessAgent harnessAgent;
+    private final AgentRegistry agentRegistry;
     private final AgentStateStore agentStateStore;
     private final SessionTitleService sessionTitleService;
     private final SessionQueryService sessionQueryService;
@@ -81,11 +85,13 @@ public class AgentScopeController {
         Map<String, StringBuilder> toolParamsAccumulator = new HashMap<>();
 
         String userId = loginUserId();
+        // 按请求指定档位取 Agent，未知名称抛业务异常
+        HarnessAgent agent = agentRegistry.getAgent(request.getAgentName());
         // /skill:<name> 前缀转成技能使用提示，Agent 通过 load_skill_through_path 自行加载技能详情
         String message = applySkillHint(effectiveMessage(request));
         // URL 直达等路径进入的会话可能没有 meta：补建占位标题并异步生成正式标题（已有 meta 则跳过）
         if (!sessionTitleService.hasMeta(userId, request.getSessionId())) {
-            sessionTitleService.createPlaceholder(userId, request.getSessionId());
+            sessionTitleService.createPlaceholder(userId, request.getSessionId(), request.getAgentName());
             sessionTitleService.generateAndUpdateAsync(userId, request.getSessionId(), message);
         }
         UserMessage userMessage = buildUserMessage(userId, request.getSessionId(), message,
@@ -100,7 +106,7 @@ public class AgentScopeController {
         // 重新打开会话通过 getMessages 可见完整回复；/interrupt 走信号中断（InterruptControl），
         // 不依赖订阅取消，保持有效。流结束（完成/出错）后驱动订阅自然终止。
         Sinks.Many<AgentEvent> sink = Sinks.many().multicast().onBackpressureBuffer();
-        harnessAgent.streamEvents(userMessage, context)
+        agent.streamEvents(userMessage, context)
                 .subscribe(sink::tryEmitNext,
                         error -> {
                             log.error("Agent 流执行出错", error);
@@ -131,8 +137,12 @@ public class AgentScopeController {
     @Operation(summary = "创建会话")
     public Result<Void> createSession(@RequestBody @Validated CreateSessionRequest request) {
         String userId = loginUserId();
+        // agentName 为空时落默认 Agent（flash）；未知名称抛业务异常
+        String agentName = StringUtils.hasText(request.getAgentName())
+                ? request.getAgentName() : agentRegistry.getDefaultAgentName();
+        agentRegistry.getAgent(agentName);
         // 先同步写入占位标题，前端可立即在会话列表看到；正式标题异步生成并更新
-        sessionTitleService.createPlaceholder(userId, request.getSessionId());
+        sessionTitleService.createPlaceholder(userId, request.getSessionId(), agentName);
         sessionTitleService.generateAndUpdateAsync(userId, request.getSessionId(), request.getMessage());
         return Result.ok();
     }
@@ -297,6 +307,7 @@ public class AgentScopeController {
                             .summary(meta.getTitle())
                             .timestamp(meta.getCreateTime())
                             .pinned(meta.isPinned())
+                            .agentName(meta.getAgentName())
                             .build();
                 })
                 .filter(Objects::nonNull)
@@ -331,9 +342,19 @@ public class AgentScopeController {
         return Result.ok();
     }
 
+    @GetMapping("/agents")
+    @Operation(summary = "Agent 档位列表（含能力标记与默认档位）")
+    public Result<List<AgentInfo>> agents() {
+        return Result.okData(agentRegistry.listAgents());
+    }
+
     @GetMapping("/skills")
     @Operation(summary = "技能列表")
-    public Result<List<SkillVO>> skills() {
+    public Result<List<SkillVO>> skills(@RequestParam(required = false) String agentName) {
+        // 指定了 Agent 且该档位不支持技能时返回空列表
+        if (StringUtils.hasText(agentName) && !agentRegistry.getAgentInfo(agentName).isSkills()) {
+            return Result.okData(List.of());
+        }
         List<SkillVO> result = skillRepository.getAllSkills().stream()
                 .map(skill -> SkillVO.builder()
                         .name(skill.getName())
@@ -387,12 +408,13 @@ public class AgentScopeController {
 
     @PostMapping("/interrupt")
     @Operation(summary = "中断会话")
-    public Result<Void> interrupt(@RequestBody @Validated SessionIdRequest request) {
+    public Result<Void> interrupt(@RequestBody @Validated InterruptRequest request) {
         RuntimeContext target = RuntimeContext.builder()
                 .userId(loginUserId())
                 .sessionId(request.getSessionId())
                 .build();
-        harnessAgent.getDelegate().interrupt(target, new UserMessage("用户已取消操作"));
+        agentRegistry.getAgent(request.getAgentName())
+                .getDelegate().interrupt(target, new UserMessage("用户已取消操作"));
         return Result.ok();
     }
 }
