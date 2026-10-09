@@ -146,7 +146,7 @@ code { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; fo
   * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
   body { padding: 0; }
   header, main { max-width: none; }
-  .turn, .code, table, blockquote, pre, li { break-inside: avoid; }
+  .turn, .code, table, blockquote, pre, li, img { break-inside: avoid; }
   .turn { padding: 16px 0; }
   h1, h2, h3, h4 { break-after: avoid; }
   a { color: inherit; text-decoration: none; }

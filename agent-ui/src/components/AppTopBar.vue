@@ -7,6 +7,7 @@ import { useTheme, THEME_LIST, type ThemeChoice } from '../composables/useTheme'
 import { useWide } from '../composables/useWide'
 import { useDismissableMenu } from '../composables/useDismissableMenu'
 import { downloadText, exportFilename, turnsToHtml, turnsToMarkdown } from '../utils/export'
+import { withChartImages } from '../utils/exportCharts'
 import { printHtmlDocument } from '../utils/print'
 import type { IconName } from '../utils/icons'
 
@@ -50,7 +51,7 @@ const exportItems: { key: 'md' | 'html' | 'pdf'; label: string; icon: IconName; 
   },
 ]
 
-function exportSession(format: 'md' | 'html' | 'pdf') {
+async function exportSession(format: 'md' | 'html' | 'pdf') {
   if (!canExport.value) return
   const at = new Date()
   const meta = {
@@ -59,22 +60,24 @@ function exportSession(format: 'md' | 'html' | 'pdf') {
     title: title.value,
   }
   closeMenu()
+  // echarts 围栏先渲染成图表图片再导出，三种格式看到的都是真实图表
+  const turns = await withChartImages(state.turns)
 
   if (format === 'pdf') {
-    printHtmlDocument(turnsToHtml(state.turns, meta, at))
+    printHtmlDocument(turnsToHtml(turns, meta, at))
     return
   }
   if (format === 'html') {
     downloadText(
       exportFilename(title.value, state.currentSessionId, { date: at, extension: 'html' }),
-      turnsToHtml(state.turns, meta, at),
+      turnsToHtml(turns, meta, at),
       'text/html;charset=utf-8',
     )
     return
   }
   downloadText(
     exportFilename(title.value, state.currentSessionId, { date: at }),
-    turnsToMarkdown(state.turns, meta, at),
+    turnsToMarkdown(turns, meta, at),
   )
 }
 </script>
