@@ -70,10 +70,45 @@ export function chartTheme() {
       '#db2777',
       '#65a30d',
     ],
-    textColor: cssVar('--fg-muted'),
-    axisLine: cssVar('--border-strong'),
-    splitLine: cssVar('--border'),
+    textColor: cssVar('--chart-text'),
+    titleColor: cssVar('--chart-title'),
+    axisLine: cssVar('--chart-axis'),
+    splitLine: cssVar('--chart-split'),
   }
+}
+
+function mergeObject(
+  target: Record<string, unknown>,
+  source: Record<string, unknown>,
+): Record<string, unknown> {
+  const result = { ...target }
+  for (const key of Object.keys(source)) {
+    const s = source[key]
+    const t = result[key]
+    if (s && typeof s === 'object' && t && typeof t === 'object') {
+      result[key] = mergeObject(t as Record<string, unknown>, s as Record<string, unknown>)
+    } else {
+      result[key] = s
+    }
+  }
+  return result
+}
+
+function withDefaults<T>(value: unknown, defaults: Record<string, unknown>): T {
+  if (!value || typeof value !== 'object') return defaults as T
+  return mergeObject(value as Record<string, unknown>, defaults) as T
+}
+
+function mergeAxis(axis: unknown, theme: ReturnType<typeof chartTheme>): unknown {
+  const defaults = {
+    axisLine: { lineStyle: { color: theme.axisLine } },
+    axisLabel: { color: theme.textColor },
+    splitLine: { lineStyle: { color: theme.splitLine } },
+  }
+  if (Array.isArray(axis)) {
+    return axis.map((a) => withDefaults(a, defaults))
+  }
+  return axis ? withDefaults(axis, defaults) : undefined
 }
 
 /** 给模型输出的 option 注入主题默认值（模型显式指定的优先） */
@@ -83,5 +118,9 @@ export function withTheme<T extends Record<string, unknown>>(option: T): T {
   merged.backgroundColor = merged.backgroundColor ?? 'transparent'
   merged.color = merged.color ?? theme.palette
   merged.textStyle = { color: theme.textColor, ...(merged.textStyle as object | undefined) }
+  merged.title = withDefaults(merged.title, { textStyle: { color: theme.titleColor } })
+  merged.legend = withDefaults(merged.legend, { textStyle: { color: theme.textColor } })
+  if (merged.xAxis !== undefined) merged.xAxis = mergeAxis(merged.xAxis, theme)
+  if (merged.yAxis !== undefined) merged.yAxis = mergeAxis(merged.yAxis, theme)
   return option
 }
