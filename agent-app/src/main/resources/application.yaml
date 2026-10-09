@@ -32,6 +32,7 @@ mcp:
   server:
     url: http://localhost:8081
     endpoint: /mcp
+    # 对应 mcp-server 模块的 mcp.server.token，两边同为 MCP_SERVER_TOKEN 环境变量；空串表示服务端不启用校验
     token: ${MCP_SERVER_TOKEN:}
 
 # MyBatis-Plus

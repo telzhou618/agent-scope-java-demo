@@ -25,8 +25,9 @@ public class FileController {
 
     @Operation(summary = "上传聊天附件")
     @PostMapping("/upload")
-    public Result<ChatAttachment> upload(@RequestParam("file") MultipartFile file) {
+    public Result<ChatAttachment> upload(@RequestParam("file") MultipartFile file,
+                                         @RequestParam("sessionId") String sessionId) {
         String userId = String.valueOf(StpUtil.getLoginIdAsLong());
-        return Result.okData(fileStorageService.store(file, userId));
+        return Result.okData(fileStorageService.store(file, userId, sessionId));
     }
 }

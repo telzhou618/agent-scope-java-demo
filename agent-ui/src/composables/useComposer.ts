@@ -1,6 +1,7 @@
 import { ref } from 'vue'
 import { uploadFile } from '../api/agent'
 import { ApiError } from '../api/http'
+import { useChat } from '../stores/chat'
 import type { ChatAttachment } from '../api/types'
 import { MAX_ATTACHMENTS, MAX_FILE_SIZE, attachmentKind, fileExt, isAllowedExt, type ComposerAttachment } from '../utils/attachments'
 
@@ -23,7 +24,8 @@ function toMessage(error: unknown): string {
 /** 单个附件上传：成功回填 id，失败则从草稿中移除并提示 */
 function upload(item: ComposerAttachment, file: File) {
   uploading.value += 1
-  uploadFile(file)
+  // 后端按 <userId>/<sessionId>/ 归档；新会话还没发首条消息时用 store 预生成的 pending id
+  uploadFile(file, useChat().ensureSessionId())
     .then((res) => {
       item.id = res.id
     })
@@ -96,7 +98,7 @@ export function useComposer() {
       if (item.url?.startsWith('blob:')) URL.revokeObjectURL(item.url)
       if (!attachments.value.length) uploadError.value = ''
     },
-    /** 发送成功后清空附件；blob 预览交给消息气泡接管，不再 revoke */
+    /** 发送成功后清空附件；blob 预览已随 userTurn 进会话，由 chat store 在丢弃 turns 时统一 revoke */
     resetAttachments() {
       attachments.value = []
       uploadError.value = ''

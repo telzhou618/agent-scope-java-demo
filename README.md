@@ -9,7 +9,7 @@ Agent + MCP 演示工程：基于 [AgentScope Java](https://github.com/agentscop
 | 模块 | 端口 | 说明 |
 | --- | --- | --- |
 | `mcp-server` | 8081 | 基于 Spring AI MCP Server（STREAMABLE 协议），提供示例工具：当前时间、真实天气查询（wttr.in 免费接口） |
-| `agent-app` | 8082 | 基于 AgentScope HarnessAgent 的智能体服务，连接 MCP server 获取工具，对外提供 SSE 流式对话接口；含 Sa-Token + MyBatis-Plus 的用户登录（MySQL 存用户、Redis 存 token） |
+| `agent-app` | 8082 | 基于 AgentScope HarnessAgent 的智能体服务，连接 MCP server 获取工具，对外提供 SSE 流式对话接口；含 Sa-Token + MyBatis-Plus 的用户登录（MySQL 存用户、Redis 存 token），会话状态落库 MySQL，token 用量落库并支撑个人中心统计 |
 | `agent-ui` | 5173 | 基于 Vite + Vue 3 的对话界面（登录页 + Vue Router + Pinia + Axios），对接 agent-app；原型见 `agent-ui/原型/index.html` |
 
 ## 环境要求
@@ -23,7 +23,7 @@ Agent + MCP 演示工程：基于 [AgentScope Java](https://github.com/agentscop
 ## 启动方式
 
 ```bash
-# 1. 初始化数据库（建库 agent_demo + 用户表 t_user + 种子用户 admin/admin123）
+# 1. 初始化数据库（建库 agent_demo + 全部表 + 种子用户 admin/admin123）
 mysql -h127.0.0.1 -uroot -p < sql/init.sql
 
 # 2. 编译
@@ -66,13 +66,19 @@ pnpm dev
 | 会话项悬停后的删除按钮 | `GET /agent/scope/delSession` |
 | 会话项悬停后的置顶/取消置顶按钮 | `GET /agent/scope/pinSession` |
 | 输入框输入 `/` 唤出技能列表 | `GET /agent/scope/skills` |
+| 附件上传（图片/文档/文本，单个 10MB 以内） | `POST /agent/scope/files/upload` |
+| 消息反馈（有帮助/没帮助） | `POST /agent/scope/feedback`、`GET /agent/scope/getFeedbacks` |
+| 个人中心用量统计 | `GET /agent/scope/usage/summary`、`GET /agent/scope/usage/recent` |
+| 意见反馈弹窗提交 | `POST /user/feedback/submit` |
 
 说明：
 
 - 登录状态由 Pinia 管理，token 存 `localStorage` 的 `agent-ui:token`（后端存 Redis，有效期 7 天）；除登录/退出外的接口由前端 Axios 拦截器自动携带 token，401 时自动回登录页。
 - 新建会话在发出第一条消息时才生成 `sessionId`（uuid），前端先调用 `POST /agent/scope/createSession`：后端立即写入「新会话」占位标题并返回，侧栏马上可见；随后异步调用模型根据首条消息生成正式标题并更新数据库，首轮 AI 回答结束后前端刷新会话列表即可看到新标题。
-- 个人主页的用户信息（昵称/邮箱/头像）来自 `/auth/current`；用量/费用/图表仍是**演示数据**（后端暂无对应接口），页面上已标注。
-- 附件支持按钮选择和直接粘贴（图片/文档/文本类，单个 10MB 以内）；选择工具、模型切换为占位控件（禁用状态）；顶栏 ⋯ 菜单可把**当前会话的对话正文导出为 Markdown / HTML / PDF**（三者内容一致，均不含思考过程与工具调用；流式中或空会话时该项置灰）。PDF 走浏览器打印，会弹出系统打印对话框，在对话框里选「另存为 PDF」。
+- 个人主页的用户信息（昵称/邮箱/头像）来自 `/auth/current`；用量/费用/图表为真实数据：每次模型调用由 `TokenUsageMiddleware` 落库 `t_token_usage`，个人中心经 `/agent/scope/usage/summary`、`/agent/scope/usage/recent` 统计。费用在写入时按当期单价锁定（元/百万 token，见 `application.yaml` 的 `usage.*`）：主模型 qwen3.7-plus 输入 6、输出 24，压缩/标题模型 qwen-flash 也按此口径记录。
+- 附件支持按钮选择和直接粘贴（图片/文档/文本类，单个 10MB 以内），先经 `POST /agent/scope/files/upload` 上传，发送消息时按类型组装多模态内容：图片转 base64 ImageBlock 交给模型视觉理解，PDF/DOC/XLS 等文档抽取文本后随消息注入；选择工具、模型切换为占位控件（禁用状态）。顶栏 ⋯ 菜单可把**当前会话的对话正文导出为 Markdown / HTML / PDF**（三者内容一致，均不含思考过程与工具调用；echarts 图表块离屏渲染为 PNG 图片嵌入导出；流式中或空会话时该项置灰）。PDF 走浏览器打印，会弹出系统打印对话框，在对话框里选「另存为 PDF」。
+- 消息反馈：AI 回答气泡上有帮助/没帮助按钮，`POST /agent/scope/feedback` 落库 `t_message_feedback`（再点同项取消），刷新后由 `GET /agent/scope/getFeedbacks` 恢复；删除会话时级联清理该会话的反馈记录。
+- 意见反馈：侧栏账号菜单里的意见反馈弹窗，经 `POST /user/feedback/submit` 落库 `t_user_feedback`（类型：bug问题/idea建议/other其他，联系方式选填）。
 - 技能快捷指令：输入框输入 `/` 唤出已安装技能列表（`/skill:名称` + 描述，支持模糊过滤、↑↓ 选择、Enter/Tab 确认、ESC 关闭）；技能定义在 `agent-app/src/main/resources/skills/<name>/SKILL.md`（YAML frontmatter 写 name/description，正文为技能指令），消息以 `/skill:<name>` 开头时后端把技能指令注入用户消息再交给 Agent。新增技能需重启 agent-app。
 - 侧栏左下角头像点开是菜单（个人主页 / 退出），「退出」调用 `/auth/logout` 后回到登录页；侧栏头部按钮可收起侧栏（窄屏关抽屉，宽屏折叠整列，顶栏汉堡按钮展开）。
 - 流式过程中后端通过 `tool_end` 事件返回工具结果状态（`success/error/interrupted/denied`），工具结果返回成功即标记「成功」，其余状态标记「失败」，无需等待整轮回答结束；历史消息里同样依据 `state` 字段还原。
@@ -210,5 +216,5 @@ API 文档：启动 agent-app 后访问 `http://localhost:8082/doc.html`（Knife
 ## 说明
 
 - 用户存储：MySQL `agent_demo.t_user`（MyBatis-Plus），密码 BCrypt 加密；登录态用 Sa-Token 存 Redis（有效期 7 天），SQL 脚本在 `sql/` 目录。
-- 智能体状态与上下文默认存储在 `~/.agentscope` 目录下（JsonFileAgentStateStore），按登录用户的 DB 自增 id 分目录隔离。
+- 智能体状态与上下文落库 MySQL `agent_demo.agentscope_sessions`（MysqlAgentStateStore），按登录用户的 DB 自增 id 以 `userId:sessionId` 槽位隔离；`~/.agentscope` 目录仅作 harness 工作空间。
 - `AgentConfig` 中工具权限模式为 `PermissionMode.BYPASS`（不校验权限），仅供演示，生产环境请勿使用。

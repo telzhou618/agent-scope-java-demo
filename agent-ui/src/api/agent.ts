@@ -14,14 +14,14 @@ export const getMessages = (sessionId: string) =>
   http.get<Result<Msg[]>>(`${API_BASE}/getMessages`, { params: { sessionId } }).then((r) => r.data.data)
 
 export const delSession = (sessionId: string) =>
-  http.get<Result<void>>(`${API_BASE}/delSession`, { params: { sessionId } }).then((r) => r.data.data)
+  http.post<Result<void>>(`${API_BASE}/delSession`, { sessionId }).then((r) => r.data.data)
 
 /** 置顶/取消置顶会话 */
 export const pinSession = (sessionId: string, pinned: boolean) =>
-  http.get<Result<void>>(`${API_BASE}/pinSession`, { params: { sessionId, pinned } }).then((r) => r.data.data)
+  http.post<Result<void>>(`${API_BASE}/pinSession`, { sessionId, pinned }).then((r) => r.data.data)
 
 export const interrupt = (sessionId: string) =>
-  http.get<Result<void>>(`${API_BASE}/interrupt`, { params: { sessionId } }).then((r) => r.data.data)
+  http.post<Result<void>>(`${API_BASE}/interrupt`, { sessionId }).then((r) => r.data.data)
 
 /** token 消耗统计（按区间；用户身份由后端从 token 解析） */
 export const getUsageSummary = (params: { start: string; end: string; granularity: 'hour' | 'day' }) =>
@@ -31,9 +31,11 @@ export const getUsageSummary = (params: { start: string; end: string; granularit
 export const getRecentRequests = (params: { start: string; end: string }) =>
   http.get<Result<RecentRequestItem[]>>(`${API_BASE}/usage/recent`, { params }).then((r) => r.data.data)
 
-export const uploadFile = (file: File) => {
+/** 上传附件：按 <userId>/<sessionId>/ 归档，删会话时后端级联删除 */
+export const uploadFile = (file: File, sessionId: string) => {
   const form = new FormData()
   form.append('file', file)
+  form.append('sessionId', sessionId)
   return http.post<Result<ChatAttachment>>(`${API_BASE}/files/upload`, form).then((r) => r.data.data)
 }
 

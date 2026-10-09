@@ -70,16 +70,50 @@ let handle: StreamHandle | null = null
 let liveTurn: LiveTurn | null = null
 let seq = 0
 
+/**
+ * 流式中途被切走的会话现场：流不随切换中断，在后台继续接收并累积进自己的 turns，
+ * 切回时直接恢复（比 getMessages 历史新）；流结束后从缓存清掉，再以历史接口为准。
+ */
+interface BackgroundSession {
+  turns: Turn[]
+  handle: StreamHandle
+  liveTurn: LiveTurn
+}
+
+const background = new Map<string, BackgroundSession>()
+
+/** 新会话首条消息发出前，附件上传就需要 sessionId：预生成一个，发送时沿用 */
+let pendingSessionId: string | null = null
+
 const newId = (prefix: string) => `${prefix}-${Date.now()}-${seq++}`
 
 const isAssistant = (turn: Turn): turn is AssistantTurn => turn.kind === 'assistant'
 
-function dropEmptyLiveTurn() {
-  if (!liveTurn) return
-  if (liveTurn.turn.blocks.length === 0 && !liveTurn.turn.error) {
-    const index = state.turns.indexOf(liveTurn.turn)
-    if (index >= 0) state.turns.splice(index, 1)
+/** 用户消息附件的本地 blob 预览：turns 被整体丢弃时统一释放 */
+function revokeTurnBlobs(turns: Turn[]) {
+  for (const turn of turns) {
+    if (turn.kind !== 'user' || !turn.attachments) continue
+    for (const attachment of turn.attachments) {
+      if (attachment.url?.startsWith('blob:')) URL.revokeObjectURL(attachment.url)
+    }
   }
+}
+
+/**
+ * 离开当前会话前收尾：正在流式的会话连同流句柄暂存进后台缓存（不 abort）；
+ * 未在流式的 turns 直接丢弃并释放 blob 预览（重新打开走历史接口）。
+ */
+function stashCurrent() {
+  const sessionId = state.currentSessionId
+  if (sessionId && state.streaming && handle && liveTurn) {
+    background.set(sessionId, { turns: state.turns, handle, liveTurn })
+  } else {
+    revokeTurnBlobs(state.turns)
+  }
+  handle = null
+  liveTurn = null
+  state.streaming = false
+  pendingSessionId = null
 }
 
 /** 与后端 Msg.timestamp 一致的本地时间格式：yyyy-MM-dd HH:mm:ss.SSS */
@@ -130,12 +164,25 @@ async function refreshSessionsUntilTitled(sessionId: string, attempt = 0) {
 }
 
 async function openSession(sessionId: string) {
-  if (state.streaming) await stop()
+  stashCurrent()
   cancelTitleRetry()
   state.currentSessionId = sessionId
   state.view = 'chat'
   closeDrawerOnNarrow()
   state.messagesError = ''
+
+  // 流式中途切走的会话：恢复后台暂存的现场（比历史接口新），流继续实时渲染
+  const cached = background.get(sessionId)
+  if (cached) {
+    background.delete(sessionId)
+    state.turns = cached.turns
+    state.streaming = true
+    handle = cached.handle
+    liveTurn = cached.liveTurn
+    state.loadingMessages = false
+    return
+  }
+
   state.turns = []
   state.loadingMessages = true
   try {
@@ -158,8 +205,8 @@ async function openSession(sessionId: string) {
   }
 }
 
-async function newChat() {
-  if (state.streaming) await stop()
+function newChat() {
+  stashCurrent()
   cancelTitleRetry()
   state.currentSessionId = null
   state.turns = []
@@ -176,18 +223,61 @@ async function removeSession(sessionId: string) {
     state.sessionsError = toMessage(error)
     return
   }
+  // 后台还在流式的会话一并断开，释放暂存与 blob 预览
+  const cached = background.get(sessionId)
+  if (cached) {
+    cached.handle.abort()
+    revokeTurnBlobs(cached.turns)
+    background.delete(sessionId)
+  }
   state.sessions = state.sessions.filter((item) => item.sessionId !== sessionId)
   if (state.currentSessionId === sessionId) {
+    handle?.abort()
+    handle = null
+    liveTurn = null
+    state.streaming = false
     state.currentSessionId = null
+    revokeTurnBlobs(state.turns)
     state.turns = []
   }
+}
+
+/**
+ * 流收尾：回合在自己的 turns 数组上收尾（切走后在后台也照跑）。
+ * 模块级的 handle/liveTurn/streaming 只在该会话仍是当前会话时复位；
+ * 后台会话流结束则丢弃暂存（历史接口已是最新），并释放其中的 blob 预览。
+ */
+function finishStream(sessionId: string, turns: Turn[], live: LiveTurn) {
+  live.finish()
+  if (live.turn.blocks.length === 0 && !live.turn.error) {
+    const index = turns.indexOf(live.turn)
+    if (index >= 0) turns.splice(index, 1)
+  }
+  if (state.currentSessionId === sessionId && liveTurn === live) {
+    liveTurn = null
+    handle = null
+    state.streaming = false
+    return
+  }
+  const cached = background.get(sessionId)
+  if (cached && cached.liveTurn === live) {
+    revokeTurnBlobs(cached.turns)
+    background.delete(sessionId)
+  }
+}
+
+/** 当前会话 id；新会话还没有时预生成一个 pending id（附件上传、首条消息共用） */
+function ensureSessionId(): string {
+  if (state.currentSessionId) return state.currentSessionId
+  if (!pendingSessionId) pendingSessionId = crypto.randomUUID()
+  return pendingSessionId
 }
 
 async function send(text: string, attachments?: UserAttachment[]) {
   const message = text.trim()
   if ((!message && !attachments?.length) || state.streaming) return
 
-  const sessionId = state.currentSessionId ?? crypto.randomUUID()
+  const sessionId = state.currentSessionId ?? pendingSessionId ?? crypto.randomUUID()
   const isNew = !state.currentSessionId
 
   // 新建会话：先调创建会话接口（后端写入占位标题并异步生成正式标题），侧栏立即显示「新会话」
@@ -200,25 +290,22 @@ async function send(text: string, attachments?: UserAttachment[]) {
       return
     }
     state.sessions.unshift({ userId: '', sessionId, summary: TITLE_PLACEHOLDER, timestamp: nowTimestamp() })
+    pendingSessionId = null
   }
 
   state.currentSessionId = sessionId
   const requestId = crypto.randomUUID()
   state.messagesError = ''
+  // 闭包持有当前会话的 turns：流式中途切走后，事件仍累积进这个数组
+  const turns = state.turns
   const userTurn: UserTurn = { kind: 'user', id: newId('user'), text: message, timestamp: '' }
   if (attachments?.length) userTurn.attachments = attachments.map((item) => ({ ...item }))
-  state.turns.push(userTurn)
+  turns.push(userTurn)
 
   const live = createLiveTurn(newId('live'))
-  state.turns.push(live.turn)
+  turns.push(live.turn)
   state.streaming = true
   liveTurn = live
-
-  // 新建会话：地址补上 sessionId（需求 12）。动态导入避免 store -> router 循环依赖
-  if (isNew) {
-    const { default: router } = await import('../router')
-    await router.replace(`/chat/${sessionId}`)
-  }
 
   const stream = chatStream(
     {
@@ -234,16 +321,17 @@ async function send(text: string, attachments?: UserAttachment[]) {
       onError: (error) => live.fail(error),
     },
   )
+  // 先建好流再更新路由：句柄同步就位，切换会话暂存后台现场时不会有残缺窗口
   handle = stream
 
-  await stream.done
+  // 新建会话：地址补上 sessionId（需求 12）。动态导入避免 store -> router 循环依赖
+  if (isNew) {
+    const { default: router } = await import('../router')
+    await router.replace(`/chat/${sessionId}`)
+  }
 
-  const finished = liveTurn
-  liveTurn = null
-  handle = null
-  finished?.finish()
-  dropEmptyLiveTurn()
-  state.streaming = false
+  await stream.done
+  finishStream(sessionId, turns, live)
 
   if (isNew) {
     // 首轮回答结束刷新列表；异步标题可能还没写完，仍是占位符时退避重试
@@ -325,6 +413,30 @@ function closeDrawerOnNarrow() {
   if (narrowMedia.matches) state.sidebarOpen = false
 }
 
+/** 退出登录/401：断开所有流（含后台暂存），清空全部会话状态与 blob 预览 */
+function reset() {
+  cancelTitleRetry()
+  handle?.abort()
+  handle = null
+  liveTurn = null
+  for (const cached of background.values()) {
+    cached.handle.abort()
+    revokeTurnBlobs(cached.turns)
+  }
+  background.clear()
+  revokeTurnBlobs(state.turns)
+  pendingSessionId = null
+  state.view = 'chat'
+  state.sessions = []
+  state.currentSessionId = null
+  state.turns = []
+  state.streaming = false
+  state.loadingSessions = false
+  state.loadingMessages = false
+  state.sessionsError = ''
+  state.messagesError = ''
+}
+
 const title = computed(() => {
   if (state.view === 'profile') return '个人主页'
   const session = state.sessions.find((item) => item.sessionId === state.currentSessionId)
@@ -347,6 +459,8 @@ export function useChat() {
     stop,
     regenerate,
     setFeedback,
+    ensureSessionId,
+    reset,
     setView,
     setSidebarOpen,
     toggleSidebar,

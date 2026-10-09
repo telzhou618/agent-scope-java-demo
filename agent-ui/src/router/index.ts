@@ -1,7 +1,9 @@
 import { createRouter, createWebHistory, type RouteLocationNormalized } from 'vue-router'
-import LoginView from '../views/LoginView.vue'
-import ChatView from '../views/ChatView.vue'
 import { getToken } from '../api/token'
+
+// 视图懒加载：marked/hljs/DOMPurify 等依赖只进 ChatView 的异步 chunk，不拖慢首屏登录页
+const LoginView = () => import('../views/LoginView.vue')
+const ChatView = () => import('../views/ChatView.vue')
 
 const router = createRouter({
   history: createWebHistory(),

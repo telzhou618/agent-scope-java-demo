@@ -9,12 +9,15 @@ import com.example.agent.dto.AgentSseEvent;
 import com.example.agent.dto.ChatAttachment;
 import com.example.agent.dto.CreateSessionRequest;
 import com.example.agent.dto.FeedbackRequest;
+import com.example.agent.dto.PinSessionRequest;
 import com.example.agent.dto.Result;
+import com.example.agent.dto.SessionIdRequest;
 import com.example.agent.dto.SessionMeta;
 import com.example.agent.error.BizException;
 import com.example.agent.service.DocumentTextExtractor;
 import com.example.agent.service.FileStorageService;
 import com.example.agent.service.MessageFeedbackService;
+import com.example.agent.service.SessionQueryService;
 import com.example.agent.service.SessionTitleService;
 import com.example.agent.vo.SkillVO;
 import io.agentscope.core.skill.AgentSkill;
@@ -40,6 +43,7 @@ import org.springframework.http.codec.ServerSentEvent;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import reactor.core.publisher.Flux;
+import reactor.core.publisher.Sinks;
 
 import java.nio.charset.StandardCharsets;
 import java.util.*;
@@ -57,6 +61,7 @@ public class AgentScopeController {
     private final HarnessAgent harnessAgent;
     private final AgentStateStore agentStateStore;
     private final SessionTitleService sessionTitleService;
+    private final SessionQueryService sessionQueryService;
     private final FileStorageService fileStorageService;
     private final DocumentTextExtractor documentTextExtractor;
     private final ClasspathSkillRepository skillRepository;
@@ -78,14 +83,29 @@ public class AgentScopeController {
         String userId = loginUserId();
         // /skill:<name> 前缀转成技能使用提示，Agent 通过 load_skill_through_path 自行加载技能详情
         String message = applySkillHint(effectiveMessage(request));
-        UserMessage userMessage = buildUserMessage(userId, message, request.getAttachments());
+        UserMessage userMessage = buildUserMessage(userId, request.getSessionId(), message,
+                request.getAttachments());
         RuntimeContext context = RuntimeContext.builder()
                 .sessionId(request.getSessionId())
                 .userId(userId)
                 .put("requestId", request.getRequestId() == null ? "" : request.getRequestId())
                 .build();
 
-        return harnessAgent.streamEvents(userMessage, context)
+        // 事件流转热：驱动订阅与 HTTP 连接解耦，客户端刷新/断开 SSE 后 Agent 仍跑完并落库，
+        // 重新打开会话通过 getMessages 可见完整回复；/interrupt 走信号中断（InterruptControl），
+        // 不依赖订阅取消，保持有效。流结束（完成/出错）后驱动订阅自然终止。
+        Sinks.Many<AgentEvent> sink = Sinks.many().multicast().onBackpressureBuffer();
+        harnessAgent.streamEvents(userMessage, context)
+                .subscribe(sink::tryEmitNext,
+                        error -> {
+                            log.error("Agent 流执行出错", error);
+                            sink.tryEmitError(error);
+                        },
+                        sink::tryEmitComplete);
+
+        return sink.asFlux()
+                .doOnCancel(() -> log.info("SSE 客户端断开，Agent 继续后台运行, sessionId={}",
+                        request.getSessionId()))
                 .flatMap(event -> {
                     if (log.isDebugEnabled()) {
                         log.debug("Agent 流事件：{}", JSON.toJSONString(event));
@@ -96,13 +116,10 @@ public class AgentScopeController {
                     }
                     return Flux.just(toSse(sseEvent));
                 })
-                .onErrorResume(error -> {
-                    log.error("Agent 流执行出错", error);
-                    return Flux.just(ServerSentEvent.<String>builder()
-                            .event("error")
-                            .data(error.getMessage())
-                            .build());
-                });
+                .onErrorResume(error -> Flux.just(ServerSentEvent.<String>builder()
+                        .event("error")
+                        .data(error.getMessage())
+                        .build()));
     }
 
     @PostMapping("/createSession")
@@ -124,14 +141,15 @@ public class AgentScopeController {
         return blank ? "请查看我发送的文件" : request.getMessage();
     }
 
-    private UserMessage buildUserMessage(String userId, String text, List<ChatAttachment> attachments) {
+    private UserMessage buildUserMessage(String userId, String sessionId, String text,
+                                         List<ChatAttachment> attachments) {
         if (attachments == null || attachments.isEmpty()) {
             return new UserMessage("user", text);
         }
         List<ContentBlock> blocks = new ArrayList<>();
         blocks.add(TextBlock.builder().text(text).build());
         for (ChatAttachment attachment : attachments) {
-            byte[] bytes = fileStorageService.readBytes(userId, attachment.id());
+            byte[] bytes = fileStorageService.readBytes(userId, sessionId, attachment.id());
             if (fileStorageService.isImage(attachment.ext())) {
                 blocks.add(new ImageBlock(new Base64Source(
                         fileStorageService.mediaType(attachment.ext()),
@@ -259,19 +277,26 @@ public class AgentScopeController {
         if (CollUtil.isEmpty(sessionIds)) {
             return Result.okData(new LinkedList<>());
         }
-        // 遍历会话：标题优先取 meta（AI 生成/占位），缺省回退首条消息摘要；
+        // 批量读 session_meta（标题/置顶/创建时间，小 JSON）；
+        // 只有没有 meta 的老会话才批量回退读首条消息，不再逐会话读取 LONGTEXT 消息上下文
+        Map<String, SessionMeta> metas = sessionQueryService.listSessionMetas(userId);
+        List<String> legacyIds = sessionIds.stream()
+                .filter(sessionId -> !metas.containsKey(sessionId))
+                .toList();
+        Map<String, Msg> firstMessages = sessionQueryService.listFirstMessages(userId, legacyIds);
+
+        // 标题优先取 meta（AI 生成/占位），缺省回退首条消息摘要；
         // 只有占位 meta、还没有消息的新会话也纳入列表
         List<AgentSession> agentSessions = sessionIds.stream().map(sessionId -> {
-                    Optional<Msg> first = agentStateStore.get(userId, sessionId, "agent_state", AgentState.class)
-                            .map(AgentState::getContext)
-                            .orElse(Collections.emptyList())
-                            .stream().findFirst();
-                    Optional<SessionMeta> meta = agentStateStore.get(userId, sessionId, "session_meta", SessionMeta.class);
-                    String summary = meta.map(SessionMeta::getTitle)
+                    SessionMeta meta = metas.get(sessionId);
+                    Msg first = firstMessages.get(sessionId);
+                    String summary = Optional.ofNullable(meta)
+                            .map(SessionMeta::getTitle)
                             .filter(title -> !title.isBlank())
-                            .orElse(first.map(Msg::getTextContent).orElse(null));
-                    String timestamp = first.map(Msg::getTimestamp)
-                            .orElse(meta.map(SessionMeta::getCreateTime).orElse(null));
+                            .orElse(first == null ? null : first.getTextContent());
+                    String timestamp = first != null && first.getTimestamp() != null
+                            ? first.getTimestamp()
+                            : Optional.ofNullable(meta).map(SessionMeta::getCreateTime).orElse(null);
                     if (summary == null && timestamp == null) {
                         return null;
                     }
@@ -280,7 +305,7 @@ public class AgentScopeController {
                             .sessionId(sessionId)
                             .summary(summary)
                             .timestamp(timestamp)
-                            .pinned(meta.map(SessionMeta::isPinned).orElse(false))
+                            .pinned(meta != null && meta.isPinned())
                             .build();
                 })
                 .filter(Objects::nonNull)
@@ -292,24 +317,27 @@ public class AgentScopeController {
         return Result.okData(agentSessions);
     }
 
-    @GetMapping("/delSession")
+    @PostMapping("/delSession")
     @Operation(summary = "删除会话")
-    public Result<Void> delSessions(String sessionId) {
-        agentStateStore.delete(loginUserId(), sessionId);
+    public Result<Void> delSessions(@RequestBody @Validated SessionIdRequest request) {
+        String userId = loginUserId();
+        agentStateStore.delete(userId, request.getSessionId());
         // 级联清理该会话的反馈记录
-        feedbackService.deleteForSession(StpUtil.getLoginIdAsLong(), sessionId);
+        feedbackService.deleteForSession(StpUtil.getLoginIdAsLong(), request.getSessionId());
+        // 级联清理该会话的附件目录
+        fileStorageService.deleteForSession(userId, request.getSessionId());
         return Result.ok();
     }
 
-    @GetMapping("/pinSession")
+    @PostMapping("/pinSession")
     @Operation(summary = "置顶/取消置顶会话")
-    public Result<Void> pinSession(String sessionId, boolean pinned) {
+    public Result<Void> pinSession(@RequestBody @Validated PinSessionRequest request) {
         String userId = loginUserId();
         // 无 meta 的老会话也能置顶：新建空 meta，标题仍回退首条消息摘要
-        SessionMeta meta = agentStateStore.get(userId, sessionId, "session_meta", SessionMeta.class)
+        SessionMeta meta = agentStateStore.get(userId, request.getSessionId(), "session_meta", SessionMeta.class)
                 .orElseGet(SessionMeta::new);
-        meta.setPinned(pinned);
-        agentStateStore.save(userId, sessionId, "session_meta", meta);
+        meta.setPinned(request.isPinned());
+        agentStateStore.save(userId, request.getSessionId(), "session_meta", meta);
         return Result.ok();
     }
 
@@ -367,12 +395,12 @@ public class AgentScopeController {
         return "请使用 " + name + " 技能完成以下需求：" + requirement;
     }
 
-    @GetMapping("/interrupt")
+    @PostMapping("/interrupt")
     @Operation(summary = "中断会话")
-    public Result<Void> interrupt(String sessionId) {
+    public Result<Void> interrupt(@RequestBody @Validated SessionIdRequest request) {
         RuntimeContext target = RuntimeContext.builder()
                 .userId(loginUserId())
-                .sessionId(sessionId)
+                .sessionId(request.getSessionId())
                 .build();
         harnessAgent.getDelegate().interrupt(target, new UserMessage("用户已取消操作"));
         return Result.ok();

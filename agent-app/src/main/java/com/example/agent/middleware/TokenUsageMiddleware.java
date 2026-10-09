@@ -13,7 +13,7 @@ import reactor.core.publisher.Flux;
 import java.util.function.Function;
 
 /**
- * 记录每次模型调用的 token 消耗到 t_token_usage。
+ * 记录每次模型调用的 token 消耗到 t_token_usage（异步入库，不阻塞事件链）。
  * 走框架原生 onModelCall 钩子，覆盖主模型与压缩模型的全部调用。
  */
 @RequiredArgsConstructor

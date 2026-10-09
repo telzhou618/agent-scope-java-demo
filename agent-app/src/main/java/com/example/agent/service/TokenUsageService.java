@@ -8,7 +8,9 @@ import com.example.agent.vo.UsageSummaryVO;
 import io.agentscope.core.agent.RuntimeContext;
 import io.agentscope.core.event.ModelCallEndEvent;
 import io.agentscope.core.model.ChatUsage;
+import jakarta.annotation.PreDestroy;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
@@ -22,15 +24,28 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 /**
  * token 消耗：记录 + 统计
  */
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class TokenUsageService {
 
     private final TokenUsageMapper tokenUsageMapper;
+
+    /**
+     * 专门的落库线程：事件线程只负责组装实体，JDBC insert 异步执行，失败仅记日志。
+     * 守护线程 + shutdown 保证应用退出时不阻塞。
+     */
+    private final ExecutorService insertExecutor = Executors.newSingleThreadExecutor(r -> {
+        Thread thread = new Thread(r, "token-usage-insert");
+        thread.setDaemon(true);
+        return thread;
+    });
 
     @Value("${usage.input-price-per-million}")
     private double inputPricePerMillion;
@@ -40,6 +55,7 @@ public class TokenUsageService {
 
     /**
      * 记录一次模型调用的 token 消耗，费用按当期单价锁定。
+     * 实体在当前线程同步组装（避免跨线程读可变上下文），JDBC insert 提交到专用线程异步执行。
      */
     public void record(RuntimeContext ctx, String agentName, String modelName, ModelCallEndEvent event) {
         ChatUsage usage = event.getUsage();
@@ -59,7 +75,19 @@ public class TokenUsageService {
         record.setReplyId(event.getReplyId() == null ? "" : event.getReplyId());
         Object requestIdValue = ctx.get("requestId");
         record.setRequestId(requestIdValue == null ? "" : String.valueOf(requestIdValue));
-        tokenUsageMapper.insert(record);
+        insertExecutor.execute(() -> {
+            try {
+                tokenUsageMapper.insert(record);
+            } catch (Exception e) {
+                log.warn("token 消耗落库失败, sessionId={}, requestId={}",
+                        record.getSessionId(), record.getRequestId(), e);
+            }
+        });
+    }
+
+    @PreDestroy
+    void shutdown() {
+        insertExecutor.shutdown();
     }
 
     private BigDecimal computeCost(ChatUsage usage) {

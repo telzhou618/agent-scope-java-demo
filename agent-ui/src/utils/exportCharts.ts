@@ -47,15 +47,16 @@ async function renderChartPng(configJson: string): Promise<string | null> {
 async function embedChartImages(markdown: string): Promise<string> {
   const matches = [...markdown.matchAll(ECHARTS_FENCE)]
   if (matches.length === 0) return markdown
+  // 每张图各自独立的离屏 div，并行渲染互不干扰；拼接仍按原文顺序
+  const pngs = await Promise.all(matches.map((match) => renderChartPng(match[1].trim())))
   let result = ''
   let last = 0
-  for (const match of matches) {
-    const index = match.index ?? 0
-    result += markdown.slice(last, index)
-    const png = await renderChartPng(match[1].trim())
-    result += png ? `![图表](${png})` : match[0]
-    last = index + match[0].length
-  }
+  matches.forEach((match, index) => {
+    const start = match.index ?? 0
+    result += markdown.slice(last, start)
+    result += pngs[index] ? `![图表](${pngs[index]})` : match[0]
+    last = start + match[0].length
+  })
   return result + markdown.slice(last)
 }
 

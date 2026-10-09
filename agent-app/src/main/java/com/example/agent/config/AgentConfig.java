@@ -1,6 +1,5 @@
 package com.example.agent.config;
 
-import com.example.agent.middleware.ToolCallBeforeMiddleware;
 import com.example.agent.middleware.TokenUsageMiddleware;
 import com.example.agent.service.TokenUsageService;
 import io.agentscope.core.model.GenerateOptions;
@@ -110,7 +109,6 @@ public class AgentConfig {
                 .skillRepository(classpathSkillRepository())
 
                 // middleware
-                .middleware(new ToolCallBeforeMiddleware())
                 .middleware(new TokenUsageMiddleware(tokenUsageService))
 
                 // 工具权限一律不验证，危险，生产环境不建议

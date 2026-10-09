@@ -2,6 +2,7 @@ package com.example.agent.service;
 
 import com.example.agent.dto.ChatAttachment;
 import com.example.agent.error.BizException;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
@@ -9,10 +10,12 @@ import org.springframework.web.multipart.MultipartFile;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Comparator;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
+@Slf4j
 @Service
 public class FileStorageService {
 
@@ -39,7 +42,7 @@ public class FileStorageService {
         this.rootDir = Path.of(uploadDir).toAbsolutePath().normalize();
     }
 
-    public ChatAttachment store(MultipartFile file, String userId) {
+    public ChatAttachment store(MultipartFile file, String userId, String sessionId) {
         String name = file.getOriginalFilename();
         if (file.isEmpty() || name == null || name.isBlank()) {
             throw new BizException("请选择要上传的文件");
@@ -53,7 +56,7 @@ public class FileStorageService {
         }
         String id = UUID.randomUUID() + "." + ext;
         try {
-            Path dir = rootDir.resolve(userId);
+            Path dir = sessionDir(userId, sessionId);
             Files.createDirectories(dir);
             file.transferTo(dir.resolve(id));
         } catch (IOException e) {
@@ -62,7 +65,7 @@ public class FileStorageService {
         return new ChatAttachment(id, name, ext, file.getSize());
     }
 
-    public byte[] readBytes(String userId, String id) {
+    public byte[] readBytes(String userId, String sessionId, String id) {
         if (id.indexOf('/') >= 0 || id.indexOf('\\') >= 0 || id.contains("..")) {
             throw new BizException("附件标识无效");
         }
@@ -70,7 +73,7 @@ public class FileStorageService {
         if (!isAllowed(ext)) {
             throw new BizException("不支持的附件类型：" + ext);
         }
-        Path path = rootDir.resolve(userId).resolve(id).normalize();
+        Path path = sessionDir(userId, sessionId).resolve(id).normalize();
         if (!path.startsWith(rootDir)) {
             throw new BizException("附件路径无效");
         }
@@ -79,6 +82,39 @@ public class FileStorageService {
         } catch (IOException e) {
             throw new BizException("附件读取失败");
         }
+    }
+
+    /**
+     * 级联删除会话附件目录，路径穿越校验保证只删预期目录；删除失败仅记日志不影响主流程
+     */
+    public void deleteForSession(String userId, String sessionId) {
+        Path dir = sessionDir(userId, sessionId).normalize();
+        if (!dir.startsWith(rootDir) || !Files.isDirectory(dir)) {
+            return;
+        }
+        try (var stream = Files.walk(dir)) {
+            stream.sorted(Comparator.reverseOrder())
+                    .forEach(path -> {
+                        try {
+                            Files.deleteIfExists(path);
+                        } catch (IOException e) {
+                            throw new RuntimeException(e);
+                        }
+                    });
+        } catch (Exception e) {
+            log.warn("删除会话附件目录失败, dir={}", dir, e);
+        }
+    }
+
+    /**
+     * 会话附件目录：<root>/<userId>/<sessionId>，sessionId 来自客户端需防路径穿越
+     */
+    private Path sessionDir(String userId, String sessionId) {
+        if (sessionId == null || sessionId.isBlank()
+                || sessionId.indexOf('/') >= 0 || sessionId.indexOf('\\') >= 0 || sessionId.contains("..")) {
+            throw new BizException("会话ID无效");
+        }
+        return rootDir.resolve(userId).resolve(sessionId);
     }
 
     public boolean isImage(String ext) {

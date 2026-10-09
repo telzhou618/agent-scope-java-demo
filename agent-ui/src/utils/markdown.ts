@@ -81,11 +81,7 @@ function codeBlock(token: Tokens.Code, withCopyButton: boolean): string {
 function createRenderer(withCopyButton: boolean) {
   return {
     code(token: Tokens.Code): string {
-      const language = (token.lang ?? '').trim().split(/\s+/)[0]
-      // echarts 图表块：界面内渲染成交互图表（占位 div 由 MarkdownBlock 挂载），导出仍按代码块
-      if (language === 'echarts' && withCopyButton) {
-        return `<div class="echarts-block" data-config="${escapeHtml(token.text)}"></div>`
-      }
+      // echarts 围栏不经过这里：界面内由 MarkdownBlock 切给 ChartBlock，导出前由 withChartImages 替换成图片
       return codeBlock(token, withCopyButton)
     },
   }

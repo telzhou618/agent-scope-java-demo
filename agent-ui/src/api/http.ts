@@ -25,11 +25,13 @@ http.interceptors.request.use((config) => {
 /** 401 兜底：清掉本地登录态并回登录页（动态导入避免模块循环依赖） */
 async function handleUnauthorized() {
   clearToken()
-  const [{ default: router }, { useAuthStore }] = await Promise.all([
+  const [{ default: router }, { useAuthStore }, { useChat }] = await Promise.all([
     import('../router'),
     import('../stores/auth'),
+    import('../stores/chat'),
   ])
   useAuthStore().clearLocalState()
+  useChat().reset()
   if (router.currentRoute.value.name !== 'login') {
     await router.replace({
       path: '/login',

@@ -137,12 +137,7 @@ function formatTime(value: string): string {
       <div class="identity-main">
         <h1 class="identity-name">{{ displayName }}</h1>
         <div class="identity-email">{{ auth.user?.email || '—' }}</div>
-        <div class="identity-meta">
-          <span class="badge">Pro 计划</span>
-          <span>2025 年 3 月加入</span>
-        </div>
       </div>
-      <button class="btn-ghost" type="button" disabled title="暂未开放">管理订阅</button>
     </div>
 
     <div class="usage-head">

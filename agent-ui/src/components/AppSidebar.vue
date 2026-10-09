@@ -35,9 +35,10 @@ function openFeedback() {
   feedbackOpen.value = true
 }
 
-/** 退出登录后跳转到登录页（需求 9） */
+/** 退出登录后跳转到登录页（需求 9）；先清聊天状态：断开所有流并释放 blob 预览 */
 async function onLogout() {
   closeAccount()
+  chat.reset()
   await auth.logout()
   await router.replace('/login')
 }

@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<!-- 表名与 AgentConfig 中 MysqlAgentStateStore 的库表配置保持一致 -->
+<mapper namespace="com.example.agent.mapper.SessionStateMapper">
+
+    <select id="listSessionMetas" resultType="com.example.agent.vo.SessionStateRow">
+        SELECT session_id AS sessionId,
+               state_data AS stateData
+        FROM agent_demo.agentscope_sessions
+        WHERE session_id LIKE CONCAT(#{userId}, ':%')
+          AND state_key = 'session_meta'
+    </select>
+
+    <select id="listAgentStates" resultType="com.example.agent.vo.SessionStateRow">
+        SELECT session_id AS sessionId,
+               state_data AS stateData
+        FROM agent_demo.agentscope_sessions
+        WHERE state_key = 'agent_state'
+          AND session_id IN
+        <foreach collection="slotIds" item="slotId" open="(" separator="," close=")">
+            #{slotId}
+        </foreach>
+    </select>
+
+</mapper>

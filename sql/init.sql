@@ -29,7 +29,7 @@ CREATE TABLE IF NOT EXISTS t_user (
   update_time   DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
   PRIMARY KEY (id),
   UNIQUE KEY uk_username (username),
-  UNIQUE KEY uk_email (email)
+  KEY idx_email (email)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='用户表';
 
 -- ------------------------------------------------------------
@@ -58,7 +58,9 @@ CREATE TABLE IF NOT EXISTS t_token_usage (
   create_time      DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
   update_time      DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
   PRIMARY KEY (id),
-  KEY idx_user_time (user_id, create_time)
+  KEY idx_user_time (user_id, create_time),
+  KEY idx_session (session_id),
+  KEY idx_request (request_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='token消耗记录';
 
 -- ------------------------------------------------------------
@@ -105,3 +107,14 @@ CREATE TABLE IF NOT EXISTS t_user_feedback (
   PRIMARY KEY (id),
   KEY idx_user_time (user_id, create_time)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='用户反馈';
+
+-- ------------------------------------------------------------
+-- 老库迁移说明：CREATE TABLE IF NOT EXISTS 不会给已存在的表补索引/改索引，
+-- 本脚本只保证新建库结构正确。已初始化过的库请手工执行以下 ALTER：
+--
+--   USE agent_demo;
+--   -- uk_email 降级为普通索引：email NOT NULL DEFAULT ''，多个空邮箱用户会唯一冲突
+--   ALTER TABLE t_user DROP INDEX uk_email, ADD INDEX idx_email (email);
+--   -- t_token_usage 补查询索引
+--   ALTER TABLE t_token_usage ADD INDEX idx_session (session_id), ADD INDEX idx_request (request_id);
+-- ------------------------------------------------------------
