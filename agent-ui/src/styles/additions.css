@@ -434,6 +434,60 @@
   cursor: default;
 }
 
+/* ---------- Agent 选择菜单：名称+模型、描述、能力徽章 ---------- */
+.agent-menu { min-width: 264px; }
+
+.agent-item {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 4px;
+}
+
+.agent-item-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.agent-item-name { font-weight: 600; }
+
+.agent-item-model {
+  font-size: 11.5px;
+  color: var(--fg-muted);
+}
+
+.agent-item-desc {
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--fg-muted);
+}
+
+.agent-caps {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 2px;
+}
+
+.agent-cap {
+  padding: 1px 7px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  font-size: 11px;
+  line-height: 1.6;
+}
+
+.agent-cap.on {
+  color: var(--accent);
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 10%, transparent);
+}
+
+.agent-cap.off {
+  color: var(--fg-muted);
+  opacity: .55;
+}
+
 /* ---------- 侧栏收起：一套 data-sidebar 属性，两种布局含义 ---------- */
 /* 窄屏：侧栏是抽屉，「收起」= 抽屉滑出屏幕（原型里 data-drawer 的规则已不再使用） */
 @media (max-width: 900px) {

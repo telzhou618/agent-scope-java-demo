@@ -5,6 +5,7 @@ import AppIcon from './AppIcon.vue'
 import { useAuthStore } from '../stores/auth'
 import { useChat } from '../stores/chat'
 import { agentShortLabel, useAgents } from '../stores/agents'
+import type { AgentInfo } from '../api/types'
 import { useTheme, THEME_LIST, type ThemeChoice } from '../composables/useTheme'
 import { useWide } from '../composables/useWide'
 import { useDismissableMenu } from '../composables/useDismissableMenu'
@@ -48,10 +49,22 @@ const currentAgentLabel = computed(
   () => agents.currentAgent.value?.displayName ?? agentShortLabel(agents.state.current),
 )
 
+/** 菜单项视图模型：列表未加载时只有名称等少数字段，能力标签不渲染 */
+type AgentMenuItem = Pick<AgentInfo, 'name' | 'displayName'> & Partial<AgentInfo>
+
+/** 能力标签：on 高亮 / off 灰显，直观对比三档差异 */
+const AGENT_CAPS = [
+  { key: 'thinking', label: '思考' },
+  { key: 'tools', label: '工具' },
+  { key: 'mcp', label: 'MCP' },
+  { key: 'skills', label: '技能' },
+  { key: 'attachments', label: '附件' },
+] as const
+
 /** 列表加载失败时菜单里至少给出当前项，选择器不至于空白 */
-const agentItems = computed(() => {
+const agentItems = computed<AgentMenuItem[]>(() => {
   if (agents.state.agents.length) return agents.state.agents
-  return [{ name: agents.state.current, displayName: agentShortLabel(agents.state.current), description: '' }]
+  return [{ name: agents.state.current, displayName: agentShortLabel(agents.state.current) }]
 })
 
 /** 主动切换 Agent：回写偏好并开新会话（不动已有老会话） */
@@ -147,24 +160,37 @@ async function exportSession(format: 'md' | 'html' | 'pdf') {
         {{ currentAgentLabel }}
         <AppIcon name="chevron" :size="13" />
       </button>
-      <div v-if="agentOpen" class="more-menu" role="menu">
+      <div v-if="agentOpen" class="more-menu agent-menu" role="menu">
         <button
           v-for="item in agentItems"
           :key="item.name"
-          class="more-item"
+          class="more-item agent-item"
           type="button"
           role="menuitemradio"
           :aria-checked="agents.state.current === item.name"
-          :title="item.description"
           @click="pickAgent(item.name)"
         >
-          {{ item.displayName }}
-          <AppIcon
-            v-if="agents.state.current === item.name"
-            name="check"
-            :size="14"
-            class="skin-check"
-          />
+          <span class="agent-item-head">
+            <span class="agent-item-name">{{ item.displayName }}</span>
+            <span v-if="item.model" class="agent-item-model">{{ item.model }}</span>
+            <AppIcon
+              v-if="agents.state.current === item.name"
+              name="check"
+              :size="14"
+              class="skin-check"
+            />
+          </span>
+          <span v-if="item.description" class="agent-item-desc">{{ item.description }}</span>
+          <span v-if="item.model" class="agent-caps">
+            <span
+              v-for="cap in AGENT_CAPS"
+              :key="cap.key"
+              class="agent-cap"
+              :class="item[cap.key] ? 'on' : 'off'"
+            >
+              {{ cap.label }}
+            </span>
+          </span>
         </button>
       </div>
     </div>
