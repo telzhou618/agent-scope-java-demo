@@ -19,11 +19,8 @@
   --fg-muted:      #64748b;  /*  4.8:1 */
   --fg-icon:       #94a3b8;  /* 仅用于图标/装饰，不用于文字 */
 
-  /* 图表专用：避免在深色背景上文字/轴线过暗 */
-  --chart-text:    var(--fg-muted);
-  --chart-title:   var(--fg);
-  --chart-axis:    var(--border-strong);
-  --chart-split:   var(--border);
+  /* 图表配色统一定义在 src/utils/chartTheme.ts（含色板/tooltip/K线/热力图），
+     色值与本文件的 --fg-muted / --fg / --border-strong / --border 保持同步 */
 
   --accent:        #2563eb;  /*  5.2:1 */
   --accent-soft:   #eff6ff;
@@ -90,12 +87,6 @@ html[data-theme="obsidian"] {
   --fg:            #e6edf6;
   --fg-muted:      #94a3b8;
   --fg-icon:       #64748b;
-
-  /* 图表专用：在深色背景上提亮，保证可读 */
-  --chart-text:    #cbd5e1;
-  --chart-title:   #f1f5f9;
-  --chart-axis:    #475569;
-  --chart-split:   #334155;
 
   --accent:        #60a5fa;
   --accent-soft:   #172554;
