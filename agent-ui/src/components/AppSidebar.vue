@@ -49,12 +49,21 @@ async function onLogout() {
   await router.replace('/login')
 }
 
+/** 会话搜索关键字：本地过滤已全量加载的会话列表，不区分大小写 */
+const keyword = ref('')
+
 const groups = computed(() => {
+  const kw = keyword.value.trim().toLowerCase()
+  const source = kw
+    ? chat.state.sessions.filter((item) =>
+        (item.summary || item.sessionId).toLowerCase().includes(kw),
+      )
+    : chat.state.sessions
   const result: { label: string; items: typeof chat.state.sessions }[] = []
   // 置顶会话单独成组，固定排在日期分组之前
-  const pinned = chat.state.sessions.filter((item) => item.pinned)
+  const pinned = source.filter((item) => item.pinned)
   if (pinned.length) result.push({ label: '置顶', items: pinned })
-  for (const session of chat.state.sessions) {
+  for (const session of source) {
     if (session.pinned) continue
     const label = groupLabel(session.timestamp)
     const last = result[result.length - 1]
@@ -94,12 +103,34 @@ function confirmRemove(sessionId: string, summary: string) {
       <span class="kbd-hint" aria-hidden="true">Ctrl K</span>
     </button>
 
+    <div class="session-search">
+      <AppIcon name="search" :size="14" />
+      <input
+        v-model="keyword"
+        type="text"
+        placeholder="搜索会话"
+        aria-label="搜索会话"
+        @keydown.esc="keyword = ''"
+      />
+      <button
+        v-if="keyword"
+        class="session-search-clear"
+        type="button"
+        aria-label="清空搜索"
+        title="清空搜索"
+        @click="keyword = ''"
+      >
+        <AppIcon name="x" :size="12" />
+      </button>
+    </div>
+
     <div class="session-scroll">
       <p v-if="chat.state.sessionsError" class="sidebar-empty">{{ chat.state.sessionsError }}</p>
       <p v-else-if="chat.state.loadingSessions && !chat.state.sessions.length" class="sidebar-empty">
         正在加载会话…
       </p>
       <p v-else-if="!chat.state.sessions.length" class="sidebar-empty">还没有会话，发一条消息开始。</p>
+      <p v-else-if="keyword.trim() && !groups.length" class="sidebar-empty">无匹配会话</p>
 
       <template v-for="group in groups" :key="group.label">
         <div class="session-group-label">{{ group.label }}</div>
