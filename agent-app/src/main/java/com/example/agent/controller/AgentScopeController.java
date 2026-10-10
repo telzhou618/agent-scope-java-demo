@@ -271,6 +271,13 @@ public class AgentScopeController {
                     .type("agent_end")
                     .content("")
                     .build();
+        } else if (event instanceof ExceedMaxItersEvent e) {
+            // 达到最大迭代：框架会取消未完成工具调用并强制总结，提示用户回答可能不完整
+            return AgentSseEvent.builder()
+                    .type("notice")
+                    .content("任务步骤较多，已达到最大执行步数（" + e.getMaxIters()
+                            + "），以上为基于当前信息的收尾总结，内容可能不完整。")
+                    .build();
         }
 
         return null;

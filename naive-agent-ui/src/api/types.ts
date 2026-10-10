@@ -144,6 +144,8 @@ export type SseEventType =
   | 'tool_end'
   | 'agent_result'
   | 'agent_end'
+  /** 轻量提示（如达到最大执行步数） */
+  | 'notice'
 
 export interface AgentSseEvent {
   type: SseEventType

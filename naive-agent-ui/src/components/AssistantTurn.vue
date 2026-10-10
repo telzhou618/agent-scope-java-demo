@@ -70,6 +70,10 @@ function vote(value: 'up' | 'down') {
       </div>
     </template>
 
+    <NAlert v-if="props.turn.notice" type="warning" size="small" :bordered="false" class="mb-2">
+      {{ props.turn.notice }}
+    </NAlert>
+
     <NAlert v-if="props.turn.error" type="error" size="small" :bordered="false" class="mb-2">
       <div class="flex items-center gap-2 flex-wrap">
         <span>{{ props.turn.error }}</span>

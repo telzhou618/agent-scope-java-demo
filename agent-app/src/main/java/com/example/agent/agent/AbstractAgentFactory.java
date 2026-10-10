@@ -135,7 +135,7 @@ public abstract class AbstractAgentFactory {
                         .build())
                 // 中断/重启导致悬挂工具调用（无结果）时，自动补错误结果让会话恢复，避免下次消息直接崩溃
                 .enablePendingToolRecovery(true)
-                .maxIters(5)    // 最大迭代
+                .maxIters(20)   // 最大迭代：技能加载+多步查询+导出/报告的组合流轻松超过 5，留足余量仍防死循环
                 .maxRetries(1)  // 工具最大重试次数
                 .defaultSessionId("default-session-id")
 
@@ -184,7 +184,7 @@ public abstract class AbstractAgentFactory {
     }
 
     /**
-     * 主模型：流式输出；思考开关与思考预算按档位启用
+     * 主模型：流式输出；思考开关与思考预算按档位启用；maxTokens 兜底防长回答被默认上限截断
      */
     private DashScopeChatModel buildChatModel() {
         DashScopeChatModel.Builder builder = DashScopeChatModel.builder()
@@ -194,11 +194,11 @@ public abstract class AbstractAgentFactory {
                 // qwen3.7 系列服务端默认开思考，必须显式传 false 才能关闭
                 .enableThinking(thinkingEnabled())
                 .formatter(new DashScopeChatFormatter());
+        GenerateOptions.Builder options = GenerateOptions.builder().maxTokens(8192);
         if (thinkingEnabled()) {
-            builder.defaultOptions(GenerateOptions.builder()
-                    .thinkingBudget(2048)
-                    .build());
+            options.thinkingBudget(2048);
         }
+        builder.defaultOptions(options.build());
         return builder.build();
     }
 

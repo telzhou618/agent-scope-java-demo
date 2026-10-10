@@ -51,6 +51,8 @@ export interface AssistantTurn {
   blocks: AssistantBlock[]
   streaming: boolean
   error: string
+  /** 轻量提示（如达到最大执行步数的收尾提醒），与 error 区分，不阻塞反馈 */
+  notice?: string
   feedback: 'up' | 'down' | null
 }
 

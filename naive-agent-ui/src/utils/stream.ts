@@ -140,6 +140,10 @@ export function createLiveTurn(id: string): LiveTurn {
         finish()
         break
       }
+      case 'notice': {
+        if (event.content) turn.notice = event.content
+        break
+      }
       default:
         break
     }
