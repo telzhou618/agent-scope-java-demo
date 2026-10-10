@@ -1,12 +1,11 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
-import { NAlert, NButton, NIcon, NSpin, NTooltip } from 'naive-ui'
+import { NAlert, NButton, NIcon, NTooltip } from 'naive-ui'
 import {
   CopyOutline,
   HandLeftOutline,
   HandRightOutline,
   RefreshOutline,
-  SparklesOutline,
 } from '@vicons/ionicons5'
 import MarkdownBlock from './MarkdownBlock.vue'
 import ThinkingBlock from './ThinkingBlock.vue'
@@ -41,20 +40,21 @@ function vote(value: 'up' | 'down') {
 
 <template>
   <div class="assistant-turn">
-    <!-- 请求已发出但还没收到任何事件时，先给出「正在思考…」，避免空白 -->
+    <!-- 请求已发出但还没收到任何事件时，三点跳动占位，避免空白 -->
     <div
       v-if="props.turn.streaming && !props.turn.blocks.length && !props.turn.error"
       class="pending"
     >
-      <NSpin size="small" />
-      <NIcon size="14" color="#6366f1"><SparklesOutline /></NIcon>
+      <span class="pending-dots" aria-hidden="true"><i /><i /><i /></span>
       <span>正在思考…</span>
     </div>
 
     <template v-for="(block, index) in props.turn.blocks" :key="index">
-      <ThinkingBlock v-if="block.kind === 'thinking'" :block="block" />
-      <ToolCallCard v-else-if="block.kind === 'tool'" :block="block" />
-      <MarkdownBlock v-else :markdown="block.markdown" :streaming="props.turn.streaming" />
+      <div class="block-in">
+        <ThinkingBlock v-if="block.kind === 'thinking'" :block="block" />
+        <ToolCallCard v-else-if="block.kind === 'tool'" :block="block" />
+        <MarkdownBlock v-else :markdown="block.markdown" :streaming="props.turn.streaming" />
+      </div>
     </template>
 
     <NAlert v-if="props.turn.error" type="error" size="small" :bordered="false" class="mb-2">
@@ -130,13 +130,80 @@ function vote(value: 'up' | 'down') {
 </template>
 
 <style scoped>
+/* 回合出现：轻微上浮淡入 */
+.assistant-turn {
+  animation: turn-in 0.32s ease both;
+}
+
+@keyframes turn-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* 每个新块（思考/工具/文本）出现时的轻微浮入 */
+.block-in {
+  animation: block-in 0.3s ease both;
+}
+
+@keyframes block-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* 等待首个事件：三点跳动占位 */
 .pending {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 6px 0;
+  gap: 9px;
+  padding: 8px 2px;
   font-size: 13px;
-  opacity: 0.65;
+  opacity: 0.7;
+}
+
+.pending-dots {
+  display: inline-flex;
+  gap: 4px;
+}
+
+.pending-dots i {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #6366f1;
+  animation: dot-bounce 1.2s ease-in-out infinite;
+}
+
+.pending-dots i:nth-child(2) {
+  animation-delay: 0.15s;
+}
+
+.pending-dots i:nth-child(3) {
+  animation-delay: 0.3s;
+}
+
+@keyframes dot-bounce {
+  0%,
+  60%,
+  100% {
+    transform: translateY(0);
+    opacity: 0.5;
+  }
+  30% {
+    transform: translateY(-4px);
+    opacity: 1;
+  }
 }
 
 .turn-actions {
@@ -151,5 +218,13 @@ function vote(value: 'up' | 'down') {
 .assistant-turn:hover .turn-actions,
 .turn-actions:focus-within {
   opacity: 1;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .assistant-turn,
+  .block-in,
+  .pending-dots i {
+    animation: none;
+  }
 }
 </style>

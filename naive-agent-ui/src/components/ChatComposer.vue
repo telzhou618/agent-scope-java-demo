@@ -240,10 +240,21 @@ function onKeydown(event: KeyboardEvent) {
       </span>
     </div>
 
-    <div class="flex items-end gap-2">
+    <!-- 文本区通栏在顶行，按钮收到底行：文本起始 x 与附件图标左缘对齐 -->
+    <NInput
+      ref="inputRef"
+      v-model:value="draft"
+      class="composer-input"
+      type="textarea"
+      :autosize="{ minRows: 3, maxRows: 12 }"
+      placeholder="给 Agent 发消息，输入 / 唤起技能…"
+      @keydown="onKeydown"
+      @paste="onPaste"
+    />
+    <div class="composer-bar">
       <NTooltip v-if="attachmentsEnabled">
         <template #trigger>
-          <NButton quaternary circle @click="pickFiles">
+          <NButton quaternary circle class="bar-btn-left" @click="pickFiles">
             <template #icon>
               <NIcon><AttachOutline /></NIcon>
             </template>
@@ -251,15 +262,7 @@ function onKeydown(event: KeyboardEvent) {
         </template>
         添加文件（支持粘贴）
       </NTooltip>
-      <NInput
-        ref="inputRef"
-        v-model:value="draft"
-        type="textarea"
-        :autosize="{ minRows: 3, maxRows: 12 }"
-        placeholder="给 Agent 发消息，输入 / 唤起技能…"
-        @keydown="onKeydown"
-        @paste="onPaste"
-      />
+      <span class="flex-1" />
       <NTooltip v-if="chat.state.streaming">
         <template #trigger>
           <NButton type="error" circle @click="chat.stop()">
@@ -309,13 +312,33 @@ function onKeydown(event: KeyboardEvent) {
   box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.14);
 }
 
-/* 输入框自身不要再来一层边框/阴影，视觉统一由外层卡片负责 */
+/* 输入框自身不要再来一层边框/阴影/底色，视觉统一由外层卡片负责 */
 .composer :deep(.n-input) {
   --n-border: none !important;
   --n-border-hover: none !important;
   --n-border-focus: none !important;
   --n-box-shadow-focus: none !important;
+  --n-color: transparent !important;
+  --n-color-focus: transparent !important;
   --n-caret-color: #6366f1 !important;
+}
+
+/* 文本起始 x = 卡片内边距（12px），去掉 textarea 自带的左 padding */
+.composer :deep(.composer-input .n-input-wrapper) {
+  padding-left: 0;
+  padding-right: 0;
+}
+
+.composer-bar {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 4px;
+}
+
+/* 圆形按钮图标居中，左移 8px 让图标左缘与上方文本起始线对齐 */
+.bar-btn-left {
+  margin-left: -8px;
 }
 
 .skill-popup {

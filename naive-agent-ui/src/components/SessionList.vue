@@ -109,8 +109,10 @@ async function onRemove(session: AgentSession) {
         :description="keyword ? '没有匹配的会话' : '暂无会话，点击上方开始新对话'"
       />
       <template v-else>
-        <div v-for="group in groups" :key="group.label" class="mb-2">
-          <div class="px-2 py-1 text-xs op-55">{{ group.label }}</div>
+        <div v-for="(group, groupIndex) in groups" :key="group.label" class="session-group">
+          <div class="group-label" :class="{ 'has-divider': groupIndex > 0 }">
+            {{ group.label }}
+          </div>
           <div
             v-for="session in group.items"
             :key="session.sessionId"
@@ -166,6 +168,36 @@ async function onRemove(session: AgentSession) {
 </template>
 
 <style scoped>
+/* 分组头：小字号 + 宽字距 + muted，sticky 吸附列表顶部；后续组带细分隔线 */
+.group-label {
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  padding: 6px 8px;
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  opacity: 0.5;
+  background: #ffffff;
+}
+
+html[data-theme='dark'] .group-label {
+  background: #18181c;
+}
+
+.group-label.has-divider::before {
+  content: '';
+  position: absolute;
+  left: 8px;
+  right: 8px;
+  top: 0;
+  border-top: 1px solid rgba(100, 116, 139, 0.18);
+}
+
+.group-label.has-divider {
+  margin-top: 6px;
+  padding-top: 10px;
+}
+
 .session-item {
   display: flex;
   align-items: center;
@@ -190,16 +222,14 @@ async function onRemove(session: AgentSession) {
   flex-shrink: 0;
 }
 
-/* 操作按钮默认隐藏：hover/当前会话时显示；置顶与否交给「置顶」分组标识 */
+/* 操作按钮只在 hover 会话项时出现（当前会话也不常显），保持列表干净 */
 .pin-btn,
 .del-btn {
   display: none;
 }
 
 .session-item:hover .pin-btn,
-.session-item.active .pin-btn,
-.session-item:hover .del-btn,
-.session-item.active .del-btn {
+.session-item:hover .del-btn {
   display: inline-flex;
 }
 </style>

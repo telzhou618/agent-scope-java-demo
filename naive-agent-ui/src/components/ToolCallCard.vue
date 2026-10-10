@@ -47,16 +47,20 @@ function toggle() {
         <ChevronDownOutline />
       </NIcon>
     </button>
-    <div v-show="props.block.open" class="tool-body">
-      <div v-if="props.block.args" class="tool-section">
-        <div class="tool-section-title">参数</div>
-        <pre class="tool-pre">{{ props.block.args }}</pre>
+    <div class="tool-body" :class="{ open: props.block.open }">
+      <div class="tool-inner">
+        <div class="tool-pad">
+          <div v-if="props.block.args" class="tool-section">
+            <div class="tool-section-title">参数</div>
+            <pre class="tool-pre">{{ props.block.args }}</pre>
+          </div>
+          <div v-if="props.block.output" class="tool-section">
+            <div class="tool-section-title">结果</div>
+            <pre class="tool-pre">{{ props.block.output }}</pre>
+          </div>
+          <div v-if="!props.block.args && !props.block.output" class="tool-empty">暂无内容</div>
+        </div>
       </div>
-      <div v-if="props.block.output" class="tool-section">
-        <div class="tool-section-title">结果</div>
-        <pre class="tool-pre">{{ props.block.output }}</pre>
-      </div>
-      <div v-if="!props.block.args && !props.block.output" class="tool-empty">暂无内容</div>
     </div>
   </div>
 </template>
@@ -67,6 +71,21 @@ function toggle() {
   border: 1px solid rgba(100, 116, 139, 0.28);
   border-radius: 10px;
   overflow: hidden;
+  transition:
+    border-color 0.3s,
+    box-shadow 0.3s;
+}
+
+/* 运行中：边框呼吸微光，落定后平滑过渡到常态/失败态 */
+.tool-card[data-status='running'] {
+  border-color: rgba(99, 102, 241, 0.45);
+  animation: tool-running 1.6s ease-in-out infinite;
+}
+
+@keyframes tool-running {
+  50% {
+    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+  }
 }
 
 .tool-card[data-status='error'] {
@@ -125,10 +144,36 @@ function toggle() {
 }
 
 .tool-body {
-  padding: 8px 12px;
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows 0.25s ease;
+}
+
+.tool-body.open {
+  grid-template-rows: 1fr;
+}
+
+.tool-inner {
+  overflow: hidden;
+  min-height: 0;
+}
+
+/* padding 放在再内一层：0fr 折叠时 tool-inner 高度归 0，连 padding 一起被裁掉 */
+.tool-pad {
   display: flex;
   flex-direction: column;
   gap: 8px;
+  padding: 8px 12px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tool-card[data-status='running'] {
+    animation: none;
+  }
+
+  .tool-body {
+    transition: none;
+  }
 }
 
 .tool-section-title {
