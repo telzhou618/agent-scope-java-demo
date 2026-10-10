@@ -49,7 +49,7 @@ public class DataExportTools {
         this.downloadSignService = downloadSignService;
     }
 
-    @Tool(description = "执行 SELECT 查询并将结果导出为 CSV 文件，返回下载链接；当用户要求导出/下载数据时使用")
+    @Tool(name = "export_sql_to_csv", description = "执行 SELECT 查询并将结果导出为 CSV 文件，返回下载链接；当用户要求导出/下载数据时使用")
     public Map<String, Object> exportSqlToCsv(
             @ToolParam(name = "sql", description = "SELECT 查询语句，最多导出 " + MAX_ROWS + " 行") String sql,
             @ToolParam(name = "fileName", required = false, description = "导出文件名（不含扩展名），可为空") String fileName) {

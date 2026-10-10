@@ -83,7 +83,7 @@ public class WeatherTools {
         this.restClient = RestClient.builder().requestFactory(factory).build();
     }
 
-    @McpTool(name = "queryWeather", description = "根据城市名称查询真实天气信息，返回温度、体感温度、湿度和天气状况")
+    @McpTool(name = "query_weather", description = "根据城市名称查询真实天气信息，返回温度、体感温度、湿度和天气状况")
     public String queryWeather(
             @McpToolParam(description = "城市名称，如: 北京、上海、杭州", required = true) String city) {
         try {
