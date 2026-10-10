@@ -6,8 +6,10 @@ import {
   ChevronDownOutline,
   CloseOutline,
   ConstructOutline,
+  CopyOutline,
   RemoveOutline,
 } from '@vicons/ionicons5'
+import { copyText, flashLabel } from '../utils/clipboard'
 import type { ToolBlockModel, ToolStatus } from '../utils/model'
 
 const props = defineProps<{ block: ToolBlockModel }>()
@@ -21,6 +23,26 @@ const STATUS: Record<ToolStatus, { label: string; type: 'default' | 'info' | 'su
 
 const status = computed(() => STATUS[props.block.status])
 
+/** 参数/结果若为 JSON 则美化缩进展示，否则按原文本回退 */
+function pretty(value: string): string {
+  if (!value) return ''
+  try {
+    return JSON.stringify(JSON.parse(value), null, 2)
+  } catch {
+    return value
+  }
+}
+
+const prettyArgs = computed(() => pretty(props.block.args))
+const prettyOutput = computed(() => pretty(props.block.output))
+
+async function onCopy(event: MouseEvent, text: string) {
+  const button = event.currentTarget as HTMLElement
+  if (!text) return
+  await copyText(text)
+  flashLabel(button, '已复制')
+}
+
 function toggle() {
   props.block.open = !props.block.open
 }
@@ -29,10 +51,12 @@ function toggle() {
 <template>
   <div class="tool-card" :data-status="props.block.status">
     <button class="tool-head" type="button" :aria-expanded="props.block.open" @click="toggle">
-      <NIcon size="15" class="tool-icon"><ConstructOutline /></NIcon>
+      <span class="tool-badge">
+        <NIcon size="14"><ConstructOutline /></NIcon>
+      </span>
       <span class="tool-name">{{ props.block.name }}</span>
-      <span v-if="props.block.args" class="tool-args">{{ props.block.args }}</span>
-      <NTag size="tiny" :bordered="false" :type="status.type" round class="ml-auto shrink-0">
+      <span class="tool-head-spacer" />
+      <NTag size="tiny" :bordered="false" :type="status.type" round class="shrink-0">
         <template #icon>
           <NIcon size="12" :class="{ spinning: props.block.status === 'running' }">
             <CheckmarkOutline v-if="props.block.status === 'ok'" />
@@ -51,12 +75,24 @@ function toggle() {
       <div class="tool-inner">
         <div class="tool-pad">
           <div v-if="props.block.args" class="tool-section">
-            <div class="tool-section-title">参数</div>
-            <pre class="tool-pre">{{ props.block.args }}</pre>
+            <div class="tool-section-head">
+              <span class="tool-section-title">参数</span>
+              <button class="tool-copy" type="button" @click="onCopy($event, props.block.args)">
+                <NIcon size="12"><CopyOutline /></NIcon>
+                <span>复制</span>
+              </button>
+            </div>
+            <pre class="tool-pre">{{ prettyArgs }}</pre>
           </div>
           <div v-if="props.block.output" class="tool-section">
-            <div class="tool-section-title">结果</div>
-            <pre class="tool-pre">{{ props.block.output }}</pre>
+            <div class="tool-section-head">
+              <span class="tool-section-title">结果</span>
+              <button class="tool-copy" type="button" @click="onCopy($event, props.block.output)">
+                <NIcon size="12"><CopyOutline /></NIcon>
+                <span>复制</span>
+              </button>
+            </div>
+            <pre class="tool-pre">{{ prettyOutput }}</pre>
           </div>
           <div v-if="!props.block.args && !props.block.output" class="tool-empty">暂无内容</div>
         </div>
@@ -67,24 +103,24 @@ function toggle() {
 
 <style scoped>
 .tool-card {
-  margin-bottom: 10px;
-  border: 1px solid rgba(100, 116, 139, 0.28);
-  border-radius: 10px;
+  margin-bottom: 12px;
+  border: 1px solid var(--divider-strong);
+  border-radius: 12px;
   overflow: hidden;
   transition:
-    border-color 0.3s,
-    box-shadow 0.3s;
+    border-color 0.2s,
+    box-shadow 0.2s;
 }
 
 /* 运行中：边框呼吸微光，落定后平滑过渡到常态/失败态 */
 .tool-card[data-status='running'] {
-  border-color: rgba(99, 102, 241, 0.45);
+  border-color: var(--brand-border-strong);
   animation: tool-running 1.6s ease-in-out infinite;
 }
 
 @keyframes tool-running {
   50% {
-    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+    box-shadow: 0 0 0 3px var(--brand-ring);
   }
 }
 
@@ -95,19 +131,27 @@ function toggle() {
 .tool-head {
   display: flex;
   align-items: center;
-  gap: 7px;
+  gap: 8px;
   width: 100%;
-  padding: 7px 12px;
+  padding: 8px 12px;
   border: 0;
-  background: rgba(100, 116, 139, 0.07);
+  background: var(--surface-subtle);
   color: inherit;
-  font-size: 12.5px;
+  font-size: 13px;
   cursor: pointer;
 }
 
-.tool-icon {
-  color: #6366f1;
+.tool-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
   flex-shrink: 0;
+  border-radius: 7px;
+  border: 1px solid var(--divider);
+  background: var(--surface-elevated);
+  color: var(--brand);
 }
 
 .tool-name {
@@ -115,14 +159,8 @@ function toggle() {
   flex-shrink: 0;
 }
 
-.tool-args {
+.tool-head-spacer {
   flex: 1;
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  opacity: 0.55;
-  font-size: 12px;
 }
 
 .chevron {
@@ -146,7 +184,7 @@ function toggle() {
 .tool-body {
   display: grid;
   grid-template-rows: 0fr;
-  transition: grid-template-rows 0.25s ease;
+  transition: grid-template-rows 0.22s ease;
 }
 
 .tool-body.open {
@@ -162,8 +200,69 @@ function toggle() {
 .tool-pad {
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  padding: 8px 12px;
+  gap: 10px;
+  padding: 10px 12px 12px;
+}
+
+.tool-section {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.tool-section-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.tool-section-title {
+  font-size: 11.5px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  opacity: 0.55;
+}
+
+.tool-copy {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 6px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--brand);
+  font-size: 12px;
+  cursor: pointer;
+  opacity: 0.75;
+  transition:
+    opacity 0.15s,
+    background-color 0.15s;
+}
+
+.tool-copy:hover {
+  opacity: 1;
+  background: var(--brand-soft);
+}
+
+.tool-pre {
+  margin: 0;
+  padding: 10px 12px;
+  border: 1px solid var(--divider);
+  border-radius: 8px;
+  background: var(--surface-subtle);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 12px;
+  line-height: 1.6;
+  white-space: pre-wrap;
+  word-break: break-word;
+  max-height: 240px;
+  overflow-y: auto;
+}
+
+.tool-empty {
+  font-size: 12px;
+  opacity: 0.5;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -174,29 +273,5 @@ function toggle() {
   .tool-body {
     transition: none;
   }
-}
-
-.tool-section-title {
-  font-size: 11.5px;
-  opacity: 0.55;
-  margin-bottom: 3px;
-}
-
-.tool-pre {
-  margin: 0;
-  padding: 8px 10px;
-  border-radius: 8px;
-  background: rgba(100, 116, 139, 0.08);
-  font-size: 12px;
-  line-height: 1.6;
-  white-space: pre-wrap;
-  word-break: break-all;
-  max-height: 240px;
-  overflow-y: auto;
-}
-
-.tool-empty {
-  font-size: 12px;
-  opacity: 0.5;
 }
 </style>

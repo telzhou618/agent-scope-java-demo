@@ -6,13 +6,15 @@ import type { ThinkingBlockModel } from '../utils/model'
 
 const props = defineProps<{ block: ThinkingBlockModel }>()
 
-/** 流式思考中：未结束且处于展开态（done 优先于 open,历史消息展开不再显示"思考中"） */
+/** 流式思考中：未结束且处于展开态（done 优先于 open，历史消息展开不再显示"思考中"） */
 const thinking = computed(() => !props.block.done && props.block.open)
 
-const label = computed(() => {
-  if (props.block.seconds) return `思考了 ${props.block.seconds} 秒`
-  if (!props.block.done && props.block.open) return '正在思考…'
-  return '思考过程'
+const label = computed(() => (thinking.value ? '正在思考' : '思考过程'))
+
+const secondsText = computed(() => {
+  const seconds = props.block.seconds
+  if (seconds === undefined || seconds <= 0) return ''
+  return seconds >= 1 ? `${Math.round(seconds)}s` : `${seconds.toFixed(1)}s`
 })
 
 function toggle() {
@@ -23,18 +25,21 @@ function toggle() {
 <template>
   <div class="thinking-block" :class="{ thinking }">
     <button class="thinking-toggle" type="button" :aria-expanded="props.block.open" @click="toggle">
-      <NIcon size="14" class="thinking-icon" :class="{ pulsing: thinking }">
-        <SparklesOutline />
-      </NIcon>
+      <span class="thinking-badge">
+        <NIcon size="13"><SparklesOutline /></NIcon>
+      </span>
       <span class="thinking-label">{{ label }}</span>
+      <span class="thinking-spacer" />
+      <span v-if="secondsText" class="thinking-time">{{ secondsText }}</span>
       <NIcon size="13" class="chevron" :class="{ open: props.block.open }">
         <ChevronDownOutline />
       </NIcon>
     </button>
-    <!-- 网格行高过渡：展开/折叠平滑而不是瞬切 -->
     <div class="thinking-body" :class="{ open: props.block.open }">
       <div class="thinking-inner">
-        <div class="thinking-content">{{ props.block.text }}</div>
+        <div class="thinking-pad">
+          <div class="thinking-content">{{ props.block.text }}</div>
+        </div>
       </div>
     </div>
   </div>
@@ -42,31 +47,55 @@ function toggle() {
 
 <style scoped>
 .thinking-block {
-  margin-bottom: 10px;
-  border: 1px solid rgba(99, 102, 241, 0.22);
-  border-radius: 10px;
+  margin-bottom: 12px;
+  border: 1px solid var(--divider);
+  border-radius: 12px;
   overflow: hidden;
+  background: var(--brand-soft);
 }
 
 .thinking-toggle {
   position: relative;
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
   width: 100%;
-  padding: 7px 12px;
+  padding: 8px 12px;
   border: 0;
-  background: rgba(99, 102, 241, 0.06);
+  background: transparent;
   color: inherit;
-  font-size: 12.5px;
+  font-size: 13px;
   cursor: pointer;
-  opacity: 0.75;
   overflow: hidden;
-  transition: opacity 0.15s;
 }
 
-.thinking-toggle:hover {
-  opacity: 1;
+.thinking-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  flex-shrink: 0;
+  border-radius: 7px;
+  background: var(--brand-soft-strong);
+  color: var(--brand);
+}
+
+.thinking-label {
+  font-weight: 500;
+}
+
+.thinking-spacer {
+  flex: 1;
+}
+
+.thinking-time {
+  padding: 1px 8px;
+  border-radius: 999px;
+  background: var(--surface-subtle);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 11px;
+  opacity: 0.6;
 }
 
 /* 流式思考中：头行扫过的 shimmer 光带 */
@@ -77,7 +106,7 @@ function toggle() {
   background: linear-gradient(
     100deg,
     transparent 20%,
-    rgba(99, 102, 241, 0.14) 50%,
+    var(--brand-ring) 50%,
     transparent 80%
   );
   background-size: 200% 100%;
@@ -94,22 +123,9 @@ function toggle() {
   }
 }
 
-.thinking-icon {
-  color: #6366f1;
-}
-
-.thinking-icon.pulsing {
-  animation: thinking-pulse 1.2s ease-in-out infinite;
-}
-
-@keyframes thinking-pulse {
-  50% {
-    opacity: 0.35;
-  }
-}
-
 .chevron {
-  margin-left: auto;
+  flex-shrink: 0;
+  opacity: 0.6;
   transition: transform 0.2s;
 }
 
@@ -120,7 +136,7 @@ function toggle() {
 .thinking-body {
   display: grid;
   grid-template-rows: 0fr;
-  transition: grid-template-rows 0.25s ease;
+  transition: grid-template-rows 0.22s ease;
 }
 
 .thinking-body.open {
@@ -132,20 +148,27 @@ function toggle() {
   min-height: 0;
 }
 
+.thinking-pad {
+  padding: 0 12px 12px;
+}
+
 .thinking-content {
-  padding: 8px 12px;
-  font-size: 12.5px;
+  padding: 10px 12px;
+  border: 1px solid var(--divider);
+  border-left: 3px solid var(--brand);
+  border-radius: 8px;
+  background: var(--surface-elevated);
+  font-size: 13px;
   line-height: 1.7;
   white-space: pre-wrap;
   word-break: break-word;
-  opacity: 0.65;
-  max-height: 280px;
+  opacity: 0.85;
+  max-height: 264px;
   overflow-y: auto;
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .thinking .thinking-toggle::after,
-  .thinking-icon.pulsing {
+  .thinking .thinking-toggle::after {
     animation: none;
   }
 

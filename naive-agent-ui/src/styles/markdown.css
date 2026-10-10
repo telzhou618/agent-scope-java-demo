@@ -9,7 +9,7 @@
   --md-muted: #64748b;
   --md-border: #e2e8f0;
   --md-bg-subtle: #f1f5f9;
-  --md-accent: #6366f1;
+  --md-accent: var(--brand);
   --tok-kw: #a626a4;
   --tok-str: #4d7c0f;
   --tok-com: #6b7280;
@@ -28,7 +28,7 @@ html[data-theme='dark'] .md-body {
   --md-muted: #94a3b8;
   --md-border: #28303f;
   --md-bg-subtle: #1b2230;
-  --md-accent: #818cf8;
+  --md-accent: var(--brand);
   --tok-kw: #c678dd;
   --tok-str: #98c379;
   --tok-com: #7f8ea3;

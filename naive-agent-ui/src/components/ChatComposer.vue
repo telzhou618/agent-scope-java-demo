@@ -300,16 +300,22 @@ function onKeydown(event: KeyboardEvent) {
 .composer {
   position: relative;
   padding: 10px 12px;
-  border: 1px solid rgba(99, 102, 241, 0.35);
+  border: 1px solid var(--brand-border);
   border-radius: 16px;
+  background: var(--surface-elevated);
+  box-shadow:
+    0 1px 2px rgba(15, 23, 42, 0.04),
+    0 6px 20px rgba(15, 23, 42, 0.06);
   transition:
     border-color 0.2s,
     box-shadow 0.2s;
 }
 
 .composer:focus-within {
-  border-color: #6366f1;
-  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.14);
+  border-color: var(--brand);
+  box-shadow:
+    0 0 0 3px var(--brand-ring),
+    0 6px 20px rgba(15, 23, 42, 0.06);
 }
 
 /* 输入框自身不要再来一层边框/阴影/底色，视觉统一由外层卡片负责 */
@@ -320,7 +326,7 @@ function onKeydown(event: KeyboardEvent) {
   --n-box-shadow-focus: none !important;
   --n-color: transparent !important;
   --n-color-focus: transparent !important;
-  --n-caret-color: #6366f1 !important;
+  --n-caret-color: var(--brand) !important;
 }
 
 /* 文本起始 x = 卡片内边距（12px），去掉 textarea 自带的左 padding */
@@ -348,15 +354,11 @@ function onKeydown(event: KeyboardEvent) {
   bottom: calc(100% + 6px);
   max-height: 260px;
   overflow-y: auto;
-  border: 1px solid rgba(99, 102, 241, 0.25);
+  border: 1px solid var(--brand-border);
   border-radius: 10px;
-  background: var(--n-color, #fff);
-  box-shadow: 0 8px 28px rgba(15, 23, 42, 0.16);
+  background: var(--surface-elevated);
+  box-shadow: var(--shadow-float);
   z-index: 20;
-}
-
-html[data-theme='dark'] .skill-popup {
-  background: #1f2230;
 }
 
 .skill-item {
@@ -369,12 +371,12 @@ html[data-theme='dark'] .skill-popup {
 }
 
 .skill-item.active {
-  background: rgba(99, 102, 241, 0.1);
+  background: var(--brand-soft-strong);
 }
 
 .skill-cmd {
   font-weight: 600;
-  color: #6366f1;
+  color: var(--brand);
   flex-shrink: 0;
 }
 
@@ -392,7 +394,7 @@ html[data-theme='dark'] .skill-popup {
   gap: 6px;
   max-width: 260px;
   padding: 4px 8px;
-  border: 1px solid rgba(99, 102, 241, 0.25);
+  border: 1px solid var(--brand-border);
   border-radius: 8px;
   font-size: 12px;
 }
@@ -418,8 +420,8 @@ html[data-theme='dark'] .skill-popup {
 .chip-loading {
   width: 12px;
   height: 12px;
-  border: 2px solid rgba(99, 102, 241, 0.25);
-  border-top-color: #6366f1;
+  border: 2px solid var(--brand-border);
+  border-top-color: var(--brand);
   border-radius: 50%;
   animation: chip-spin 0.8s linear infinite;
   flex-shrink: 0;
@@ -450,8 +452,8 @@ html[data-theme='dark'] .skill-popup {
   gap: 5px;
   padding: 3px 10px;
   border-radius: 999px;
-  background: rgba(99, 102, 241, 0.12);
-  color: #6366f1;
+  background: var(--brand-soft-strong);
+  color: var(--brand);
   font-size: 12.5px;
   font-weight: 600;
 }

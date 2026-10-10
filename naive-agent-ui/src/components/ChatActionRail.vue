@@ -181,9 +181,9 @@ watch(wide, () => requestAnimationFrame(measure))
   gap: 4px;
   padding: 6px;
   border-radius: 999px;
-  background: #ffffff;
-  border: 1px solid rgba(100, 116, 139, 0.22);
-  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.12);
+  background: var(--surface-elevated);
+  border: 1px solid var(--divider-strong);
+  box-shadow: var(--shadow-float);
   opacity: 0;
   pointer-events: none;
   transition:
@@ -195,11 +195,5 @@ watch(wide, () => requestAnimationFrame(measure))
   opacity: 1;
   transform: translateY(-50%) translateX(0);
   pointer-events: auto;
-}
-
-html[data-theme='dark'] .rail {
-  background: #232634;
-  border-color: rgba(255, 255, 255, 0.12);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
 }
 </style>

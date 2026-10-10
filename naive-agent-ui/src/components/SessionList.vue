@@ -140,7 +140,7 @@ async function onRemove(session: AgentSession) {
                     @click="chat.togglePin(session.sessionId)"
                   >
                     <template #icon>
-                      <NIcon size="15" :color="session.pinned ? '#6366f1' : undefined">
+                      <NIcon size="15" :color="session.pinned ? 'var(--brand)' : undefined">
                         <Bookmark v-if="session.pinned" />
                         <BookmarkOutline v-else />
                       </NIcon>
@@ -177,11 +177,7 @@ async function onRemove(session: AgentSession) {
   font-size: 11px;
   letter-spacing: 0.08em;
   opacity: 0.5;
-  background: #ffffff;
-}
-
-html[data-theme='dark'] .group-label {
-  background: #18181c;
+  background: var(--surface-sider);
 }
 
 .group-label.has-divider::before {
@@ -190,7 +186,7 @@ html[data-theme='dark'] .group-label {
   left: 8px;
   right: 8px;
   top: 0;
-  border-top: 1px solid rgba(100, 116, 139, 0.18);
+  border-top: 1px solid var(--divider-strong);
 }
 
 .group-label.has-divider {
@@ -202,17 +198,18 @@ html[data-theme='dark'] .group-label {
   display: flex;
   align-items: center;
   gap: 4px;
-  padding: 8px;
-  border-radius: 8px;
+  padding: 8px 10px;
+  border-radius: 10px;
   cursor: pointer;
+  transition: background-color 0.15s ease;
 }
 
 .session-item:hover {
-  background: rgba(99, 102, 241, 0.08);
+  background: var(--brand-soft);
 }
 
 .session-item.active {
-  background: rgba(99, 102, 241, 0.14);
+  background: var(--brand-soft-strong);
 }
 
 .session-actions {

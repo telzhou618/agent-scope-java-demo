@@ -319,8 +319,19 @@ function rowProps(row: RecentRequestItem) {
 <style scoped>
 .stat-card {
   padding: 14px 16px;
-  border-radius: 10px;
-  background: rgba(99, 102, 241, 0.06);
+  border-radius: 12px;
+  background: var(--brand-soft);
+  border: 1px solid var(--divider);
+  transition:
+    border-color 0.15s ease,
+    box-shadow 0.15s ease,
+    transform 0.15s ease;
+}
+
+.stat-card:hover {
+  border-color: var(--brand-border);
+  box-shadow: var(--shadow-float);
+  transform: translateY(-1px);
 }
 
 .stat-label {
@@ -348,14 +359,13 @@ function rowProps(row: RecentRequestItem) {
 }
 
 .chart {
-  --chart-bar: #6366f1;
-  --chart-border: rgba(100, 116, 139, 0.25);
+  --chart-bar: var(--brand);
+  --chart-border: var(--divider-strong);
   --chart-tip-bg: #1e293b;
   --chart-tip-fg: #f1f5f9;
 }
 
 html[data-theme='dark'] .chart {
-  --chart-bar: #818cf8;
   --chart-tip-bg: #e2e8f0;
   --chart-tip-fg: #1e293b;
 }

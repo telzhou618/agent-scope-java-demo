@@ -129,7 +129,7 @@ async function onSubmit() {
   align-items: center;
   justify-content: center;
   border-radius: 18px;
-  background: linear-gradient(135deg, #6366f1, #a855f7);
-  box-shadow: 0 12px 28px rgba(99, 102, 241, 0.45);
+  background: linear-gradient(135deg, var(--brand-solid), var(--brand-solid-alt));
+  box-shadow: 0 12px 28px var(--brand-ring);
 }
 </style>

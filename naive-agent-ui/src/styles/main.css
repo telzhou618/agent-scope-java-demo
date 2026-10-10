@@ -12,6 +12,54 @@ body,
   box-sizing: border-box;
 }
 
+/*
+ * 设计令牌：品牌色 / 状态层 / 表面 / 分割线 / 阴影。
+ * 组件 scoped style 通过 var(--…) 引用，明暗只在 [data-theme='dark'] 覆盖一次，
+ * 未来换肤只改这一处。数值与 styles/naive-theme.ts 的主色保持一致。
+ */
+:root {
+  /* 品牌（靛蓝） */
+  --brand: #6366f1;
+  --brand-hover: #818cf8;
+  --brand-pressed: #4f46e5;
+  --brand-solid: #6366f1;
+  --brand-solid-alt: #a855f7;
+  --brand-soft: rgba(99, 102, 241, 0.08);
+  --brand-soft-strong: rgba(99, 102, 241, 0.14);
+  --brand-border: rgba(99, 102, 241, 0.25);
+  --brand-border-strong: rgba(99, 102, 241, 0.45);
+  --brand-ring: rgba(99, 102, 241, 0.14);
+
+  /* 表面 */
+  --surface-sider: #ffffff;
+  --surface-elevated: #ffffff;
+  --surface-subtle: rgba(100, 116, 139, 0.08);
+
+  /* 分割线 */
+  --divider: rgba(100, 116, 139, 0.14);
+  --divider-strong: rgba(100, 116, 139, 0.22);
+
+  /* 遮罩 / 阴影 */
+  --scrim: rgba(15, 23, 42, 0.45);
+  --shadow-float: 0 8px 28px rgba(15, 23, 42, 0.14);
+  --shadow-pop: 0 12px 36px rgba(15, 23, 42, 0.18);
+  --shadow-raised: 0 6px 20px rgba(15, 23, 42, 0.16);
+}
+
+html[data-theme='dark'] {
+  /* 深色下强调色用更亮的靛蓝，保证在暗表面上的对比度 */
+  --brand: #818cf8;
+  --surface-sider: #101014;
+  --surface-elevated: #232634;
+  --divider: rgba(255, 255, 255, 0.1);
+  --divider-strong: rgba(255, 255, 255, 0.14);
+
+  --scrim: rgba(0, 0, 0, 0.45);
+  --shadow-float: 0 8px 28px rgba(0, 0, 0, 0.42);
+  --shadow-pop: 0 12px 36px rgba(0, 0, 0, 0.55);
+  --shadow-raised: 0 6px 20px rgba(0, 0, 0, 0.4);
+}
+
 body {
   font-family:
     'Inter',

@@ -181,7 +181,7 @@ function vote(value: 'up' | 'down') {
   width: 6px;
   height: 6px;
   border-radius: 50%;
-  background: #6366f1;
+  background: var(--brand);
   animation: dot-bounce 1.2s ease-in-out infinite;
 }
 

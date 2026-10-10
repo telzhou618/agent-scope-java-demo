@@ -143,7 +143,7 @@ watch(
   right: 20px;
   bottom: 108px;
   z-index: 10;
-  box-shadow: 0 6px 20px rgba(15, 23, 42, 0.18);
+  box-shadow: var(--shadow-raised);
 }
 
 .fade-up-enter-active,

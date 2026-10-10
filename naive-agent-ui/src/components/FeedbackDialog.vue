@@ -114,14 +114,14 @@ async function submit() {
 }
 
 .feedback-type-group :deep(.n-radio-button:hover) {
-  border-color: #6366f1;
-  color: #6366f1;
+  border-color: var(--brand);
+  color: var(--brand);
 }
 
 .feedback-type-group :deep(.n-radio-button.n-radio-button--checked) {
-  border-color: #6366f1;
-  color: #6366f1;
-  background: rgba(99, 102, 241, 0.08);
+  border-color: var(--brand);
+  color: var(--brand);
+  background: var(--brand-soft);
   font-weight: 500;
 }
 

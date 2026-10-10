@@ -68,7 +68,7 @@ function onSelect(agent: AgentInfo) {
           <NIcon
             v-if="agent.name === agents.state.current"
             size="15"
-            color="#6366f1"
+            color="var(--brand)"
             class="ml-auto"
           >
             <CheckmarkOutline />
@@ -103,21 +103,16 @@ function onSelect(agent: AgentInfo) {
   border-radius: 12px;
   overflow: hidden;
   /* 实色卡片底 + 边框 + 重阴影：叠在消息内容上时文字清晰可读 */
-  background: #ffffff;
-  border: 1px solid rgba(100, 116, 139, 0.22);
-  box-shadow: 0 12px 36px rgba(15, 23, 42, 0.18);
-}
-
-html[data-theme='dark'] .agent-panel {
-  background: #232634;
-  border-color: rgba(255, 255, 255, 0.12);
-  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.55);
+  background: var(--surface-elevated);
+  border: 1px solid var(--divider-strong);
+  box-shadow: var(--shadow-pop);
 }
 
 .agent-item {
   padding: 10px 14px;
   cursor: pointer;
-  border-bottom: 1px solid rgba(100, 116, 139, 0.12);
+  border-bottom: 1px solid var(--divider);
+  transition: background-color 0.15s ease;
 }
 
 .agent-item:last-child {
@@ -125,10 +120,10 @@ html[data-theme='dark'] .agent-panel {
 }
 
 .agent-item:hover {
-  background: rgba(99, 102, 241, 0.07);
+  background: var(--brand-soft);
 }
 
 .agent-item.current {
-  background: rgba(99, 102, 241, 0.1);
+  background: var(--brand-soft-strong);
 }
 </style>

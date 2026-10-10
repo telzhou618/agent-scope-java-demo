@@ -167,9 +167,11 @@ const displayName = computed(() => auth.user?.nickname || auth.user?.username ||
     >
       <!-- 外层滚动锁死（永不出现外层滚动条）：品牌行固定，只有会话列表内部滚动 -->
       <div class="h-full flex flex-col">
-        <div class="h-14 shrink-0 flex items-center gap-2 px-4">
-          <NIcon size="22" color="#6366f1"><ChatbubblesOutline /></NIcon>
-          <NText strong class="text-base">Agent Platform</NText>
+        <div class="h-14 shrink-0 flex items-center gap-2.5 px-4">
+          <span class="brand-mark">
+            <NIcon size="17"><ChatbubblesOutline /></NIcon>
+          </span>
+          <NText strong class="text-[15px] tracking-tight">Agent Platform</NText>
         </div>
         <SessionList class="flex-1 min-h-0" />
       </div>
@@ -251,10 +253,24 @@ const displayName = computed(() => auth.user?.nickname || auth.user?.username ||
 </template>
 
 <style scoped>
+/* 品牌徽标：与登录页 brand-badge 呼应的渐变圆角方块 */
+.brand-mark {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  flex-shrink: 0;
+  border-radius: 9px;
+  background: linear-gradient(135deg, var(--brand-solid), var(--brand-solid-alt));
+  color: #fff;
+  box-shadow: 0 4px 12px var(--brand-ring);
+}
+
 .sider-mask {
   position: absolute;
   inset: 0;
   z-index: 20;
-  background: rgba(15, 23, 42, 0.45);
+  background: var(--scrim);
 }
 </style>
