@@ -18,8 +18,7 @@ import {
 import {
   ChatbubblesOutline,
   ChatboxEllipsesOutline,
-  ContractOutline,
-  ExpandOutline,
+  SwapHorizontalOutline,
   KeypadOutline,
   LogOutOutline,
   MenuOutline,
@@ -207,8 +206,7 @@ const displayName = computed(() => auth.user?.nickname || auth.user?.username ||
               <NButton quaternary circle @click="toggleWide">
                 <template #icon>
                   <NIcon>
-                    <ContractOutline v-if="wide" />
-                    <ExpandOutline v-else />
+                    <SwapHorizontalOutline />
                   </NIcon>
                 </template>
               </NButton>

@@ -10,12 +10,12 @@ const { state, close } = useLightbox()
     :show="state.open"
     preset="card"
     :title="state.alt || '图片预览'"
-    class="max-w-4xl w-[90vw]"
+    class="max-w-6xl w-[95vw]"
     :bordered="false"
     @update:show="close"
   >
     <div class="flex justify-center">
-      <img :src="state.src" :alt="state.alt" class="max-h-[70vh] max-w-full rounded-2" />
+      <img :src="state.src" :alt="state.alt" class="max-h-[85vh] max-w-full rounded-2" />
     </div>
   </NModal>
 </template>
