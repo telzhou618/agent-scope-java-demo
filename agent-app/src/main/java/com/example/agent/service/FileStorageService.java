@@ -129,12 +129,13 @@ public class FileStorageService {
     }
 
     /**
-     * 校验并返回导出文件路径，防路径穿越，只允许 CSV
+     * 校验并返回导出文件路径，防路径穿越，只允许导出生成的 CSV / docx
      */
     public Path exportFile(String fileName) {
+        String lower = fileName == null ? "" : fileName.toLowerCase();
         if (fileName == null || fileName.isBlank()
                 || fileName.indexOf('/') >= 0 || fileName.indexOf('\\') >= 0 || fileName.contains("..")
-                || !fileName.toLowerCase().endsWith(".csv")) {
+                || !(lower.endsWith(".csv") || lower.endsWith(".docx"))) {
             throw new BizException("文件名无效");
         }
         Path path = exportsDir().resolve(fileName).normalize();

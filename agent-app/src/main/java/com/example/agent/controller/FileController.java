@@ -58,8 +58,11 @@ public class FileController {
         }
         Path path = fileStorageService.exportFile(fileName);
         String encoded = URLEncoder.encode(fileName, StandardCharsets.UTF_8).replace("+", "%20");
+        String mediaType = fileName.toLowerCase().endsWith(".docx")
+                ? "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                : "text/csv";
         return ResponseEntity.ok()
-                .contentType(MediaType.parseMediaType("text/csv"))
+                .contentType(MediaType.parseMediaType(mediaType))
                 .header(HttpHeaders.CONTENT_DISPOSITION,
                         "attachment; filename=\"" + encoded + "\"; filename*=UTF-8''" + encoded)
                 .body(new FileSystemResource(path));
