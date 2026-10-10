@@ -1,5 +1,5 @@
-import { defineConfig, presetUno } from 'unocss'
+import presetUno from '@unocss/preset-uno'
 
-export default defineConfig({
+export default {
   presets: [presetUno()],
-})
+}

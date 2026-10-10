@@ -21,6 +21,8 @@
     "vue-router": "^4.5.0"
   },
   "devDependencies": {
+    "@unocss/core": "^66.10.5",
+    "@unocss/preset-uno": "^66.10.5",
     "@vitejs/plugin-vue": "^5.2.1",
     "typescript": "~5.7.2",
     "unocss": "^66.0.0",
