@@ -186,10 +186,11 @@ async function onRemove(session: AgentSession) {
 .session-actions {
   display: flex;
   align-items: center;
+  gap: 4px;
   flex-shrink: 0;
 }
 
-/* 操作按钮默认隐藏：hover/当前会话时显示；已置顶的书签常驻（否则无法取消置顶） */
+/* 操作按钮默认隐藏：hover/当前会话时显示；置顶与否交给「置顶」分组标识 */
 .pin-btn,
 .del-btn {
   display: none;
@@ -197,10 +198,6 @@ async function onRemove(session: AgentSession) {
 
 .session-item:hover .pin-btn,
 .session-item.active .pin-btn,
-.pin-btn.pinned {
-  display: inline-flex;
-}
-
 .session-item:hover .del-btn,
 .session-item.active .del-btn {
   display: inline-flex;

@@ -4,6 +4,7 @@ import { useRoute } from 'vue-router'
 import { NAlert, NEmpty, NIcon, NSpin } from 'naive-ui'
 import { ChatbubblesOutline } from '@vicons/ionicons5'
 import AssistantTurn from '../components/AssistantTurn.vue'
+import ChatActionRail from '../components/ChatActionRail.vue'
 import ChatComposer from '../components/ChatComposer.vue'
 import UserBubble from '../components/UserBubble.vue'
 import { useChatStore } from '../stores/chat'
@@ -80,5 +81,7 @@ watch(
     <div class="pb-4 pt-2">
       <ChatComposer />
     </div>
+
+    <ChatActionRail />
   </div>
 </template>

@@ -29,7 +29,6 @@ import {
   SunnyOutline,
 } from '@vicons/ionicons5'
 import AgentSelect from '../components/AgentSelect.vue'
-import ExportMenu from '../components/ExportMenu.vue'
 import FeedbackDialog from '../components/FeedbackDialog.vue'
 import ImageLightbox from '../components/ImageLightbox.vue'
 import SessionList from '../components/SessionList.vue'
@@ -208,7 +207,6 @@ const displayName = computed(() => auth.user?.nickname || auth.user?.username ||
             </template>
             {{ wide ? '切换为窄屏阅读' : '切换为宽屏' }}
           </NTooltip>
-          <ExportMenu />
           <NButton quaternary circle @click="theme.toggle()">
             <template #icon>
               <NIcon>
