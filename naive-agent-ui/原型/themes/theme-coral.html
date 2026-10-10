@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>晨露 Coral · Naive Agent UI 主题原型</title>
+<link rel="stylesheet" href="shared.css" />
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700;800;900&display=swap');
+
+/* ============ 晨露 Coral · 亮色 ============ */
+:root {
+  --font-sans: "Nunito", "Plus Jakarta Sans", system-ui, -apple-system, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+
+  --bg: #FFF8F2;
+  --sidebar-bg: #FFF3EA;
+  --topbar-bg: rgba(255, 248, 242, .82);
+  --blur: 10px;
+  --surface: #FFFFFF;
+  --surface-2: #FFF1E8;
+
+  --text: #40232A;
+  --text-2: #6B4750;
+  --text-3: #A8878D;
+  --border: #F6E3DA;
+  --border-strong: #F0D2C5;
+
+  --primary: #F0524F;
+  --primary-hover: #FF6B6B;
+  --primary-soft: rgba(240, 82, 79, .10);
+  --primary-grad: linear-gradient(135deg, #F0524F, #FF8A65);
+  --on-primary: #FFFFFF;
+
+  --accent: #FF8A5C;
+  --accent-soft: #FFE9DF;
+  --success: #2FA36B;
+  --success-soft: rgba(47, 163, 107, .12);
+
+  --tag-flash: #F59E0B; --tag-flash-bg: rgba(245, 158, 11, .12);
+  --tag-plus:  #FF8A5C; --tag-plus-bg:  #FFE9DF;
+  --tag-max:   #F0524F; --tag-max-bg:   rgba(240, 82, 79, .12);
+
+  --radius-s: 12px;
+  --radius: 18px;
+  --radius-l: 22px;
+  --shadow-s: 0 2px 8px rgba(240, 82, 79, .06);
+  --shadow-m: 0 8px 30px rgba(240, 82, 79, .10);
+  --shadow-l: 0 16px 48px rgba(240, 82, 79, .14);
+  --ring: 0 0 0 4px rgba(240, 82, 79, .12);
+
+  --hover-bg: rgba(240, 82, 79, .05);
+  --active-bg: rgba(240, 82, 79, .10);
+  --active-text: #D63E3C;
+
+  --bubble-user-bg: var(--primary-grad);
+  --bubble-user-text: #FFFFFF;
+
+  --code-bg: #3A2228;
+  --code-text: #FFE9E4;
+  --code-muted: #C79B96;
+  --code-border: rgba(255, 233, 228, .10);
+}
+
+/* ============ 晨露 Coral · 暗色 ============ */
+[data-mode="dark"] {
+  --bg: #201416;
+  --sidebar-bg: #241719;
+  --topbar-bg: rgba(32, 20, 22, .80);
+  --surface: #2B1C1F;
+  --surface-2: #332226;
+
+  --text: #FBEAE6;
+  --text-2: #D9B3AE;
+  --text-3: #A87F7C;
+  --border: #3D282C;
+  --border-strong: #4E3439;
+
+  --primary: #FF8A80;
+  --primary-hover: #FFA49B;
+  --primary-soft: rgba(255, 138, 128, .14);
+  --primary-grad: linear-gradient(135deg, #F0524F, #FF8A80);
+  --on-primary: #FFFFFF;
+
+  --accent: #FFB59E;
+  --accent-soft: rgba(255, 181, 158, .14);
+  --success: #6FCF97;
+  --success-soft: rgba(111, 207, 151, .14);
+
+  --tag-flash: #FFC978; --tag-flash-bg: rgba(255, 201, 120, .14);
+  --tag-plus:  #FFB59E; --tag-plus-bg:  rgba(255, 181, 158, .14);
+  --tag-max:   #FF8A80; --tag-max-bg:   rgba(255, 138, 128, .16);
+
+  --shadow-s: 0 2px 8px rgba(0, 0, 0, .30);
+  --shadow-m: 0 8px 30px rgba(0, 0, 0, .36);
+  --shadow-l: 0 16px 48px rgba(0, 0, 0, .44);
+  --ring: 0 0 0 4px rgba(255, 138, 128, .16);
+
+  --hover-bg: rgba(255, 255, 255, .05);
+  --active-bg: rgba(255, 138, 128, .14);
+  --active-text: #FFA49B;
+
+  --bubble-user-bg: var(--primary-grad);
+  --bubble-user-text: #FFFFFF;
+
+  --code-bg: #170D0F;
+  --code-text: #F3D9D4;
+  --code-muted: #9A7370;
+  --code-border: rgba(243, 217, 212, .08);
+}
+
+/* 主题风味:圆润字重 + 蓬松感 */
+body { font-weight: 500; }
+.brand-name, .assistant-name, .md-lead, .new-chat { font-weight: 800; }
+.agent-tag { font-weight: 800; }
+</style>
+</head>
+<body>
+<script src="shared.js"></script>
+</body>
+</html>

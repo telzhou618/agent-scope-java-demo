@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-mode="dark">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>星轨 Aurora · Naive Agent UI 主题原型</title>
+<link rel="stylesheet" href="shared.css" />
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap');
+
+/* ============ 星轨 Aurora · 亮色 ============ */
+:root {
+  --font-sans: "Sora", "Plus Jakarta Sans", system-ui, -apple-system, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+
+  --bg: #F4F5FE;
+  --bg-deco:
+    radial-gradient(38% 42% at 12% 6%, rgba(124, 106, 240, .14), transparent 70%),
+    radial-gradient(30% 36% at 88% 12%, rgba(34, 211, 238, .12), transparent 70%);
+  --sidebar-bg: rgba(255, 255, 255, .62);
+  --topbar-bg: rgba(255, 255, 255, .66);
+  --blur: 14px;
+  --surface: #FFFFFF;
+  --surface-2: #F0F1FC;
+
+  --text: #1D1B33;
+  --text-2: #45416B;
+  --text-3: #8B88AD;
+  --border: #E3E4F5;
+  --border-strong: #CFD1EE;
+
+  --primary: #7C6AF0;
+  --primary-hover: #8B7FF5;
+  --primary-soft: rgba(124, 106, 240, .10);
+  --primary-grad: linear-gradient(135deg, #7C6AF0, #22D3EE);
+  --on-primary: #FFFFFF;
+
+  --accent: #0EA5C6;
+  --accent-soft: rgba(34, 211, 238, .14);
+  --success: #10B981;
+  --success-soft: rgba(16, 185, 129, .12);
+
+  --tag-flash: #F59E0B; --tag-flash-bg: rgba(245, 158, 11, .12);
+  --tag-plus:  #0EA5C6; --tag-plus-bg:  rgba(14, 165, 198, .10);
+  --tag-max:   #7C6AF0; --tag-max-bg:   rgba(124, 106, 240, .12);
+
+  --radius-s: 10px;
+  --radius: 16px;
+  --radius-l: 20px;
+  --shadow-s: 0 1px 3px rgba(64, 56, 160, .08);
+  --shadow-m: 0 6px 20px rgba(124, 106, 240, .14);
+  --shadow-l: 0 16px 44px rgba(124, 106, 240, .18);
+  --ring: 0 0 0 3px rgba(124, 106, 240, .16);
+
+  --hover-bg: rgba(124, 106, 240, .06);
+  --active-bg: linear-gradient(90deg, rgba(124, 106, 240, .14), rgba(34, 211, 238, .10));
+  --active-text: #6553E8;
+  --active-border: rgba(124, 106, 240, .24);
+
+  --bubble-user-bg: var(--primary-grad);
+  --bubble-user-text: #FFFFFF;
+
+  --code-bg: #17162B;
+  --code-text: #E4E3F8;
+  --code-muted: #8A87B0;
+  --code-border: rgba(228, 227, 248, .10);
+}
+
+/* ============ 星轨 Aurora · 暗色(默认) ============ */
+[data-mode="dark"] {
+  --bg: #0D0D1A;
+  --bg-deco:
+    radial-gradient(46% 56% at 14% 8%, rgba(139, 92, 246, .34), transparent 70%),
+    radial-gradient(40% 50% at 86% 18%, rgba(34, 211, 238, .22), transparent 70%),
+    radial-gradient(52% 42% at 60% 98%, rgba(99, 102, 241, .20), transparent 70%);
+  --deco-blur: 56px;
+  --sidebar-bg: rgba(255, 255, 255, .025);
+  --topbar-bg: rgba(13, 13, 26, .55);
+  --blur: 18px;
+  --surface: rgba(255, 255, 255, .04);
+  --surface-2: rgba(255, 255, 255, .07);
+
+  --text: #ECEDFB;
+  --text-2: #B9BBD9;
+  --text-3: #77799E;
+  --border: rgba(255, 255, 255, .08);
+  --border-strong: rgba(255, 255, 255, .15);
+
+  --primary: #8B5CF6;
+  --primary-hover: #A78BFA;
+  --primary-soft: rgba(139, 92, 246, .16);
+  --primary-grad: linear-gradient(135deg, #8B5CF6, #22D3EE);
+  --on-primary: #FFFFFF;
+
+  --accent: #22D3EE;
+  --accent-soft: rgba(34, 211, 238, .14);
+  --success: #34D399;
+  --success-soft: rgba(52, 211, 153, .14);
+
+  --tag-flash: #FBBF24; --tag-flash-bg: rgba(251, 191, 36, .14);
+  --tag-plus:  #22D3EE; --tag-plus-bg:  rgba(34, 211, 238, .14);
+  --tag-max:   #A78BFA; --tag-max-bg:   rgba(167, 139, 250, .16);
+
+  --shadow-s: 0 1px 3px rgba(0, 0, 0, .4);
+  --shadow-m: 0 0 24px rgba(139, 92, 246, .25);
+  --shadow-l: 0 10px 44px rgba(0, 0, 0, .5), 0 0 32px rgba(139, 92, 246, .18);
+  --ring: 0 0 0 3px rgba(139, 92, 246, .22), 0 0 18px rgba(139, 92, 246, .30);
+
+  --hover-bg: rgba(255, 255, 255, .06);
+  --active-bg: linear-gradient(90deg, rgba(139, 92, 246, .26), rgba(34, 211, 238, .14));
+  --active-text: #C4B5FD;
+  --active-border: rgba(139, 92, 246, .35);
+
+  --bubble-user-bg: var(--primary-grad);
+  --bubble-user-text: #FFFFFF;
+
+  --code-bg: rgba(6, 6, 16, .72);
+  --code-text: #D9D8F2;
+  --code-muted: #6F6D96;
+  --code-border: rgba(255, 255, 255, .08);
+}
+
+/* 主题风味:输入框与关键按钮带辉光 */
+[data-mode="dark"] .composer:focus-within {
+  box-shadow: var(--shadow-l), 0 0 28px rgba(139, 92, 246, .30);
+}
+[data-mode="dark"] .new-chat,
+[data-mode="dark"] .send-btn {
+  box-shadow: 0 4px 20px rgba(139, 92, 246, .45);
+}
+[data-mode="dark"] .assistant-avatar,
+[data-mode="dark"] .logo-dot {
+  box-shadow: 0 0 16px rgba(139, 92, 246, .55);
+}
+</style>
+</head>
+<body>
+<script src="shared.js"></script>
+</body>
+</html>

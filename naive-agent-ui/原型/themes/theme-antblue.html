@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>蓝屿 Ant Blue · Naive Agent UI 主题原型</title>
+<link rel="stylesheet" href="shared.css" />
+<style>
+/* ============ 蓝屿 Ant Blue · 亮色(默认) ============ */
+:root {
+  /* 系统栈优先,不引外部字体 */
+  --font-sans: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", "Segoe UI", Roboto, system-ui, sans-serif;
+
+  --bg: #F5F7FA;
+  --sidebar-bg: #F5F7FA;
+  --topbar-bg: rgba(255, 255, 255, .88);
+  --blur: 8px;
+  --surface: #FFFFFF;
+  --surface-2: #F2F4F8;
+
+  --text: #1F2329;
+  --text-2: #646A73;
+  --text-3: #8F959E;
+  --border: #E5E9F0;
+  --border-strong: #D4D9E2;
+
+  --primary: #1677FF;
+  --primary-hover: #4096FF;
+  --primary-soft: rgba(22, 119, 255, .08);
+  --primary-grad: linear-gradient(135deg, #1677FF, #1677FF); /* 扁平,无渐变 */
+  --on-primary: #FFFFFF;
+
+  --accent: #0958D9;
+  --accent-soft: rgba(9, 88, 217, .08);
+  --success: #389E0D;
+  --success-soft: rgba(56, 158, 13, .10);
+
+  --tag-flash: #D46B08; --tag-flash-bg: rgba(212, 107, 8, .08);
+  --tag-plus:  #0958D9; --tag-plus-bg:  rgba(9, 88, 217, .08);
+  --tag-max:   #1677FF; --tag-max-bg:   rgba(22, 119, 255, .10);
+
+  --radius-s: 6px;
+  --radius: 8px;
+  --radius-l: 10px;
+  --shadow-s: 0 1px 2px rgba(31, 35, 41, .04);
+  --shadow-m: 0 2px 8px rgba(31, 35, 41, .06);
+  --shadow-l: 0 6px 20px rgba(31, 35, 41, .08);
+  --ring: 0 0 0 3px rgba(22, 119, 255, .12);
+
+  --hover-bg: rgba(31, 35, 41, .045);
+  --active-bg: #E8F1FF;
+  --active-text: #1677FF;
+
+  --bubble-user-bg: #1677FF;
+  --bubble-user-text: #FFFFFF;
+
+  --code-bg: #1F2329;
+  --code-text: #E5E9F0;
+  --code-muted: #8F959E;
+  --code-border: rgba(229, 233, 240, .10);
+}
+
+/* ============ 蓝屿 Ant Blue · 暗色 ============ */
+[data-mode="dark"] {
+  --bg: #0F141A;
+  --sidebar-bg: #0F141A;
+  --topbar-bg: rgba(15, 20, 26, .85);
+  --surface: #171E26;
+  --surface-2: #1E2630;
+
+  --text: #E5E9F0;
+  --text-2: #A6ADB8;
+  --text-3: #6E7680;
+  --border: rgba(255, 255, 255, .08);
+  --border-strong: rgba(255, 255, 255, .14);
+
+  --primary: #3C89E8;
+  --primary-hover: #5CA0EE;
+  --primary-soft: rgba(60, 137, 232, .14);
+  --primary-grad: linear-gradient(135deg, #3C89E8, #3C89E8);
+  --on-primary: #FFFFFF;
+
+  --accent: #7FB3F2;
+  --accent-soft: rgba(127, 179, 242, .12);
+  --success: #73D13D;
+  --success-soft: rgba(115, 209, 61, .12);
+
+  --tag-flash: #E8A35C; --tag-flash-bg: rgba(232, 163, 92, .14);
+  --tag-plus:  #7FB3F2; --tag-plus-bg:  rgba(127, 179, 242, .14);
+  --tag-max:   #3C89E8; --tag-max-bg:   rgba(60, 137, 232, .18);
+
+  --shadow-s: 0 1px 2px rgba(0, 0, 0, .30);
+  --shadow-m: 0 2px 8px rgba(0, 0, 0, .36);
+  --shadow-l: 0 6px 20px rgba(0, 0, 0, .44);
+  --ring: 0 0 0 3px rgba(60, 137, 232, .18);
+
+  --hover-bg: rgba(255, 255, 255, .05);
+  --active-bg: rgba(60, 137, 232, .16);
+  --active-text: #7FB3F2;
+
+  --bubble-user-bg: #3C89E8;
+  --bubble-user-text: #FFFFFF;
+
+  --code-bg: #0A0E13;
+  --code-text: #D8DEE8;
+  --code-muted: #6E7680;
+  --code-border: rgba(255, 255, 255, .07);
+}
+
+/* 主题风味:扁平克制 —— 去浮起、去强光,按钮仅变色 */
+.new-chat, .send-btn { box-shadow: none; }
+.new-chat:hover, .send-btn:hover {
+  filter: none;
+  transform: none;
+  background: var(--primary-hover);
+  box-shadow: none;
+}
+.new-chat:active { background: var(--accent); }
+.composer:focus-within { box-shadow: var(--shadow-m), var(--ring); }
+</style>
+</head>
+<body>
+<script src="shared.js"></script>
+</body>
+</html>

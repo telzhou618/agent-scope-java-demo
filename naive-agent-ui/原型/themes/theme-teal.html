@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>青屿 Teal · Naive Agent UI 主题原型</title>
+<link rel="stylesheet" href="shared.css" />
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+
+/* ============ 青屿 Teal · 亮色 ============ */
+:root {
+  --font-sans: "Plus Jakarta Sans", system-ui, -apple-system, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+
+  --bg: #F6FBFA;
+  --sidebar-bg: #F0F8F6;
+  --topbar-bg: rgba(255, 255, 255, .82);
+  --blur: 10px;
+  --surface: #FFFFFF;
+  --surface-2: #EEF7F5;
+
+  --text: #0F2E2B;
+  --text-2: #134E4A;
+  --text-3: #5E8A85;
+  --border: #D7EEE9;
+  --border-strong: #B9E2DB;
+
+  --primary: #0D9488;
+  --primary-hover: #14B8A6;
+  --primary-soft: rgba(13, 148, 136, .10);
+  --primary-grad: linear-gradient(135deg, #0D9488, #14B8A6);
+  --on-primary: #FFFFFF;
+
+  --accent: #EA580C;
+  --accent-soft: rgba(234, 88, 12, .10);
+  --success: #059669;
+  --success-soft: rgba(5, 150, 105, .12);
+
+  --tag-flash: #EA580C; --tag-flash-bg: rgba(234, 88, 12, .10);
+  --tag-plus:  #0D9488; --tag-plus-bg:  rgba(13, 148, 136, .12);
+  --tag-max:   #7C3AED; --tag-max-bg:   rgba(124, 58, 237, .10);
+
+  --radius-s: 8px;
+  --radius: 12px;
+  --radius-l: 14px;
+  --shadow-s: 0 1px 2px rgba(13, 78, 74, .06);
+  --shadow-m: 0 4px 14px rgba(13, 78, 74, .07);
+  --shadow-l: 0 12px 32px rgba(13, 78, 74, .10);
+  --ring: 0 0 0 3px rgba(13, 148, 136, .14);
+
+  --hover-bg: rgba(13, 148, 136, .06);
+  --active-bg: rgba(13, 148, 136, .12);
+  --active-text: #0F766E;
+
+  --bubble-user-bg: var(--primary-grad);
+  --bubble-user-text: #FFFFFF;
+
+  --code-bg: #0F2E2B;
+  --code-text: #D9F2EE;
+  --code-muted: #7FA8A2;
+  --code-border: rgba(217, 242, 238, .10);
+}
+
+/* ============ 青屿 Teal · 暗色 ============ */
+[data-mode="dark"] {
+  --bg: #0C1514;
+  --sidebar-bg: #0E1A18;
+  --topbar-bg: rgba(14, 26, 24, .78);
+  --surface: #12201E;
+  --surface-2: #182825;
+
+  --text: #D7EAE6;
+  --text-2: #A9C7C2;
+  --text-3: #6E918C;
+  --border: #1E332F;
+  --border-strong: #2A4540;
+
+  --primary: #2DD4BF;
+  --primary-hover: #5EEAD4;
+  --primary-soft: rgba(45, 212, 191, .12);
+  --primary-grad: linear-gradient(135deg, #14B8A6, #2DD4BF);
+  --on-primary: #06201D;
+
+  --accent: #FB923C;
+  --accent-soft: rgba(251, 146, 60, .14);
+  --success: #34D399;
+  --success-soft: rgba(52, 211, 153, .14);
+
+  --tag-flash: #FB923C; --tag-flash-bg: rgba(251, 146, 60, .14);
+  --tag-plus:  #2DD4BF; --tag-plus-bg:  rgba(45, 212, 191, .14);
+  --tag-max:   #A78BFA; --tag-max-bg:   rgba(167, 139, 250, .14);
+
+  --shadow-s: 0 1px 2px rgba(0, 0, 0, .35);
+  --shadow-m: 0 4px 14px rgba(0, 0, 0, .40);
+  --shadow-l: 0 12px 32px rgba(0, 0, 0, .48);
+  --ring: 0 0 0 3px rgba(45, 212, 191, .18);
+
+  --hover-bg: rgba(255, 255, 255, .05);
+  --active-bg: rgba(45, 212, 191, .14);
+  --active-text: #5EEAD4;
+
+  --bubble-user-bg: var(--primary-grad);
+  --bubble-user-text: #06201D;
+
+  --code-bg: #081210;
+  --code-text: #C5E8E2;
+  --code-muted: #5F8881;
+  --code-border: rgba(197, 232, 226, .08);
+}
+</style>
+</head>
+<body>
+<script src="shared.js"></script>
+</body>
+</html>

@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>墨白 Ink · Naive Agent UI 主题原型</title>
+<link rel="stylesheet" href="shared.css" />
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Serif+SC:wght@600;700;900&display=swap');
+
+/* ============ 墨白 Ink · 亮色(纸) ============ */
+:root {
+  --font-sans: "Inter", system-ui, -apple-system, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+  --font-display: "Noto Serif SC", "Songti SC", serif;
+
+  --bg: #FAF9F5;
+  --sidebar-bg: #F4F2EB;
+  --topbar-bg: rgba(250, 249, 245, .85);
+  --blur: 8px;
+  --surface: #FFFFFF;
+  --surface-2: #F3F1EA;
+
+  --text: #1B1B18;
+  --text-2: #44423A;
+  --text-3: #8A867B;
+  --border: #E5E2D9;
+  --border-strong: #D6D2C6;
+
+  --primary: #1B1B18;
+  --primary-hover: #000000;
+  --primary-soft: rgba(27, 27, 24, .08);
+  --primary-grad: linear-gradient(135deg, #1B1B18, #3A3A34);
+  --on-primary: #FAF9F5;
+
+  --accent: #B45309;
+  --accent-soft: rgba(180, 83, 9, .10);
+  --success: #3F7A4E;
+  --success-soft: rgba(63, 122, 78, .12);
+
+  --tag-flash: #B45309; --tag-flash-bg: rgba(180, 83, 9, .10);
+  --tag-plus:  #3F7A4E; --tag-plus-bg:  rgba(63, 122, 78, .10);
+  --tag-max:   #1B1B18; --tag-max-bg:   rgba(27, 27, 24, .08);
+
+  --radius-s: 4px;
+  --radius: 6px;
+  --radius-l: 8px;
+  --shadow-s: none;
+  --shadow-m: 0 1px 2px rgba(27, 27, 24, .05);
+  --shadow-l: 0 2px 10px rgba(27, 27, 24, .06);
+  --ring: 0 0 0 2px rgba(27, 27, 24, .14);
+
+  --hover-bg: rgba(27, 27, 24, .05);
+  --active-bg: rgba(27, 27, 24, .07);
+  --active-text: #1B1B18;
+
+  --bubble-user-bg: #1B1B18;
+  --bubble-user-text: #FAF9F5;
+
+  --code-bg: #1B1B18;
+  --code-text: #E9E7E0;
+  --code-muted: #8A867B;
+  --code-border: rgba(233, 231, 224, .10);
+}
+
+/* ============ 墨白 Ink · 暗色(墨) ============ */
+[data-mode="dark"] {
+  --bg: #141412;
+  --sidebar-bg: #171715;
+  --topbar-bg: rgba(20, 20, 18, .85);
+  --surface: #1C1C19;
+  --surface-2: #242421;
+
+  --text: #E9E7E0;
+  --text-2: #B9B5A8;
+  --text-3: #7C7869;
+  --border: #2A2A26;
+  --border-strong: #383832;
+
+  --primary: #E9E7E0;
+  --primary-hover: #FFFFFF;
+  --primary-soft: rgba(233, 231, 224, .10);
+  --primary-grad: linear-gradient(135deg, #E9E7E0, #CFCBC0);
+  --on-primary: #141412;
+
+  --accent: #D4A053;
+  --accent-soft: rgba(212, 160, 83, .14);
+  --success: #7CB98A;
+  --success-soft: rgba(124, 185, 138, .14);
+
+  --tag-flash: #D4A053; --tag-flash-bg: rgba(212, 160, 83, .14);
+  --tag-plus:  #7CB98A; --tag-plus-bg:  rgba(124, 185, 138, .14);
+  --tag-max:   #E9E7E0; --tag-max-bg:   rgba(233, 231, 224, .12);
+
+  --shadow-s: none;
+  --shadow-m: 0 1px 2px rgba(0, 0, 0, .35);
+  --shadow-l: 0 2px 12px rgba(0, 0, 0, .45);
+  --ring: 0 0 0 2px rgba(233, 231, 224, .18);
+
+  --hover-bg: rgba(255, 255, 255, .05);
+  --active-bg: rgba(255, 255, 255, .07);
+  --active-text: #E9E7E0;
+
+  --bubble-user-bg: #E9E7E0;
+  --bubble-user-text: #141412;
+
+  --code-bg: #0E0E0C;
+  --code-text: #DDD9CE;
+  --code-muted: #6E6A5E;
+  --code-border: rgba(233, 231, 224, .08);
+}
+
+/* 主题风味:编辑感 —— 衬线标题、强调色克制、选中会话左侧琥珀标尺 */
+.brand-name, .topbar-title, .assistant-name, .md-lead {
+  font-family: var(--font-display);
+}
+.brand-name { font-weight: 900; letter-spacing: .02em; }
+.md-lead { font-weight: 700; font-size: 16.5px; }
+.conv-item { position: relative; }
+.conv-item.active::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 8px;
+  bottom: 8px;
+  width: 2.5px;
+  border-radius: 2px;
+  background: var(--accent);
+}
+.new-chat, .send-btn { box-shadow: none; }
+.new-chat:hover, .send-btn:hover { filter: none; opacity: .88; }
+</style>
+</head>
+<body>
+<script src="shared.js"></script>
+</body>
+</html>

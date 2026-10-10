@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Naive Agent UI · 主题画廊</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  min-height: 100vh;
+  font-family: "Plus Jakarta Sans", system-ui, -apple-system, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+  background: #0E0F14;
+  color: #E8E9F0;
+  -webkit-font-smoothing: antialiased;
+  padding: 56px 40px 80px;
+  background-image:
+    radial-gradient(50% 40% at 15% 0%, rgba(124, 106, 240, .12), transparent 70%),
+    radial-gradient(40% 36% at 90% 8%, rgba(13, 148, 136, .10), transparent 70%);
+}
+.wrap { max-width: 1120px; margin: 0 auto; }
+
+header { margin-bottom: 40px; }
+.eyebrow {
+  display: inline-block;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+  color: #9B93F5;
+  background: rgba(124, 106, 240, .12);
+  border: 1px solid rgba(124, 106, 240, .28);
+  padding: 4px 12px;
+  border-radius: 99px;
+  margin-bottom: 16px;
+}
+h1 { font-size: 34px; font-weight: 800; letter-spacing: -.01em; }
+.sub { margin-top: 10px; color: #8B8DA3; font-size: 14.5px; max-width: 640px; line-height: 1.7; }
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(480px, 1fr));
+  gap: 24px;
+}
+.card {
+  background: rgba(255, 255, 255, .03);
+  border: 1px solid rgba(255, 255, 255, .08);
+  border-radius: 20px;
+  padding: 24px;
+  transition: transform .22s ease, border-color .22s ease, box-shadow .22s ease;
+}
+.card:hover {
+  transform: translateY(-4px);
+  border-color: rgba(255, 255, 255, .16);
+  box-shadow: 0 20px 50px rgba(0, 0, 0, .45);
+}
+.card-head { display: flex; align-items: baseline; gap: 10px; margin-bottom: 6px; }
+.card-name { font-size: 19px; font-weight: 800; }
+.card-name .en { color: #8B8DA3; font-weight: 600; font-size: 14px; margin-left: 6px; }
+.card-desc { color: #9A9CB2; font-size: 13px; line-height: 1.65; margin-bottom: 18px; }
+
+/* 调色板条 */
+.palette { display: flex; height: 34px; border-radius: 10px; overflow: hidden; margin-bottom: 18px; border: 1px solid rgba(255, 255, 255, .10); }
+.swatch { flex: 1; position: relative; }
+.swatch span {
+  position: absolute;
+  left: 8px;
+  bottom: 3px;
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: .03em;
+  opacity: .85;
+}
+.swatch.dark-text span { color: rgba(0, 0, 0, .55); }
+.swatch.light-text span { color: rgba(255, 255, 255, .85); }
+
+/* 微缩预览 */
+.previews { display: flex; gap: 12px; margin-bottom: 18px; }
+.pv-wrap { flex: 1; }
+.pv-label { font-size: 10.5px; font-weight: 700; color: #70728A; letter-spacing: .08em; margin-bottom: 6px; }
+.pv {
+  height: 108px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, .10);
+  overflow: hidden;
+  display: flex;
+  background: var(--pv-bg);
+}
+.pv-side {
+  width: 30%;
+  flex: none;
+  background: var(--pv-side);
+  border-right: 1px solid var(--pv-border);
+  padding: 8px 7px;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+.pv-btn { height: 10px; border-radius: 5px; background: var(--pv-primary); margin-bottom: 3px; }
+.pv-line { height: 7px; border-radius: 4px; background: var(--pv-soft); }
+.pv-line.on { background: var(--pv-active); }
+.pv-main { flex: 1; display: flex; flex-direction: column; }
+.pv-top { height: 14px; flex: none; background: var(--pv-top); border-bottom: 1px solid var(--pv-border); }
+.pv-body { flex: 1; padding: 9px 10px; display: flex; flex-direction: column; gap: 6px; align-items: flex-end; }
+.pv-bub { width: 52%; height: 12px; border-radius: 7px; background: var(--pv-primary); }
+.pv-card { align-self: stretch; flex: 1; border-radius: 8px; background: var(--pv-surface); border: 1px solid var(--pv-border); padding: 6px 8px; display: flex; flex-direction: column; gap: 4px; }
+.pv-card i { display: block; height: 5px; border-radius: 3px; background: var(--pv-soft); }
+.pv-card i.short { width: 55%; }
+
+/* 各主题真实色值 */
+.t-teal-l { --pv-bg:#F6FBFA; --pv-side:#F0F8F6; --pv-top:#FFFFFF; --pv-surface:#FFFFFF; --pv-border:#D7EEE9; --pv-primary:#0D9488; --pv-soft:#DFF0ED; --pv-active:#BFE6E0; }
+.t-teal-d { --pv-bg:#0C1514; --pv-side:#0E1A18; --pv-top:#12201E; --pv-surface:#12201E; --pv-border:#1E332F; --pv-primary:#2DD4BF; --pv-soft:#1C2E2A; --pv-active:#155048; }
+.t-aurora-d { --pv-bg:#0D0D1A; --pv-side:#15152A; --pv-top:#13132400; --pv-surface:#1A1A30; --pv-border:#2A2A45; --pv-primary:linear-gradient(135deg,#8B5CF6,#22D3EE); --pv-soft:#23233C; --pv-active:#3A2F66; }
+.t-aurora-l { --pv-bg:#F4F5FE; --pv-side:#FFFFFF; --pv-top:#FFFFFF; --pv-surface:#FFFFFF; --pv-border:#E3E4F5; --pv-primary:#7C6AF0; --pv-soft:#E9E9FA; --pv-active:#D6D0FA; }
+.t-ink-l { --pv-bg:#FAF9F5; --pv-side:#F4F2EB; --pv-top:#FAF9F5; --pv-surface:#FFFFFF; --pv-border:#E5E2D9; --pv-primary:#1B1B18; --pv-soft:#ECE9E0; --pv-active:#E0DCD0; }
+.t-ink-d { --pv-bg:#141412; --pv-side:#171715; --pv-top:#141412; --pv-surface:#1C1C19; --pv-border:#2A2A26; --pv-primary:#E9E7E0; --pv-soft:#262622; --pv-active:#34342E; }
+.t-coral-l { --pv-bg:#FFF8F2; --pv-side:#FFF3EA; --pv-top:#FFF8F2; --pv-surface:#FFFFFF; --pv-border:#F6E3DA; --pv-primary:#F0524F; --pv-soft:#FBE8E2; --pv-active:#FAD3CC; }
+.t-coral-d { --pv-bg:#201416; --pv-side:#241719; --pv-top:#201416; --pv-surface:#2B1C1F; --pv-border:#3D282C; --pv-primary:#FF8A80; --pv-soft:#38252A; --pv-active:#4E2F31; }
+.t-antblue-l { --pv-bg:#F5F7FA; --pv-side:#F5F7FA; --pv-top:#FFFFFF; --pv-surface:#FFFFFF; --pv-border:#E5E9F0; --pv-primary:#1677FF; --pv-soft:#EAEEF4; --pv-active:#E8F1FF; }
+.t-antblue-d { --pv-bg:#0F141A; --pv-side:#0F141A; --pv-top:#171E26; --pv-surface:#171E26; --pv-border:#262E38; --pv-primary:#3C89E8; --pv-soft:#1E2630; --pv-active:#1D3350; }
+
+.open-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 13.5px;
+  font-weight: 700;
+  color: #CFC9FF;
+  text-decoration: none;
+  padding: 9px 18px;
+  border-radius: 12px;
+  background: rgba(124, 106, 240, .14);
+  border: 1px solid rgba(124, 106, 240, .30);
+  transition: background .18s ease, transform .18s ease;
+}
+.open-link:hover { background: rgba(124, 106, 240, .26); transform: translateX(2px); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <span class="eyebrow">Naive Agent UI</span>
+    <h1>主题画廊</h1>
+    <p class="sub">五套视觉语言 × 明暗双模式,同一份聊天页骨架。点击「打开原型」在新标签页中查看完整效果,页面右上角可切换明暗。</p>
+  </header>
+
+  <div class="grid">
+
+    <!-- 青屿 Teal -->
+    <section class="card">
+      <div class="card-head"><span class="card-name">青屿<span class="en">Teal</span></span></div>
+      <p class="card-desc">清新生产力 —— 浅青灰底 + 深青主色,橙色仅作点缀,干净利落的工作台气质。</p>
+      <div class="palette">
+        <div class="swatch light-text" style="background:#0D9488"><span>#0D9488</span></div>
+        <div class="swatch dark-text" style="background:#F6FBFA"><span>#F6FBFA</span></div>
+        <div class="swatch light-text" style="background:#EA580C"><span>#EA580C</span></div>
+        <div class="swatch light-text" style="background:#0C1514"><span>#0C1514</span></div>
+      </div>
+      <div class="previews">
+        <div class="pv-wrap"><div class="pv-label">LIGHT</div>
+          <div class="pv t-teal-l"><div class="pv-side"><div class="pv-btn"></div><div class="pv-line on"></div><div class="pv-line"></div><div class="pv-line"></div></div>
+          <div class="pv-main"><div class="pv-top"></div><div class="pv-body"><div class="pv-bub"></div><div class="pv-card"><i></i><i class="short"></i><i></i></div></div></div></div>
+        </div>
+        <div class="pv-wrap"><div class="pv-label">DARK</div>
+          <div class="pv t-teal-d"><div class="pv-side"><div class="pv-btn"></div><div class="pv-line on"></div><div class="pv-line"></div><div class="pv-line"></div></div>
+          <div class="pv-main"><div class="pv-top"></div><div class="pv-body"><div class="pv-bub"></div><div class="pv-card"><i></i><i class="short"></i><i></i></div></div></div></div>
+        </div>
+      </div>
+      <a class="open-link" href="theme-teal.html" target="_blank">打开原型 →</a>
+    </section>
+
+    <!-- 星轨 Aurora -->
+    <section class="card">
+      <div class="card-head"><span class="card-name">星轨<span class="en">Aurora</span></span></div>
+      <p class="card-desc">暗色主打 —— 深空蓝紫底上的极光光斑,玻璃拟态表面 + 紫青渐变与辉光,未来感十足。</p>
+      <div class="palette">
+        <div class="swatch light-text" style="background:#8B5CF6"><span>#8B5CF6</span></div>
+        <div class="swatch light-text" style="background:#0D0D1A"><span>#0D0D1A</span></div>
+        <div class="swatch dark-text" style="background:#22D3EE"><span>#22D3EE</span></div>
+        <div class="swatch dark-text" style="background:#F4F5FE"><span>#F4F5FE</span></div>
+      </div>
+      <div class="previews">
+        <div class="pv-wrap"><div class="pv-label">DARK(默认)</div>
+          <div class="pv t-aurora-d"><div class="pv-side"><div class="pv-btn"></div><div class="pv-line on"></div><div class="pv-line"></div><div class="pv-line"></div></div>
+          <div class="pv-main"><div class="pv-top"></div><div class="pv-body"><div class="pv-bub"></div><div class="pv-card"><i></i><i class="short"></i><i></i></div></div></div></div>
+        </div>
+        <div class="pv-wrap"><div class="pv-label">LIGHT</div>
+          <div class="pv t-aurora-l"><div class="pv-side"><div class="pv-btn"></div><div class="pv-line on"></div><div class="pv-line"></div><div class="pv-line"></div></div>
+          <div class="pv-main"><div class="pv-top"></div><div class="pv-body"><div class="pv-bub"></div><div class="pv-card"><i></i><i class="short"></i><i></i></div></div></div></div>
+        </div>
+      </div>
+      <a class="open-link" href="theme-aurora.html" target="_blank">打开原型 →</a>
+    </section>
+
+    <!-- 墨白 Ink -->
+    <section class="card">
+      <div class="card-head"><span class="card-name">墨白<span class="en">Ink</span></span></div>
+      <p class="card-desc">编辑级极简 —— 纸墨质感、衬线标题、发丝边框,琥珀色仅落在链接与选中标尺上。</p>
+      <div class="palette">
+        <div class="swatch light-text" style="background:#1B1B18"><span>#1B1B18</span></div>
+        <div class="swatch dark-text" style="background:#FAF9F5"><span>#FAF9F5</span></div>
+        <div class="swatch light-text" style="background:#B45309"><span>#B45309</span></div>
+        <div class="swatch dark-text" style="background:#E9E7E0"><span>#E9E7E0</span></div>
+      </div>
+      <div class="previews">
+        <div class="pv-wrap"><div class="pv-label">LIGHT</div>
+          <div class="pv t-ink-l"><div class="pv-side"><div class="pv-btn"></div><div class="pv-line on"></div><div class="pv-line"></div><div class="pv-line"></div></div>
+          <div class="pv-main"><div class="pv-top"></div><div class="pv-body"><div class="pv-bub"></div><div class="pv-card"><i></i><i class="short"></i><i></i></div></div></div></div>
+        </div>
+        <div class="pv-wrap"><div class="pv-label">DARK</div>
+          <div class="pv t-ink-d"><div class="pv-side"><div class="pv-btn"></div><div class="pv-line on"></div><div class="pv-line"></div><div class="pv-line"></div></div>
+          <div class="pv-main"><div class="pv-top"></div><div class="pv-body"><div class="pv-bub"></div><div class="pv-card"><i></i><i class="short"></i><i></i></div></div></div></div>
+        </div>
+      </div>
+      <a class="open-link" href="theme-ink.html" target="_blank">打开原型 →</a>
+    </section>
+
+    <!-- 晨露 Coral -->
+    <section class="card">
+      <div class="card-head"><span class="card-name">晨露<span class="en">Coral</span></span></div>
+      <p class="card-desc">温暖友好 —— 奶油底 + 珊瑚主色 + 蜜桃辅色,大圆角与蓬松弥散阴影,轻盈治愈。</p>
+      <div class="palette">
+        <div class="swatch light-text" style="background:#F0524F"><span>#F0524F</span></div>
+        <div class="swatch dark-text" style="background:#FFF8F2"><span>#FFF8F2</span></div>
+        <div class="swatch dark-text" style="background:#FFB59E"><span>#FFB59E</span></div>
+        <div class="swatch light-text" style="background:#201416"><span>#201416</span></div>
+      </div>
+      <div class="previews">
+        <div class="pv-wrap"><div class="pv-label">LIGHT</div>
+          <div class="pv t-coral-l"><div class="pv-side"><div class="pv-btn"></div><div class="pv-line on"></div><div class="pv-line"></div><div class="pv-line"></div></div>
+          <div class="pv-main"><div class="pv-top"></div><div class="pv-body"><div class="pv-bub"></div><div class="pv-card"><i></i><i class="short"></i><i></i></div></div></div></div>
+        </div>
+        <div class="pv-wrap"><div class="pv-label">DARK</div>
+          <div class="pv t-coral-d"><div class="pv-side"><div class="pv-btn"></div><div class="pv-line on"></div><div class="pv-line"></div><div class="pv-line"></div></div>
+          <div class="pv-main"><div class="pv-top"></div><div class="pv-body"><div class="pv-bub"></div><div class="pv-card"><i></i><i class="short"></i><i></i></div></div></div></div>
+        </div>
+      </div>
+      <a class="open-link" href="theme-coral.html" target="_blank">打开原型 →</a>
+    </section>
+
+    <!-- 蓝屿 Ant Blue -->
+    <section class="card">
+      <div class="card-head"><span class="card-name">蓝屿<span class="en">Ant Blue</span></span></div>
+      <p class="card-desc">企业级简约 —— Ant Design 经典蓝,扁平克制、无渐变无辉光,主色只落在关键行动点与选中态。</p>
+      <div class="palette">
+        <div class="swatch light-text" style="background:#1677FF"><span>#1677FF</span></div>
+        <div class="swatch dark-text" style="background:#F5F7FA"><span>#F5F7FA</span></div>
+        <div class="swatch dark-text" style="background:#E8F1FF"><span>#E8F1FF</span></div>
+        <div class="swatch light-text" style="background:#0F141A"><span>#0F141A</span></div>
+      </div>
+      <div class="previews">
+        <div class="pv-wrap"><div class="pv-label">LIGHT</div>
+          <div class="pv t-antblue-l"><div class="pv-side"><div class="pv-btn"></div><div class="pv-line on"></div><div class="pv-line"></div><div class="pv-line"></div></div>
+          <div class="pv-main"><div class="pv-top"></div><div class="pv-body"><div class="pv-bub"></div><div class="pv-card"><i></i><i class="short"></i><i></i></div></div></div></div>
+        </div>
+        <div class="pv-wrap"><div class="pv-label">DARK</div>
+          <div class="pv t-antblue-d"><div class="pv-side"><div class="pv-btn"></div><div class="pv-line on"></div><div class="pv-line"></div><div class="pv-line"></div></div>
+          <div class="pv-main"><div class="pv-top"></div><div class="pv-body"><div class="pv-bub"></div><div class="pv-card"><i></i><i class="short"></i><i></i></div></div></div></div>
+        </div>
+      </div>
+      <a class="open-link" href="theme-antblue.html" target="_blank">打开原型 →</a>
+    </section>
+
+  </div>
+</div>
+</body>
+</html>
