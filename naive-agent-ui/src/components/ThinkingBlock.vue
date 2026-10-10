@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { NIcon } from 'naive-ui'
-import { ChevronDownOutline, SparklesOutline } from '@vicons/ionicons5'
+import { ChevronForwardOutline, SparklesOutline } from '@vicons/ionicons5'
 import type { ThinkingBlockModel } from '../utils/model'
 
 const props = defineProps<{ block: ThinkingBlockModel }>()
@@ -9,12 +9,12 @@ const props = defineProps<{ block: ThinkingBlockModel }>()
 /** 流式思考中：未结束且处于展开态（done 优先于 open，历史消息展开不再显示"思考中"） */
 const thinking = computed(() => !props.block.done && props.block.open)
 
-const label = computed(() => (thinking.value ? '正在思考' : '思考过程'))
-
-const secondsText = computed(() => {
+/** 思考了 N 秒 / 正在思考… / 思考过程（历史无耗时回填时兜底） */
+const label = computed(() => {
+  if (thinking.value) return '正在思考…'
   const seconds = props.block.seconds
-  if (seconds === undefined || seconds <= 0) return ''
-  return seconds >= 1 ? `${Math.round(seconds)}s` : `${seconds.toFixed(1)}s`
+  if (seconds !== undefined && seconds > 0) return `思考了 ${Math.max(1, Math.round(seconds))} 秒`
+  return '思考过程'
 })
 
 function toggle() {
@@ -23,23 +23,17 @@ function toggle() {
 </script>
 
 <template>
-  <div class="thinking-block" :class="{ thinking }">
+  <div class="thinking-block">
     <button class="thinking-toggle" type="button" :aria-expanded="props.block.open" @click="toggle">
-      <span class="thinking-badge">
-        <NIcon size="13"><SparklesOutline /></NIcon>
-      </span>
+      <NIcon size="13" class="sparkle" :class="{ thinking }"><SparklesOutline /></NIcon>
       <span class="thinking-label">{{ label }}</span>
-      <span class="thinking-spacer" />
-      <span v-if="secondsText" class="thinking-time">{{ secondsText }}</span>
-      <NIcon size="13" class="chevron" :class="{ open: props.block.open }">
-        <ChevronDownOutline />
+      <NIcon size="12" class="chevron" :class="{ open: props.block.open }">
+        <ChevronForwardOutline />
       </NIcon>
     </button>
     <div class="thinking-body" :class="{ open: props.block.open }">
       <div class="thinking-inner">
-        <div class="thinking-pad">
-          <div class="thinking-content">{{ props.block.text }}</div>
-        </div>
+        <div class="thinking-content">{{ props.block.text }}</div>
       </div>
     </div>
   </div>
@@ -48,89 +42,47 @@ function toggle() {
 <style scoped>
 .thinking-block {
   margin-bottom: 12px;
-  border: 1px solid var(--divider);
-  border-radius: 12px;
-  overflow: hidden;
-  background: var(--brand-soft);
 }
 
 .thinking-toggle {
-  position: relative;
   display: flex;
   align-items: center;
-  gap: 8px;
-  width: 100%;
-  padding: 8px 12px;
+  gap: 6px;
+  padding: 2px 0;
   border: 0;
   background: transparent;
-  color: inherit;
+  color: var(--text-faint);
   font-size: 13px;
   cursor: pointer;
-  overflow: hidden;
 }
 
-.thinking-badge {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 22px;
-  height: 22px;
+.sparkle {
   flex-shrink: 0;
-  border-radius: 7px;
-  background: var(--brand-soft-strong);
-  color: var(--brand);
 }
 
-.thinking-label {
-  font-weight: 500;
+/* 流式思考中：图标呼吸闪烁 */
+.sparkle.thinking {
+  animation: sparkle-blink 1.4s ease-in-out infinite;
 }
 
-.thinking-spacer {
-  flex: 1;
-}
-
-.thinking-time {
-  padding: 1px 8px;
-  border-radius: 999px;
-  background: var(--surface-subtle);
-  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-  font-size: 11px;
-  opacity: 0.6;
-}
-
-/* 流式思考中：头行扫过的 shimmer 光带 */
-.thinking .thinking-toggle::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(
-    100deg,
-    transparent 20%,
-    var(--brand-ring) 50%,
-    transparent 80%
-  );
-  background-size: 200% 100%;
-  animation: thinking-shimmer 1.6s linear infinite;
-  pointer-events: none;
-}
-
-@keyframes thinking-shimmer {
-  from {
-    background-position: 200% 0;
+@keyframes sparkle-blink {
+  0%,
+  100% {
+    opacity: 0.4;
   }
-  to {
-    background-position: -200% 0;
+  50% {
+    opacity: 1;
   }
 }
 
 .chevron {
   flex-shrink: 0;
-  opacity: 0.6;
+  opacity: 0.7;
   transition: transform 0.2s;
 }
 
 .chevron.open {
-  transform: rotate(180deg);
+  transform: rotate(90deg);
 }
 
 .thinking-body {
@@ -148,27 +100,22 @@ function toggle() {
   min-height: 0;
 }
 
-.thinking-pad {
-  padding: 0 12px 12px;
-}
-
+/* 展开内容：左侧一条竖线 + 灰字，无卡片无底色 */
 .thinking-content {
-  padding: 10px 12px;
-  border: 1px solid var(--divider);
-  border-left: 3px solid var(--brand);
-  border-radius: 8px;
-  background: var(--surface-elevated);
+  margin: 6px 0 4px 6px;
+  padding-left: 12px;
+  border-left: 1px dashed var(--divider-strong);
+  color: var(--text-faint);
   font-size: 13px;
-  line-height: 1.7;
+  line-height: 1.8;
   white-space: pre-wrap;
   word-break: break-word;
-  opacity: 0.85;
-  max-height: 264px;
+  max-height: 320px;
   overflow-y: auto;
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .thinking .thinking-toggle::after {
+  .sparkle.thinking {
     animation: none;
   }
 
