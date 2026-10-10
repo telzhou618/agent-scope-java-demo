@@ -133,6 +133,8 @@ public abstract class AbstractAgentFactory {
                 .permissionContext(PermissionContextState.builder()
                         .mode(PermissionMode.BYPASS)
                         .build())
+                // 中断/重启导致悬挂工具调用（无结果）时，自动补错误结果让会话恢复，避免下次消息直接崩溃
+                .enablePendingToolRecovery(true)
                 .maxIters(5)    // 最大迭代
                 .maxRetries(1)  // 工具最大重试次数
                 .defaultSessionId("default-session-id")
@@ -217,7 +219,14 @@ public abstract class AbstractAgentFactory {
         }
         McpClientWrapper mcpClientWrapper = mcpClientBuilder.buildAsync().block();
         toolkit.registerMcpClient(mcpClientWrapper).block();
+        registerLocalTools(toolkit);
         return toolkit;
+    }
+
+    /**
+     * 注册本地 @Tool 工具的钩子，默认不注册；需要的档位覆写并注入具体工具 Bean
+     */
+    protected void registerLocalTools(Toolkit toolkit) {
     }
 
     /**
