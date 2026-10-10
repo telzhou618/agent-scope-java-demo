@@ -3,9 +3,9 @@ import { computed, ref } from 'vue'
 import { NAlert, NButton, NIcon, NTooltip } from 'naive-ui'
 import {
   CopyOutline,
-  HandLeftOutline,
-  HandRightOutline,
   RefreshOutline,
+  ThumbsDownOutline,
+  ThumbsUpOutline,
 } from '@vicons/ionicons5'
 import MarkdownBlock from './MarkdownBlock.vue'
 import ThinkingBlock from './ThinkingBlock.vue'
@@ -102,7 +102,7 @@ function vote(value: 'up' | 'down') {
             @click="vote('up')"
           >
             <template #icon>
-              <NIcon><HandRightOutline /></NIcon>
+              <NIcon><ThumbsUpOutline /></NIcon>
             </template>
             有帮助
           </NButton>
@@ -119,7 +119,7 @@ function vote(value: 'up' | 'down') {
             @click="vote('down')"
           >
             <template #icon>
-              <NIcon><HandLeftOutline /></NIcon>
+              <NIcon><ThumbsDownOutline /></NIcon>
             </template>
           </NButton>
         </template>
