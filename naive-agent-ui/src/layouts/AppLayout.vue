@@ -191,7 +191,13 @@ const displayName = computed(() => auth.user?.nickname || auth.user?.username ||
             </template>
           </NButton>
           <AgentSelect />
-          <NText depth="3" class="truncate text-sm hidden md:block">{{ chat.title }}</NText>
+          <NText
+            v-if="route.name === 'chat' || route.name === 'chat-session'"
+            depth="3"
+            class="truncate text-sm hidden md:block"
+          >
+            {{ chat.title }}
+          </NText>
         </div>
         <div class="flex items-center gap-1 md:gap-2">
           <NTooltip>

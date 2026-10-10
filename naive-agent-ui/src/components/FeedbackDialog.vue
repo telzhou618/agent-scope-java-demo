@@ -67,7 +67,7 @@ async function submit() {
   >
     <NForm ref="formRef" :model="form" :rules="rules" label-placement="top">
       <NFormItem label="类型" path="type">
-        <NRadioGroup v-model:value="form.type">
+        <NRadioGroup v-model:value="form.type" class="feedback-type-group">
           <NRadioButton value="bug">缺陷</NRadioButton>
           <NRadioButton value="idea">建议</NRadioButton>
           <NRadioButton value="other">其他</NRadioButton>
@@ -95,3 +95,42 @@ async function submit() {
     </template>
   </NModal>
 </template>
+
+<style scoped>
+/* 类型选择：拆成等宽独立圆角片,选中态用品牌色描边+浅底 */
+.feedback-type-group {
+  display: flex;
+  gap: 8px;
+  width: 100%;
+}
+
+.feedback-type-group :deep(.n-radio-button) {
+  flex: 1;
+  border: 1px solid rgba(128, 128, 128, 0.28);
+  border-radius: 8px;
+  box-shadow: none !important;
+  text-align: center;
+  transition: border-color 0.2s, color 0.2s, background-color 0.2s;
+}
+
+.feedback-type-group :deep(.n-radio-button:hover) {
+  border-color: #6366f1;
+  color: #6366f1;
+}
+
+.feedback-type-group :deep(.n-radio-button.n-radio-button--checked) {
+  border-color: #6366f1;
+  color: #6366f1;
+  background: rgba(99, 102, 241, 0.08);
+  font-weight: 500;
+}
+
+.feedback-type-group :deep(.n-radio-button .n-radio-button__state-border) {
+  display: none;
+}
+
+/* 隐藏 naive 按钮组自带的竖向分隔线,只留 gap 空隙 */
+.feedback-type-group :deep(.n-radio-group__splitor) {
+  display: none;
+}
+</style>
