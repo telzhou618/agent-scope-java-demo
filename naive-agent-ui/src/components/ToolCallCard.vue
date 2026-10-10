@@ -23,6 +23,12 @@ const STATUS: Record<ToolStatus, { label: string; type: 'default' | 'info' | 'su
 
 const status = computed(() => STATUS[props.block.status])
 
+/** 工具调用 ID 短码：去掉 call_ 前缀取末 6 位，用于区分同名并行调用；完整 ID 放 title 悬浮提示 */
+const shortId = computed(() => {
+  const raw = (props.block.id ?? '').replace(/^call_/, '')
+  return raw.length > 6 ? raw.slice(-6) : raw
+})
+
 /** 参数/结果若为 JSON 则美化缩进展示，否则按原文本回退 */
 function pretty(value: string): string {
   if (!value) return ''
@@ -55,6 +61,7 @@ function toggle() {
         <NIcon size="14"><ConstructOutline /></NIcon>
       </span>
       <span class="tool-name">{{ props.block.name }}</span>
+      <span v-if="shortId" class="tool-id" :title="`调用 ID：${props.block.id}`">#{{ shortId }}</span>
       <span class="tool-head-spacer" />
       <NTag size="tiny" :bordered="false" :type="status.type" round class="shrink-0">
         <template #icon>
@@ -157,6 +164,14 @@ function toggle() {
 .tool-name {
   font-weight: 600;
   flex-shrink: 0;
+}
+
+/* 调用 ID 短码：等宽灰字，区分同名并行调用 */
+.tool-id {
+  flex-shrink: 0;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 11px;
+  color: var(--text-faint);
 }
 
 .tool-head-spacer {
