@@ -158,7 +158,7 @@ const displayName = computed(() => auth.user?.nickname || auth.user?.username ||
       :width="272"
       :collapsed-width="0"
       :position="isNarrow ? 'absolute' : 'static'"
-      :show-trigger="isNarrow ? false : 'bar'"
+      :show-trigger="false"
       :style="isNarrow ? { top: '0px', bottom: '0px', left: '0px' } : undefined"
       :content-style="{ height: '100%', overflow: 'hidden' }"
       bordered
@@ -171,6 +171,16 @@ const displayName = computed(() => auth.user?.nickname || auth.user?.username ||
             <NIcon size="17"><ChatbubblesOutline /></NIcon>
           </span>
           <NText strong class="text-[15px] tracking-tight">Agent Platform</NText>
+          <NTooltip>
+            <template #trigger>
+              <NButton quaternary circle size="small" class="ml-auto" @click="collapsed = true">
+                <template #icon>
+                  <NIcon><MenuOutline /></NIcon>
+                </template>
+              </NButton>
+            </template>
+            收起侧栏
+          </NTooltip>
         </div>
         <SessionList class="flex-1 min-h-0" />
       </div>
@@ -186,11 +196,16 @@ const displayName = computed(() => auth.user?.nickname || auth.user?.username ||
     <NLayout>
       <NLayoutHeader bordered class="h-14 flex items-center justify-between px-3 md:px-4">
         <div class="flex items-center gap-2 md:gap-3 min-w-0">
-          <NButton v-if="isNarrow" quaternary circle @click="collapsed = !collapsed">
-            <template #icon>
-              <NIcon><MenuOutline /></NIcon>
+          <NTooltip v-if="isNarrow || collapsed">
+            <template #trigger>
+              <NButton quaternary circle @click="collapsed = !collapsed">
+                <template #icon>
+                  <NIcon><MenuOutline /></NIcon>
+                </template>
+              </NButton>
             </template>
-          </NButton>
+            展开侧栏
+          </NTooltip>
           <AgentSelect />
           <NText
             v-if="route.name === 'chat' || route.name === 'chat-session'"
