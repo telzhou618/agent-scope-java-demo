@@ -100,8 +100,18 @@ function onSelect(agent: AgentInfo) {
 
 <style scoped>
 .agent-panel {
-  border-radius: 10px;
+  border-radius: 12px;
   overflow: hidden;
+  /* 实色卡片底 + 边框 + 重阴影：叠在消息内容上时文字清晰可读 */
+  background: #ffffff;
+  border: 1px solid rgba(100, 116, 139, 0.22);
+  box-shadow: 0 12px 36px rgba(15, 23, 42, 0.18);
+}
+
+html[data-theme='dark'] .agent-panel {
+  background: #232634;
+  border-color: rgba(255, 255, 255, 0.12);
+  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.55);
 }
 
 .agent-item {

@@ -6,7 +6,7 @@ import LogsPanel from '../components/admin/LogsPanel.vue'
 </script>
 
 <template>
-  <div class="h-full overflow-y-auto p-4 md:p-6">
+  <div class="p-4 pb-12 md:p-6 md:pb-12">
     <NCard class="max-w-6xl mx-auto" title="管理中心" :content-style="{ paddingTop: '8px' }">
       <NTabs type="line" animated placement="top">
         <NTabPane name="users" tab="用户" display-directive="show:lazy">

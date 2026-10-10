@@ -121,7 +121,12 @@ const columns: DataTableColumns<FeedbackItem> = [
         { default: () => (row.status === 1 ? '已处理' : '待处理') },
       ),
   },
-  { title: '提交时间', key: 'createTime', width: 165 },
+  {
+    title: '提交时间',
+    key: 'createTime',
+    width: 165,
+    render: (row) => (row.createTime ?? '').replace('T', ' ').slice(0, 19) || '—',
+  },
   {
     title: '操作',
     key: 'actions',

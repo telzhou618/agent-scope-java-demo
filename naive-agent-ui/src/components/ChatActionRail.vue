@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, h, ref, type Component } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref, watch, type Component } from 'vue'
 import { NButton, NDropdown, NIcon, NTooltip, useMessage } from 'naive-ui'
 import { DownloadOutline, ShareSocialOutline } from '@vicons/ionicons5'
 import { useAuthStore } from '../stores/auth'
@@ -16,8 +16,10 @@ import { withChartImages } from '../utils/exportCharts'
 import { printHtmlDocument } from '../utils/print'
 
 /**
- * 聊天页右侧悬浮操作栏：竖向图标按钮，hover 右侧空白区浮现。
- * 配置数组驱动——新增操作只需在 ACTIONS 里加一项（export 走下拉菜单，其余走 onAction）。
+ * 聊天页右侧悬浮操作栏：竖向图标按钮，鼠标进入内容列右侧空白区浮现。
+ * 感应用 window mousemove 实现（不铺任何覆盖层，绝不遮挡消息点击/选中）：
+ * 感应起点 = 内容列右缘（实测父容器 getBoundingClientRect），宽屏内容占满时
+ * 回退到视口右缘 56px 内。
  */
 const message = useMessage()
 const auth = useAuthStore()
@@ -82,67 +84,98 @@ function onAction(key: string) {
     message.info('分享功能敬请期待')
   }
 }
+
+/* ---------- 右侧空白区感应 ---------- */
+
+const visible = ref(false)
+/** 组件根元素（rail 本体）的父元素就是 ChatView 内容容器，用它的右缘做感应起点 */
+const railRef = ref<HTMLElement | null>(null)
+
+/** 感应起点 x：内容列右缘；内容占满视口时回退到视口右缘内 56px */
+let triggerLeft = 0
+
+function measure() {
+  const container = railRef.value?.parentElement
+  const contentRight = container?.getBoundingClientRect().right ?? 0
+  triggerLeft = Math.min(contentRight, window.innerWidth - 56)
+}
+
+function onMouseMove(event: MouseEvent) {
+  // 顶栏（56px）以下、感应起点以右的整块空白都算感应区
+  visible.value = event.clientX >= triggerLeft && event.clientY > 56
+}
+
+function onMouseLeaveWindow() {
+  visible.value = false
+}
+
+onMounted(() => {
+  measure()
+  window.addEventListener('resize', measure)
+  window.addEventListener('mousemove', onMouseMove)
+  document.documentElement.addEventListener('mouseleave', onMouseLeaveWindow)
+})
+
+onBeforeUnmount(() => {
+  window.removeEventListener('resize', measure)
+  window.removeEventListener('mousemove', onMouseMove)
+  document.documentElement.removeEventListener('mouseleave', onMouseLeaveWindow)
+})
+
+// 宽/窄切换、侧栏开合都会改变内容列位置，下一帧重新测量
+watch(wide, () => requestAnimationFrame(measure))
 </script>
 
 <template>
-  <!-- 悬浮感应区：固定在聊天内容区右缘外侧的空白里，hover 浮现操作栏 -->
-  <div class="rail-zone" :class="{ wide }" role="group" aria-label="会话操作栏">
-    <div class="rail">
-      <template v-for="action in actions" :key="action.key">
-        <NTooltip placement="left">
-          <template #trigger>
-            <NDropdown
-              v-if="action.key === 'export'"
-              trigger="click"
-              placement="left"
-              :options="exportOptions"
-              :disabled="action.disabled"
-              @select="onExport"
-            >
-              <NButton quaternary circle :disabled="action.disabled" :loading="exporting">
-                <template #icon>
-                  <NIcon><component :is="action.icon" /></NIcon>
-                </template>
-              </NButton>
-            </NDropdown>
-            <NButton
-              v-else
-              quaternary
-              circle
-              :disabled="action.disabled"
-              @click="onAction(action.key)"
-            >
+  <div
+    ref="railRef"
+    class="rail"
+    :class="{ visible }"
+    role="group"
+    aria-label="会话操作栏"
+  >
+    <template v-for="action in actions" :key="action.key">
+      <NTooltip placement="left">
+        <template #trigger>
+          <NDropdown
+            v-if="action.key === 'export'"
+            trigger="click"
+            placement="left"
+            :options="exportOptions"
+            :disabled="action.disabled"
+            @select="onExport"
+          >
+            <NButton quaternary circle :disabled="action.disabled" :loading="exporting">
               <template #icon>
                 <NIcon><component :is="action.icon" /></NIcon>
               </template>
             </NButton>
-          </template>
-          {{ action.tooltip }}
-        </NTooltip>
-      </template>
-    </div>
+          </NDropdown>
+          <NButton
+            v-else
+            quaternary
+            circle
+            :disabled="action.disabled"
+            @click="onAction(action.key)"
+          >
+            <template #icon>
+              <NIcon><component :is="action.icon" /></NIcon>
+            </template>
+          </NButton>
+        </template>
+        {{ action.tooltip }}
+      </NTooltip>
+    </template>
   </div>
 </template>
 
 <style scoped>
-/*
- * 定位：聊天内容区居中（窄 800px / 宽 1200px），右侧空白 = (视口 - 侧栏 272px - 内容宽) / 2。
- * 悬浮栏贴在内容区右缘外侧（空白 - 栏宽 40px - 12px 间距）；空白不够时内缩到视口右缘 8px。
- */
-.rail-zone {
+.rail {
   position: fixed;
   top: 50%;
-  transform: translateY(-50%);
-  right: max(8px, calc((100vw - 272px - 800px) / 2 - 52px));
+  right: 12px;
+  transform: translateY(-50%) translateX(10px);
   z-index: 10;
-  padding: 32px 8px;
-}
-
-.rail-zone.wide {
-  right: max(8px, calc((100vw - 272px - 1200px) / 2 - 52px));
-}
-
-.rail {
   display: flex;
   flex-direction: column;
   gap: 4px;
@@ -152,17 +185,15 @@ function onAction(key: string) {
   border: 1px solid rgba(100, 116, 139, 0.22);
   box-shadow: 0 8px 24px rgba(15, 23, 42, 0.12);
   opacity: 0;
-  transform: translateX(10px);
+  pointer-events: none;
   transition:
     opacity 0.18s,
     transform 0.18s;
-  pointer-events: none;
 }
 
-.rail-zone:hover .rail,
-.rail:focus-within {
+.rail.visible {
   opacity: 1;
-  transform: translateX(0);
+  transform: translateY(-50%) translateX(0);
   pointer-events: auto;
 }
 

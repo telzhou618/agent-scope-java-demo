@@ -54,7 +54,12 @@ function applySearch() {
 const isSuccess = (item: OperationLogItem) => item.result === 'success'
 
 const columns: DataTableColumns<OperationLogItem> = [
-  { title: '时间', key: 'createTime', width: 165 },
+  {
+    title: '时间',
+    key: 'createTime',
+    width: 165,
+    render: (row) => (row.createTime ?? '').replace('T', ' ').slice(0, 19) || '—',
+  },
   { title: '用户', key: 'username', width: 90, render: (row) => row.username || '—' },
   { title: '操作', key: 'operation', width: 130, ellipsis: { tooltip: true }, render: (row) => row.operation || '—' },
   { title: '方法', key: 'method', width: 70, render: (row) => row.method || '—' },

@@ -227,12 +227,13 @@ const displayName = computed(() => auth.user?.nickname || auth.user?.username ||
       </NLayoutHeader>
 
       <!--
-        滚动唯一性：外层 scroll-container 锁高 100% + overflow hidden（永不出现外层滚动条），
-        滚动由各视图内部容器负责（ChatView 消息列表 / Profile / Admin 自带 overflow-y-auto）
+        滚动模型：外层 scroll-container 负责 Profile/Admin 等流式页面滚动；
+        ChatView 恰好撑满高度（h-full）不溢出，不产生外层滚动条，消息列表内部自滚
       -->
       <NLayoutContent
         style="height: calc(100vh - 3.5rem)"
-        :content-style="{ height: '100%', overflow: 'hidden' }"
+        :content-style="{ height: '100%' }"
+        content-class="hover-scroll"
       >
         <RouterView />
       </NLayoutContent>

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { reactive, ref } from 'vue'
+import { reactive, ref, watch } from 'vue'
 import {
   NButton,
   NForm,
@@ -22,12 +22,22 @@ const auth = useAuthStore()
 const formRef = ref<FormInst | null>(null)
 const submitting = ref(false)
 
-// 预填当前值
 const form = reactive({
-  nickname: auth.user?.nickname ?? '',
-  email: auth.user?.email ?? '',
-  avatar: auth.user?.avatar ?? '',
+  nickname: '',
+  email: '',
+  avatar: '',
 })
+
+// 组件常驻挂载而用户信息可能晚到：每次打开时回填当前值
+watch(
+  () => props.show,
+  (show) => {
+    if (!show) return
+    form.nickname = auth.user?.nickname ?? ''
+    form.email = auth.user?.email ?? ''
+    form.avatar = auth.user?.avatar ?? ''
+  },
+)
 
 const rules: FormRules = {
   email: [

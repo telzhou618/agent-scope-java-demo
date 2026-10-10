@@ -5,6 +5,13 @@ body,
   margin: 0;
 }
 
+/* UnoCSS presetUno 不带 preflight：全局 border-box，否则 w-full + px-* 会撑破容器 */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
 body {
   font-family:
     'Inter',
