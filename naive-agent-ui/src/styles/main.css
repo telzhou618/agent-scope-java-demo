@@ -24,6 +24,7 @@ body,
   --brand-pressed: #4f46e5;
   --brand-solid: #6366f1;
   --brand-solid-alt: #a855f7;
+  --user-bubble-bg: #6366f1;
   --brand-soft: rgba(99, 102, 241, 0.08);
   --brand-soft-strong: rgba(99, 102, 241, 0.14);
   --brand-border: rgba(99, 102, 241, 0.25);
@@ -49,6 +50,7 @@ body,
 html[data-theme='dark'] {
   /* 深色下强调色用更亮的靛蓝，保证在暗表面上的对比度 */
   --brand: #818cf8;
+  --user-bubble-bg: #4338ca;
   --surface-sider: #101014;
   --surface-elevated: #232634;
   --divider: rgba(255, 255, 255, 0.1);

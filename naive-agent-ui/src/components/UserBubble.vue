@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
-import { NIcon, NTag } from 'naive-ui'
+import { NAvatar, NIcon, NTag } from 'naive-ui'
 import {
   ChevronDownOutline,
   DocumentOutline,
@@ -8,11 +8,17 @@ import {
 } from '@vicons/ionicons5'
 import { formatSize } from '../utils/attachments'
 import { useLightbox } from '../composables/useLightbox'
+import { useAuthStore } from '../stores/auth'
 import type { UserAttachment } from '../utils/model'
 
 const props = defineProps<{ text: string; attachments?: UserAttachment[] }>()
 
 const { open: openImage } = useLightbox()
+
+const auth = useAuthStore()
+const displayName = computed(() => auth.user?.nickname || auth.user?.username || '')
+const userAvatar = computed(() => auth.user?.avatar || '')
+const userInitial = computed(() => (displayName.value || 'U').charAt(0).toUpperCase())
 
 /** 技能前缀（/skill:<name>）解析成标签，与正文区分展示 */
 const skillName = computed(() => /^\/skill:([\w-]+)/.exec(props.text)?.[1] ?? null)
@@ -46,8 +52,10 @@ onBeforeUnmount(() => observer?.disconnect())
 </script>
 
 <template>
-  <div class="flex justify-end">
-    <div ref="bubbleRef" class="user-bubble" :class="{ collapsed: collapsible && !expanded }">
+  <div class="turn-row">
+    <div class="user-side">
+      <span v-if="displayName" class="user-name">{{ displayName }}</span>
+      <div ref="bubbleRef" class="user-bubble" :class="{ collapsed: collapsible && !expanded }">
       <div v-if="props.attachments?.length" class="mb-1.5 flex flex-wrap gap-1.5">
         <template v-for="(attachment, index) in props.attachments" :key="index">
           <img
@@ -84,17 +92,46 @@ onBeforeUnmount(() => observer?.disconnect())
           <ChevronDownOutline />
         </NIcon>
       </button>
+      </div>
     </div>
+    <NAvatar round :size="28" :src="userAvatar || undefined" class="user-avatar">
+      {{ userInitial }}
+    </NAvatar>
   </div>
 </template>
 
 <style scoped>
+.turn-row {
+  display: flex;
+  justify-content: flex-end;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.user-side {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+  max-width: 75%;
+  min-width: 0;
+}
+
+.user-name {
+  font-size: 12px;
+  opacity: 0.55;
+}
+
+.user-avatar {
+  flex-shrink: 0;
+}
+
 .user-bubble {
   position: relative;
-  max-width: 75%;
+  max-width: 100%;
   padding: 10px 14px;
   border-radius: 14px 14px 4px 14px;
-  background: var(--brand-solid);
+  background: var(--user-bubble-bg);
   color: #fff;
   font-size: 14px;
   line-height: 1.6;

@@ -97,6 +97,22 @@ public abstract class AbstractAgentFactory {
     }
 
     /**
+     * 头像：默认给一个品牌渐变的占位头像，后续可按档位接入真实资源
+     */
+    private static final String DEFAULT_AVATAR =
+            "data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%20100%20100'%3E"
+            + "%3Cdefs%3E%3ClinearGradient%20id='g'%20x1='0'%20y1='0'%20x2='1'%20y2='1'%3E"
+            + "%3Cstop%20offset='0%25'%20stop-color='%236366f1'/%3E"
+            + "%3Cstop%20offset='100%25'%20stop-color='%23a855f7'/%3E"
+            + "%3C/linearGradient%3E%3C/defs%3E"
+            + "%3Ccircle%20cx='50'%20cy='50'%20r='50'%20fill='url(%23g)'/%3E"
+            + "%3C/svg%3E";
+
+    protected String avatar() {
+        return DEFAULT_AVATAR;
+    }
+
+    /**
      * 构建 HarnessAgent：公共配置与原单 Agent 保持一致，差异项由子类模板方法注入
      */
     public HarnessAgent build() {
@@ -153,6 +169,7 @@ public abstract class AbstractAgentFactory {
         return AgentInfo.builder()
                 .name(name())
                 .displayName(displayName())
+                .avatar(avatar())
                 .description(description())
                 .model(modelName())
                 .thinking(thinkingEnabled())

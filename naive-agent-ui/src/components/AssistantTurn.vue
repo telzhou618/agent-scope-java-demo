@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
-import { NAlert, NButton, NIcon, NTooltip } from 'naive-ui'
+import { NAlert, NAvatar, NButton, NIcon, NTooltip } from 'naive-ui'
 import {
   CopyOutline,
   RefreshOutline,
@@ -11,13 +11,20 @@ import MarkdownBlock from './MarkdownBlock.vue'
 import ThinkingBlock from './ThinkingBlock.vue'
 import ToolCallCard from './ToolCallCard.vue'
 import { copyText } from '../utils/clipboard'
+import { useAgentsStore } from '../stores/agents'
 import { useChatStore } from '../stores/chat'
 import type { AssistantTurn } from '../utils/model'
 
 const props = defineProps<{ turn: AssistantTurn }>()
 
 const chat = useChatStore()
+const agents = useAgentsStore()
 const copied = ref(false)
+
+/** 会话绑定的 Agent 展示信息（头像 + displayName），列表未加载到时按 name 兜底 */
+const agentName = computed(() => agents.currentAgent?.displayName || agents.state.current || 'Agent')
+const agentAvatar = computed(() => agents.currentAgent?.avatar || '')
+const agentInitial = computed(() => (agentName.value || 'A').charAt(0).toUpperCase())
 
 /** 没有消息 ID（中断/报错的回合）时反馈无处锚定，禁用 */
 const feedbackDisabled = computed(() => !props.turn.messageId || !!props.turn.error)
@@ -40,6 +47,12 @@ function vote(value: 'up' | 'down') {
 
 <template>
   <div class="assistant-turn">
+    <!-- 会话 Agent 头像与名称 -->
+    <div class="asst-head">
+      <NAvatar round :size="26" :src="agentAvatar || undefined">{{ agentInitial }}</NAvatar>
+      <span class="asst-name">{{ agentName }}</span>
+    </div>
+
     <!-- 请求已发出但还没收到任何事件时，三点跳动占位，避免空白 -->
     <div
       v-if="props.turn.streaming && !props.turn.blocks.length && !props.turn.error"
@@ -133,6 +146,20 @@ function vote(value: 'up' | 'down') {
 /* 回合出现：轻微上浮淡入 */
 .assistant-turn {
   animation: turn-in 0.32s ease both;
+}
+
+/* 会话 Agent 头像与名称 */
+.asst-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.asst-name {
+  font-size: 13px;
+  font-weight: 600;
+  opacity: 0.85;
 }
 
 @keyframes turn-in {

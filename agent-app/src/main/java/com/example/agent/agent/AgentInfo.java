@@ -18,6 +18,9 @@ public class AgentInfo {
     @Schema(description = "展示名")
     private String displayName;
 
+    @Schema(description = "头像 URL（data URI 或 http 链接）")
+    private String avatar;
+
     @Schema(description = "能力描述")
     private String description;
 

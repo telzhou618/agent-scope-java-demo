@@ -21,11 +21,16 @@ import {
 } from '@vicons/ionicons5'
 import { useChatStore } from '../stores/chat'
 import { agentShortLabel } from '../stores/agents'
+import { useThemeStore } from '../stores/theme'
 import type { AgentSession } from '../api/types'
 import { groupLabel, relativeTime } from '../utils/format'
 
 const router = useRouter()
 const chat = useChatStore()
+const theme = useThemeStore()
+
+/** 新对话主按钮：暗色主题下用更深的靛蓝，弱化高亮 */
+const newChatColor = computed(() => (theme.isDark ? '#4338ca' : undefined))
 
 const keyword = ref('')
 
@@ -79,7 +84,7 @@ async function onRemove(session: AgentSession) {
 <template>
   <div class="h-full flex flex-col">
     <div class="p-3 flex flex-col gap-2">
-      <NButton type="primary" block @click="onNewChat">
+      <NButton type="primary" block :color="newChatColor" @click="onNewChat">
         <template #icon>
           <NIcon><AddOutline /></NIcon>
         </template>

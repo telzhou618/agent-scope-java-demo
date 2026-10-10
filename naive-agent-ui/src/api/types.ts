@@ -44,6 +44,8 @@ export interface AgentSession {
 export interface AgentInfo {
   name: string
   displayName: string
+  /** 头像 URL（data URI 或 http 链接） */
+  avatar: string
   description: string
   model: string
   thinking: boolean
