@@ -246,7 +246,7 @@ function onKeydown(event: KeyboardEvent) {
       v-model:value="draft"
       class="composer-input"
       type="textarea"
-      :autosize="{ minRows: 3, maxRows: 12 }"
+      :autosize="{ minRows: 2, maxRows: 12 }"
       placeholder="给 Agent 发消息，输入 / 唤起技能…"
       @keydown="onKeydown"
       @paste="onPaste"
