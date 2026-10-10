@@ -31,3 +31,9 @@ description: 当用户要求查询数据库、统计数据、查看表结构、�
 - 结果集用 Markdown 表格展示，列名翻译成用户能理解的中文。
 - 先给结论，再给数据；数据量大时只展示关键行，并说明总行数。
 - 用户需要图表时，可配合 data-chart 技能把查询结果可视化。
+
+## 数据导出
+
+- 用户要求导出/下载数据，或明确要 CSV 文件时，调用 `exportSqlToCsv(sql, fileName)`：SQL 必须是只读 SELECT，最多导出 20000 行。
+- 工具返回 `downloadUrl` 时，把完整链接以 Markdown 链接形式给用户（如 [下载 CSV](...)），并说明导出了多少行、是否被截断（`truncated`）。
+- 导出失败（`success=false`）时按 `error` 信息修正 SQL 重试。

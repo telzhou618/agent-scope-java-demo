@@ -121,6 +121,29 @@ public class FileStorageService {
         return IMAGE_EXTS.contains(ext);
     }
 
+    /**
+     * 数据导出目录：<root>/exports
+     */
+    public Path exportsDir() {
+        return rootDir.resolve("exports");
+    }
+
+    /**
+     * 校验并返回导出文件路径，防路径穿越，只允许 CSV
+     */
+    public Path exportFile(String fileName) {
+        if (fileName == null || fileName.isBlank()
+                || fileName.indexOf('/') >= 0 || fileName.indexOf('\\') >= 0 || fileName.contains("..")
+                || !fileName.toLowerCase().endsWith(".csv")) {
+            throw new BizException("文件名无效");
+        }
+        Path path = exportsDir().resolve(fileName).normalize();
+        if (!path.startsWith(exportsDir().normalize()) || !Files.exists(path)) {
+            throw new BizException("文件不存在或已过期");
+        }
+        return path;
+    }
+
     public String mediaType(String ext) {
         return MEDIA_TYPES.getOrDefault(ext, "application/octet-stream");
     }

@@ -1,5 +1,6 @@
 package com.example.agent.agent;
 
+import com.example.agent.tools.DataExportTools;
 import com.example.agent.tools.MysqlQueryService;
 import io.agentscope.core.tool.Toolkit;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -19,6 +20,9 @@ public class MaxAgentFactory extends AbstractAgentFactory {
 
     @Autowired
     private MysqlQueryService mysqlQueryService;
+
+    @Autowired
+    private DataExportTools dataExportTools;
 
     @Override
     protected String name() {
@@ -63,5 +67,6 @@ public class MaxAgentFactory extends AbstractAgentFactory {
     @Override
     protected void registerLocalTools(Toolkit toolkit) {
         toolkit.registerTool(mysqlQueryService);
+        toolkit.registerTool(dataExportTools);
     }
 }

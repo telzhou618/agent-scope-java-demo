@@ -76,6 +76,9 @@ usage:
 agent:
   upload:
     dir: ./files-uploads
+  # 导出文件下载链接签名密钥，生产环境用环境变量覆盖
+  download:
+    secret: ${DOWNLOAD_SIGN_SECRET:dev-download-secret}
 
 
 # 接口分组配置
