@@ -117,15 +117,15 @@ watch(
       <NButton
         v-if="!following && chat.state.turns.length"
         class="back-to-bottom"
-        round
+        circle
         size="small"
         secondary
+        aria-label="回到底部"
         @click="backToBottom"
       >
         <template #icon>
           <NIcon><ArrowDownOutline /></NIcon>
         </template>
-        回到底部
       </NButton>
     </Transition>
 
@@ -139,7 +139,7 @@ watch(
 
 <style scoped>
 .back-to-bottom {
-  position: absolute;
+  position: fixed;
   right: 20px;
   bottom: 108px;
   z-index: 10;
