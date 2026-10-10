@@ -6,12 +6,13 @@ import type { ThinkingBlockModel } from '../utils/model'
 
 const props = defineProps<{ block: ThinkingBlockModel }>()
 
-/** 流式思考中：open 且还没回填耗时 */
-const thinking = computed(() => props.block.open && !props.block.seconds)
+/** 流式思考中：未结束且处于展开态（done 优先于 open,历史消息展开不再显示"思考中"） */
+const thinking = computed(() => !props.block.done && props.block.open)
 
 const label = computed(() => {
   if (props.block.seconds) return `思考了 ${props.block.seconds} 秒`
-  return props.block.open ? '正在思考…' : '思考过程'
+  if (!props.block.done && props.block.open) return '正在思考…'
+  return '思考过程'
 })
 
 function toggle() {

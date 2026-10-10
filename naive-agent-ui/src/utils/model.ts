@@ -5,6 +5,8 @@ export interface ThinkingBlockModel {
   text: string
   /** 思考耗时（秒），实时流结束时回填 */
   seconds?: number
+  /** 思考是否已结束；历史消息无耗时回填，靠它与「正在思考」区分 */
+  done?: boolean
   open: boolean
 }
 

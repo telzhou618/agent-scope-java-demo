@@ -90,7 +90,7 @@ export function toTurns(messages: Msg[]): Turn[] {
     for (const block of message.content ?? []) {
       if (isThinkingBlock(block)) {
         if (!block.thinking.trim()) continue
-        turn.blocks.push({ kind: 'thinking', text: block.thinking, open: false })
+        turn.blocks.push({ kind: 'thinking', text: block.thinking, open: false, done: true })
       } else if (isToolUseBlock(block)) {
         const tool: ToolBlockModel = {
           kind: 'tool',

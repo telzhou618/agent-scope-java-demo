@@ -40,6 +40,7 @@ export function createLiveTurn(id: string): LiveTurn {
     const current = run
     run = null
     if (current?.kind !== 'thinking') return
+    current.block.done = true
     if (current.block.open) {
       current.block.open = false
       current.block.seconds = Math.max(1, Math.round((Date.now() - current.startedAt) / 1000))
