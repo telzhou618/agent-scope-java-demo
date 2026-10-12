@@ -22,7 +22,9 @@
 
 ## 2. 后端设计（agent-app）
 
-### 2.1 数据表（追加到 `sql/init.sql`）
+### 2.1 数据表
+
+本期新增的表全部放在独立脚本 **`sql/schedule.sql`**（不改动 `sql/init.sql`），包含三部分：Quartz 官方 MySQL InnoDB DDL（11 张 `QRTZ_*` 表，单实例不启用集群 `org.quartz.jobStore.isClustered=false`）、业务表 `t_scheduled_task`、消息表 `t_message`。
 
 **业务表**（任务的业务属性；触发状态由 Quartz 表承载，不在业务表重复）：
 
@@ -56,8 +58,6 @@ CREATE TABLE t_message (
 );
 ```
 
-**Quartz 系统表**：`sql/init.sql` 追加 Quartz 官方 MySQL InnoDB DDL（`tables_mysql_innodb.sql`，11 张 `QRTZ_*` 表），单实例不启用集群（`org.quartz.jobStore.isClustered=false`）。
-
 实体、Mapper（MyBatis-Plus `BaseMapper`，无需自定义 XML）、VO 按现有 `entity/mapper/vo` 分包惯例新增；`QRTZ_*` 表不建实体，只由 Quartz 使用。
 
 ### 2.2 Quartz 配置
@@ -70,7 +70,7 @@ spring:
   quartz:
     job-store-type: jdbc
     jdbc:
-      initialize-schema: never        # 表结构由 sql/init.sql 提供
+      initialize-schema: never        # 表结构由 sql/schedule.sql 提供
     properties:
       org.quartz.jobStore.isClustered: false
       org.quartz.scheduler.instanceName: agent-demo
