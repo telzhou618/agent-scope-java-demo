@@ -87,14 +87,19 @@ public class UserFeedbackService {
         update.setStatus(request.getStatus());
         update.setUpdateTime(LocalDateTime.now());
         feedbackMapper.updateById(update);
-        // 状态变为已处理时给提交人发系统通知（已是已处理的重复设置不重复发）
+        // 状态变为已处理且管理员勾选「通知用户」时，给提交人发系统通知（已是已处理的重复设置不重复发）；
+        // 处理结果携带在消息内容中（选填）
         boolean nowDone = request.getStatus() != null && request.getStatus() == 1;
         boolean wasDone = existing.getStatus() != null && existing.getStatus() == 1;
-        if (nowDone && !wasDone && existing.getUserId() != null) {
+        if (nowDone && !wasDone && Boolean.TRUE.equals(request.getNotify()) && existing.getUserId() != null) {
+            StringBuilder content = new StringBuilder("你提交的意见反馈已被管理员标记为「已处理」，感谢你的建议！");
+            if (StringUtils.hasText(request.getResult())) {
+                // 加粗收尾紧跟中文冒号会违反 CommonMark 定界规则导致不渲染，冒号放加粗外
+                content.append("\n\n**处理结果**：").append(request.getResult().trim());
+            }
+            content.append("\n\n> ").append(existing.getContent());
             messageService.create(existing.getUserId(), Message.TYPE_SYSTEM, "",
-                    "你提交的意见反馈已处理",
-                    "你提交的意见反馈已被管理员标记为「已处理」，感谢你的建议！\n\n> " + existing.getContent(),
-                    null, "success");
+                    "你提交的意见反馈已处理", content.toString(), null, "success");
         }
     }
 }

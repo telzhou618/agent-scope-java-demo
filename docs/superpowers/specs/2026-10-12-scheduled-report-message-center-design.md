@@ -105,7 +105,7 @@ spring:
 
 ### 2.5 系统消息钩子
 
-`UserFeedbackService.updateStatus`：当反馈状态被改为「已处理」时，向该反馈的 `user_id` 写 `t_message`（`type=system`、`sender=''`、标题「你提交的意见反馈已处理」、正文含反馈原文引用）。只在状态**变为**已处理时触发，重复设置不重复发。
+`UserFeedbackService.updateStatus`：当反馈状态被改为「已处理」且请求勾选 `notify` 时，向该反馈的 `user_id` 写 `t_message`（`type=system`、`sender=''`、标题「你提交的意见反馈已处理」、正文含处理结果与反馈原文引用）。只在状态**变为**已处理时触发，重复设置不重复发；管理端「标记已处理」弹框提供处理结果（选填）与是否通知选项。
 
 ### 2.6 REST API
 

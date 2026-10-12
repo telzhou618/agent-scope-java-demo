@@ -95,6 +95,6 @@ export const pageLogs = (params: { page: number; size: number; keyword?: string 
 export const pageFeedbacks = (params: { page: number; size: number; status?: number; keyword?: string }) =>
   http.get<Result<PageResult<FeedbackItem>>>('/user/manage/feedbacks/page', { params }).then((r) => r.data.data)
 
-/** 标记反馈处理状态 */
-export const setFeedbackStatus = (payload: { id: number; status: number }) =>
+/** 标记反馈处理状态；标为已处理时可附带处理结果并选择是否通知用户 */
+export const setFeedbackStatus = (payload: { id: number; status: number; result?: string; notify?: boolean }) =>
   http.post<Result<void>>('/user/manage/feedbacks/status', payload).then((r) => r.data.data)
