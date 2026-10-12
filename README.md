@@ -2,7 +2,8 @@
 
 Agent + MCP 演示工程：基于 [AgentScope Java](https://github.com/agentscope-ai/agentscope-java) Harness 构建智能体服务，通过 MCP（Streamable HTTP）调用工具服务。
 
-![img.png](imgs/img.png)
+![img_1.png](imgs/img_1.png)
+
 
 ## 模块说明
 
