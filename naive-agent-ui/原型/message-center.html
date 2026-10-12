@@ -1,0 +1,513 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>消息中心 · 原型</title>
+<style>
+/* 设计令牌与 naive-agent-ui/src/styles/main.css 对齐（亮色） */
+:root {
+  --brand: #6366f1;
+  --brand-hover: #818cf8;
+  --brand-soft: rgba(99, 102, 241, 0.08);
+  --brand-soft-strong: rgba(99, 102, 241, 0.14);
+  --brand-border: rgba(99, 102, 241, 0.25);
+  --surface: #ffffff;
+  --surface-subtle: rgba(100, 116, 139, 0.08);
+  --bg: #f6f7fb;
+  --text: #1f2329;
+  --text-2: #5a6072;
+  --text-3: #9aa0b4;
+  --divider: rgba(100, 116, 139, 0.14);
+  --divider-strong: rgba(100, 116, 139, 0.22);
+  --danger: #ef4444;
+  --radius: 12px;
+  --shadow-float: 0 8px 30px rgba(15, 23, 42, 0.12);
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: system-ui, -apple-system, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  font-size: 14px;
+  -webkit-font-smoothing: antialiased;
+}
+button { font-family: inherit; cursor: pointer; }
+
+/* ---------- 布局：侧栏 + 主区 ---------- */
+.layout { display: flex; min-height: 100vh; }
+
+/* 侧栏（mock，只为展示账号菜单） */
+.sidebar {
+  width: 230px; flex: none;
+  background: var(--surface);
+  border-right: 1px solid var(--divider);
+  display: flex; flex-direction: column;
+}
+.sidebar .logo-row { display: flex; align-items: center; gap: 9px; padding: 14px 16px; }
+.sidebar .logo {
+  width: 26px; height: 26px; border-radius: 8px;
+  background: linear-gradient(135deg, #6366f1, #a855f7);
+}
+.sidebar .logo-name { font-weight: 700; font-size: 14.5px; }
+.session-list { padding: 10px; display: flex; flex-direction: column; gap: 4px; }
+.session-item {
+  padding: 8px 12px; border-radius: 8px;
+  font-size: 13px; color: var(--text-2);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.session-item.active { background: var(--brand-soft); color: var(--brand); font-weight: 600; }
+
+/* 账号菜单（侧栏底部） */
+.account { margin-top: auto; position: relative; padding: 10px; border-top: 1px solid var(--divider); }
+.account-btn {
+  display: flex; align-items: center; gap: 9px; width: 100%;
+  padding: 7px 9px; border: 0; border-radius: 9px;
+  background: none; font-size: 13px; color: var(--text); text-align: left;
+}
+.account-btn:hover { background: var(--surface-subtle); }
+.account-name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.account-menu {
+  position: absolute; left: 10px; right: 10px; bottom: calc(100% + 4px);
+  background: var(--surface);
+  border: 1px solid var(--divider);
+  border-radius: 10px;
+  box-shadow: var(--shadow-float);
+  padding: 5px;
+  display: none;
+  z-index: 30;
+}
+.account-menu.open { display: block; animation: rise .16s ease; }
+@keyframes rise { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; } }
+.menu-item {
+  display: flex; align-items: center; gap: 9px; width: 100%;
+  padding: 8px 10px; border: 0; border-radius: 7px;
+  background: none; font-size: 13px; color: var(--text); text-align: left;
+}
+.menu-item:hover { background: var(--surface-subtle); }
+.menu-item svg { width: 15px; height: 15px; color: var(--text-2); }
+.menu-item.danger { color: var(--danger); }
+.menu-item.danger svg { color: var(--danger); }
+.menu-divider { height: 1px; background: var(--divider); margin: 4px 6px; }
+
+/* 主区 */
+.main { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.topbar {
+  height: 52px; flex: none;
+  background: var(--surface);
+  border-bottom: 1px solid var(--divider);
+  display: flex; align-items: center; gap: 10px;
+  padding: 0 16px;
+  position: sticky; top: 0; z-index: 10;
+}
+.topbar .title { font-weight: 600; font-size: 14.5px; }
+.topbar .spacer { flex: 1; }
+
+.icon-btn {
+  position: relative;
+  width: 32px; height: 32px;
+  display: inline-flex; align-items: center; justify-content: center;
+  border: 0; border-radius: 8px;
+  background: transparent; color: var(--text-2);
+  transition: background .15s;
+}
+.icon-btn:hover { background: var(--surface-subtle); color: var(--text); }
+.icon-btn svg { width: 19px; height: 19px; }
+
+/* 未读角标 */
+.badge {
+  position: absolute;
+  top: 2px; right: 0;
+  min-width: 15px; height: 15px; padding: 0 4px;
+  border-radius: 999px;
+  background: var(--danger); color: #fff;
+  font-size: 10px; font-weight: 700; line-height: 15px; text-align: center;
+  box-shadow: 0 0 0 2px var(--surface);
+}
+
+/* ---------- 页面容器 ---------- */
+.page { max-width: 860px; margin: 0 auto; padding: 20px 16px 60px; width: 100%; }
+.card {
+  background: var(--surface);
+  border: 1px solid var(--divider);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+
+.page-head { display: flex; align-items: center; gap: 10px; margin: 4px 0 14px; }
+.page-head h1 { font-size: 18px; font-weight: 700; }
+.page-head .sub { color: var(--text-3); font-size: 12.5px; }
+.back-btn {
+  display: inline-flex; align-items: center; gap: 4px;
+  border: 1px solid var(--divider-strong); background: var(--surface);
+  border-radius: 8px; padding: 5px 12px; font-size: 13px; color: var(--text-2);
+}
+.back-btn:hover { background: var(--surface-subtle); }
+
+/* ---------- 消息列表 ---------- */
+.msg-row {
+  display: flex; align-items: center; gap: 12px;
+  padding: 13px 16px;
+  border-top: 1px solid var(--divider);
+  cursor: pointer;
+  transition: background .15s;
+}
+.msg-row:first-child { border-top: 0; }
+.msg-row:hover { background: var(--surface-subtle); }
+
+/* 消息头像：系统 / 各 Agent */
+.msg-avatar {
+  width: 36px; height: 36px; flex: none;
+  border-radius: 50%;
+  display: inline-flex; align-items: center; justify-content: center;
+  color: #fff; font-size: 14px; font-weight: 700;
+}
+.msg-avatar svg { width: 18px; height: 18px; }
+.av-system { background: linear-gradient(135deg, #64748b, #94a3b8); }
+.av-max { background: linear-gradient(135deg, #8b5cf6, #6366f1); }
+.av-plus { background: linear-gradient(135deg, #0d9488, #14b8a6); }
+
+.msg-main { flex: 1; min-width: 0; }
+.msg-top { display: flex; align-items: center; gap: 8px; }
+.msg-from { font-size: 12px; font-weight: 600; color: var(--text-2); }
+.msg-title { font-size: 13.5px; font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin-top: 2px; }
+.msg-row.unread .msg-title { font-weight: 700; }
+.msg-preview { font-size: 12px; color: var(--text-3); margin-top: 3px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.msg-right { flex: none; display: flex; flex-direction: column; align-items: flex-end; gap: 6px; }
+.msg-time { font-size: 12px; color: var(--text-3); font-variant-numeric: tabular-nums; }
+.unread-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--danger); }
+.unread-dot.read { background: transparent; }
+
+/* ---------- 定时任务页 ---------- */
+.task-row { display: flex; align-items: center; gap: 14px; padding: 13px 18px; border-top: 1px solid var(--divider); }
+.task-row:first-child { border-top: 0; }
+.task-main { flex: 1; min-width: 0; }
+.task-desc { font-size: 13.5px; font-weight: 500; }
+.task-meta { font-size: 12px; color: var(--text-3); margin-top: 3px; font-variant-numeric: tabular-nums; }
+.task-meta code { background: var(--surface-subtle); border-radius: 4px; padding: 0 5px; font-size: 11px; }
+
+.switch {
+  position: relative; width: 34px; height: 19px; flex: none;
+  border-radius: 999px; border: 0;
+  background: rgba(100,116,139,.35);
+  transition: background .2s;
+}
+.switch::after {
+  content: ""; position: absolute; top: 2px; left: 2px;
+  width: 15px; height: 15px; border-radius: 50%;
+  background: #fff; transition: left .2s;
+  box-shadow: 0 1px 3px rgba(0,0,0,.25);
+}
+.switch.on { background: var(--brand); }
+.switch.on::after { left: 17px; }
+
+.mini-btn {
+  border: 1px solid var(--divider-strong); background: var(--surface);
+  border-radius: 7px; padding: 3px 10px; font-size: 12px; color: var(--text-2);
+}
+.mini-btn:hover { background: var(--surface-subtle); }
+.mini-btn.danger { color: var(--danger); border-color: rgba(239,68,68,.35); }
+.mini-btn.danger:hover { background: rgba(239,68,68,.08); }
+
+.pager { display: flex; align-items: center; justify-content: center; gap: 12px; padding: 14px 0 4px; }
+.pager button {
+  border: 1px solid var(--divider-strong); background: var(--surface);
+  border-radius: 8px; padding: 5px 14px; font-size: 13px; color: var(--text-2);
+}
+.pager button:disabled { opacity: .45; cursor: default; }
+.pager .info { font-size: 12.5px; color: var(--text-3); font-variant-numeric: tabular-nums; }
+
+/* ---------- 消息详情 ---------- */
+.detail-head { padding: 18px 22px 14px; border-bottom: 1px solid var(--divider); display: flex; gap: 12px; align-items: flex-start; }
+.detail-head .msg-avatar { width: 40px; height: 40px; font-size: 15px; }
+.detail-head h2 { font-size: 17px; font-weight: 700; margin: 2px 0 5px; }
+.detail-meta { font-size: 12.5px; color: var(--text-3); display: flex; gap: 10px; align-items: center; }
+
+/* Markdown 正文（对齐对话气泡渲染） */
+.prose { padding: 18px 22px 26px; font-size: 14px; line-height: 1.8; color: var(--text); }
+.prose h3 { font-size: 15px; font-weight: 650; margin: 18px 0 8px; }
+.prose p { margin: 0 0 10px; }
+.prose table { width: 100%; border-collapse: collapse; margin: 0 0 14px; font-size: 13px; }
+.prose th, .prose td { border: 1px solid var(--divider-strong); padding: 6px 10px; text-align: left; }
+.prose th { background: var(--surface-subtle); font-weight: 600; }
+.prose .num { text-align: right; font-variant-numeric: tabular-nums; }
+.prose a { color: var(--brand); text-decoration: none; }
+.prose a:hover { text-decoration: underline; }
+.prose hr { border: 0; border-top: 1px solid var(--divider); margin: 16px 0; }
+.prose .fail-note { color: var(--danger); }
+
+.system-quote {
+  margin: 10px 22px 24px; padding: 10px 14px;
+  border-left: 3px solid var(--brand-border);
+  background: var(--brand-soft);
+  border-radius: 0 8px 8px 0;
+  color: var(--text-2); font-size: 13px;
+}
+.system-body { padding: 18px 22px 0; font-size: 14px; line-height: 1.8; }
+
+/* 视图切换 */
+.view { display: none; }
+.view.show { display: block; animation: fade .18s ease; }
+@keyframes fade { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; } }
+
+.hint { text-align: center; color: var(--text-3); font-size: 12px; padding: 14px 0 0; }
+</style>
+</head>
+<body>
+
+<div class="layout">
+  <!-- ============ 侧栏（mock：账号菜单含「定时任务」入口） ============ -->
+  <aside class="sidebar">
+    <div class="logo-row"><div class="logo"></div><span class="logo-name">AgentScope</span></div>
+    <div class="session-list">
+      <div class="session-item active">运营数据分析</div>
+      <div class="session-item">报表导出格式讨论</div>
+      <div class="session-item">杭州天气查询</div>
+    </div>
+    <div class="account">
+      <div class="account-menu" id="accountMenu">
+        <button class="menu-item">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="3.5"/><path d="M5 20a7 7 0 0 1 14 0"/></svg>
+          个人中心
+        </button>
+        <button class="menu-item" id="menuTasks">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
+          定时任务
+        </button>
+        <div class="menu-divider"></div>
+        <button class="menu-item danger">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4H6a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h3"/><path d="m16 8 4 4-4 4"/><path d="M20 12H9"/></svg>
+          退出登录
+        </button>
+      </div>
+      <button class="account-btn" id="accountBtn">
+        <span class="msg-avatar av-max" style="width:28px;height:28px;font-size:12px;">管</span>
+        <span class="account-name">管理员</span>
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:var(--text-3)"><path d="m6 9 6 6 6-6"/></svg>
+      </button>
+    </div>
+  </aside>
+
+  <!-- ============ 主区 ============ -->
+  <div class="main">
+    <div class="topbar">
+      <span class="title" id="topbarTitle">运营数据分析</span>
+      <span class="spacer"></span>
+      <button class="icon-btn" id="bell" title="消息中心">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/>
+        </svg>
+        <span class="badge" id="badge">3</span>
+      </button>
+    </div>
+
+    <!-- ============ 消息中心 · 列表 ============ -->
+    <div class="page view" id="view-list">
+      <div class="page-head">
+        <h1>消息中心</h1>
+        <span class="sub" id="unreadText">3 条未读</span>
+      </div>
+      <div class="card">
+        <div class="msg-row unread" data-msg="report">
+          <span class="msg-avatar av-max">M</span>
+          <div class="msg-main">
+            <div class="msg-top"><span class="msg-from">Agent Max</span></div>
+            <div class="msg-title">每周运营报告（10-06 ~ 10-12）</div>
+            <div class="msg-preview">本周活跃用户数 12,480，环比增长 8.3%；付费转化率 4.2%…</div>
+          </div>
+          <div class="msg-right">
+            <span class="msg-time">10-13 09:00</span>
+            <span class="unread-dot"></span>
+          </div>
+        </div>
+        <div class="msg-row unread" data-msg="system">
+          <span class="msg-avatar av-system">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16v10a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2z"/><path d="m4 7 8 6 8-6"/></svg>
+          </span>
+          <div class="msg-main">
+            <div class="msg-top"><span class="msg-from">系统通知</span></div>
+            <div class="msg-title">你提交的意见反馈已处理</div>
+            <div class="msg-preview">「希望报表支持导出 Excel」已被标记为已处理…</div>
+          </div>
+          <div class="msg-right">
+            <span class="msg-time">10-12 16:40</span>
+            <span class="unread-dot"></span>
+          </div>
+        </div>
+        <div class="msg-row unread" data-msg="report-fail">
+          <span class="msg-avatar av-plus">P</span>
+          <div class="msg-main">
+            <div class="msg-top"><span class="msg-from">Agent Plus</span></div>
+            <div class="msg-title">每日销售数据摘要（10-12）生成失败</div>
+            <div class="msg-preview">任务执行超时（5 分钟），将于下个周期重试…</div>
+          </div>
+          <div class="msg-right">
+            <span class="msg-time">10-13 08:00</span>
+            <span class="unread-dot"></span>
+          </div>
+        </div>
+        <div class="msg-row" data-msg="report">
+          <span class="msg-avatar av-max">M</span>
+          <div class="msg-main">
+            <div class="msg-top"><span class="msg-from">Agent Max</span></div>
+            <div class="msg-title">每周运营报告（09-22 ~ 09-28）</div>
+            <div class="msg-preview">本周活跃用户数 11,527，环比增长 3.1%…</div>
+          </div>
+          <div class="msg-right">
+            <span class="msg-time">09-29 09:00</span>
+            <span class="unread-dot read"></span>
+          </div>
+        </div>
+      </div>
+      <div class="pager">
+        <button disabled>上一页</button>
+        <span class="info">第 1 / 1 页 · 共 4 条</span>
+        <button disabled>下一页</button>
+      </div>
+    </div>
+
+    <!-- ============ 定时任务（独立页，账号菜单进入） ============ -->
+    <div class="page view" id="view-tasks">
+      <div class="page-head">
+        <h1>定时任务</h1>
+        <span class="sub">2 个任务</span>
+      </div>
+      <div class="card">
+        <div class="task-row">
+          <div class="task-main">
+            <div class="task-desc">每周一把上周的运营报告发我</div>
+            <div class="task-meta"><code>0 0 9 ? * MON</code> · Agent Max · 上次执行 10-13 09:00 · 下次 10-20 09:00</div>
+          </div>
+          <button class="switch on" title="停用"></button>
+          <button class="mini-btn danger">删除</button>
+        </div>
+        <div class="task-row">
+          <div class="task-main">
+            <div class="task-desc">每天早上给我昨天的销售数据摘要</div>
+            <div class="task-meta"><code>0 0 8 * * ?</code> · Agent Plus · 已停用</div>
+          </div>
+          <button class="switch" title="启用"></button>
+          <button class="mini-btn danger">删除</button>
+        </div>
+      </div>
+      <div class="hint">定时任务通过对话创建，例如对 Agent 说「每周一把上周的运营报告发我」</div>
+    </div>
+
+    <!-- ============ 消息详情 · Agent 报告 ============ -->
+    <div class="page view" id="view-report">
+      <div class="page-head">
+        <button class="back-btn" data-back>‹ 返回列表</button>
+      </div>
+      <div class="card">
+        <div class="detail-head">
+          <span class="msg-avatar av-max">M</span>
+          <div>
+            <h2>每周运营报告（10-06 ~ 10-12）</h2>
+            <div class="detail-meta"><span>Agent Max</span><span>2026-10-13 09:00</span></div>
+          </div>
+        </div>
+        <div class="prose">
+          <h3>总体概况</h3>
+          <p>本周活跃用户数 <b>12,480</b>，环比增长 <b>8.3%</b>；新增注册 1,842，环比下降 2.1%。付费转化率 4.2%，与上周持平。整体走势向好，活跃度提升主要来自周一的新版本发布。</p>
+          <h3>核心指标</h3>
+          <table>
+            <tr><th>指标</th><th>本周</th><th>上周</th><th>环比</th></tr>
+            <tr><td>活跃用户</td><td class="num">12,480</td><td class="num">11,527</td><td class="num">+8.3%</td></tr>
+            <tr><td>新增注册</td><td class="num">1,842</td><td class="num">1,881</td><td class="num">-2.1%</td></tr>
+            <tr><td>付费转化率</td><td class="num">4.2%</td><td class="num">4.2%</td><td class="num">0.0%</td></tr>
+            <tr><td>客单价</td><td class="num">¥326</td><td class="num">¥301</td><td class="num">+8.3%</td></tr>
+          </table>
+          <h3>异常与建议</h3>
+          <p>周三晚间 21:00-22:00 出现注册接口错误率升高（峰值 3.2%），建议排查短信通道容量。</p>
+          <hr />
+          <p>数据明细：<a href="#">下载 CSV 明细表</a></p>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============ 消息详情 · 系统通知 ============ -->
+    <div class="page view" id="view-system">
+      <div class="page-head">
+        <button class="back-btn" data-back>‹ 返回列表</button>
+      </div>
+      <div class="card">
+        <div class="detail-head">
+          <span class="msg-avatar av-system">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16v10a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2z"/><path d="m4 7 8 6 8-6"/></svg>
+          </span>
+          <div>
+            <h2>你提交的意见反馈已处理</h2>
+            <div class="detail-meta"><span>系统通知</span><span>2026-10-12 16:40</span></div>
+          </div>
+        </div>
+        <div class="system-body">
+          <p>你于 2026-10-08 提交的意见反馈已被管理员标记为「已处理」，感谢你的建议！</p>
+        </div>
+        <div class="system-quote">希望报表支持导出 Excel，目前只有 CSV，财务同事用起来不方便。</div>
+      </div>
+    </div>
+
+    <!-- ============ 消息详情 · 失败报告 ============ -->
+    <div class="page view" id="view-report-fail">
+      <div class="page-head">
+        <button class="back-btn" data-back>‹ 返回列表</button>
+      </div>
+      <div class="card">
+        <div class="detail-head">
+          <span class="msg-avatar av-plus">P</span>
+          <div>
+            <h2>每日销售数据摘要（10-12）生成失败</h2>
+            <div class="detail-meta"><span>Agent Plus</span><span>2026-10-13 08:00</span></div>
+          </div>
+        </div>
+        <div class="prose">
+          <p class="fail-note">本次定时任务执行失败：任务执行超时（5 分钟）。</p>
+          <p>任务未被中断，将于下个周期（10-14 08:00）正常重试。如需立即生成，可直接在对话中向 Agent 发起请求。</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const views = ['list', 'tasks', 'report', 'system', 'report-fail']
+let unread = 3
+const titles = { list: '消息中心', tasks: '定时任务', report: '消息中心', system: '消息中心', 'report-fail': '消息中心' }
+
+function show(name) {
+  views.forEach(v => document.getElementById('view-' + v).classList.toggle('show', v === name))
+  document.getElementById('topbarTitle').textContent = titles[name]
+  document.getElementById('accountMenu').classList.remove('open')
+  window.scrollTo(0, 0)
+}
+
+document.getElementById('bell').onclick = () => show('list')
+document.querySelectorAll('[data-back]').forEach(b => b.onclick = () => show('list'))
+
+// 账号菜单
+const menu = document.getElementById('accountMenu')
+document.getElementById('accountBtn').onclick = (e) => { e.stopPropagation(); menu.classList.toggle('open') }
+document.addEventListener('click', () => menu.classList.remove('open'))
+document.getElementById('menuTasks').onclick = () => show('tasks')
+
+// 打开消息 → 标已读 → 详情
+document.querySelectorAll('.msg-row').forEach(row => {
+  row.onclick = () => {
+    if (row.classList.contains('unread')) {
+      row.classList.remove('unread')
+      row.querySelector('.unread-dot').classList.add('read')
+      unread--
+      const badge = document.getElementById('badge')
+      badge.textContent = unread
+      badge.style.display = unread > 0 ? '' : 'none'
+      document.getElementById('unreadText').textContent = unread > 0 ? unread + ' 条未读' : '全部已读'
+    }
+    show(row.dataset.msg)
+  }
+})
+
+// 任务开关
+document.querySelectorAll('.switch').forEach(sw => sw.onclick = () => sw.classList.toggle('on'))
+</script>
+</body>
+</html>
