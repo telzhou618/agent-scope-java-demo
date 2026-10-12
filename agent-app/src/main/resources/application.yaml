@@ -63,14 +63,14 @@ usage:
   output-price-per-million: 24
   price:
     qwen3.7-flash:
-      input: 1
-      output: 4
+      input: 1.2
+      output: 4.8
     qwen3.7-plus:
       input: 6
       output: 24
     qwen3.7-max:
-      input: 24
-      output: 96
+      input: 12
+      output: 36
 
 # 聊天附件存储目录
 agent:
