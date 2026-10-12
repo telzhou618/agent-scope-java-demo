@@ -11,7 +11,7 @@ import { useLightbox } from '../composables/useLightbox'
 import { useAuthStore } from '../stores/auth'
 import type { UserAttachment } from '../utils/model'
 
-const props = defineProps<{ text: string; attachments?: UserAttachment[] }>()
+const props = defineProps<{ text: string; attachments?: UserAttachment[]; skill?: string }>()
 
 const { open: openImage } = useLightbox()
 
@@ -20,10 +20,11 @@ const displayName = computed(() => auth.user?.nickname || auth.user?.username ||
 const userAvatar = computed(() => auth.user?.avatar || '')
 const userInitial = computed(() => (displayName.value || 'U').charAt(0).toUpperCase())
 
-/** 技能前缀（/skill:<name>）解析成标签，与正文区分展示 */
-const skillName = computed(() => /^\/skill:([\w-]+)/.exec(props.text)?.[1] ?? null)
+/** 技能标签：新消息走独立 skill 字段；兼容旧数据里拼在文本上的 /skill:<name> 前缀 */
+const legacySkill = computed(() => /^\/skill:([\w-]+)/.exec(props.text)?.[1] ?? null)
+const skillName = computed(() => props.skill ?? legacySkill.value)
 const restText = computed(() =>
-  skillName.value ? props.text.replace(/^\/skill:[\w-]+\s*/, '') : props.text,
+  legacySkill.value ? props.text.replace(/^\/skill:[\w-]+\s*/, '') : props.text,
 )
 
 /** 折叠态最大高度（约 6 行），明显超出才显示展开/收起按钮 */

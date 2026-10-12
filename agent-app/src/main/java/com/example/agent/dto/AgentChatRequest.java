@@ -30,6 +30,9 @@ public class AgentChatRequest {
     @Schema(description = "请求ID")
     private String requestId;
 
+    @Schema(description = "技能名（输入框选中的 /skill:<name>），独立传参，不拼进用户消息")
+    private String skill;
+
     @Schema(description = "附件列表")
     private List<ChatAttachment> attachments;
 }

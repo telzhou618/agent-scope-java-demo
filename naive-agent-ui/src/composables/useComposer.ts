@@ -7,7 +7,7 @@ import { MAX_ATTACHMENTS, MAX_FILE_SIZE, attachmentKind, fileExt, isAllowedExt, 
 
 const draft = ref('')
 const focusToken = ref(0)
-/** 当前选中的技能名（/skill:<name>），发送时拼回消息前缀 */
+/** 当前选中的技能名（/skill:<name>），发送时随请求 skill 字段独立传给后端 */
 const skill = ref<string | null>(null)
 const attachments = ref<ComposerAttachment[]>([])
 const uploading = ref(0)

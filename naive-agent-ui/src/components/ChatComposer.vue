@@ -63,14 +63,15 @@ const DEFAULT_ATTACHMENT_MESSAGE = '请帮我分析这些附件'
 function submit() {
   if (chat.state.streaming || uploading.value > 0) return
   const raw = draft.value.trim()
-  // 选中技能时拼回 /skill:<name> 前缀，后端据此提示 Agent 使用该技能
-  const text = skill.value ? `/skill:${skill.value}${raw ? ' ' + raw : ''}` : raw
-  if (!text && attachments.value.length === 0) return
+  if (!raw && attachments.value.length === 0 && !skill.value) return
   const list = attachments.value.map((item) => ({ ...item }))
+  // 技能走独立字段随请求传给后端，不再拼进消息文本；空文本+附件时用兜底文案
+  const text = raw || (list.length > 0 ? DEFAULT_ATTACHMENT_MESSAGE : '')
+  const skillName = skill.value || undefined
   clear()
   clearSkill()
   resetAttachments()
-  void chat.send(text || DEFAULT_ATTACHMENT_MESSAGE, list)
+  void chat.send(text, list, { skill: skillName })
 }
 
 function pickFiles() {

@@ -13,6 +13,7 @@ import io.agentscope.core.skill.repository.ClasspathSkillRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
+import org.springframework.util.StringUtils;
 
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
@@ -20,29 +21,32 @@ import java.util.Base64;
 import java.util.List;
 
 /**
- * 用户消息构建：空消息兜底、附件（图片/文档/文本）转 ContentBlock、/skill:&lt;name&gt; 前缀转技能提示
+ * 用户消息构建：空消息兜底、附件（图片/文档/文本）转 ContentBlock、技能名转技能提示
  */
 @Slf4j
 @Component
 @RequiredArgsConstructor
 public class ChatMessageFactory {
 
-    private static final String SKILL_PREFIX = "/skill:";
-
     private final FileStorageService fileStorageService;
     private final DocumentTextExtractor documentTextExtractor;
     private final ClasspathSkillRepository skillRepository;
 
     /**
-     * 空消息且有附件时替换为兜底文案；既无消息又无附件抛业务异常
+     * 空消息兜底：有附件时替换为兜底文案，有技能时返回空串（技能提示即为内容）；
+     * 消息、附件、技能三者皆空抛业务异常
      */
     public String effectiveMessage(AgentChatRequest request) {
         boolean blank = request.getMessage() == null || request.getMessage().isBlank();
+        if (!blank) {
+            return request.getMessage();
+        }
         boolean hasAttachments = request.getAttachments() != null && !request.getAttachments().isEmpty();
-        if (blank && !hasAttachments) {
+        boolean hasSkill = StringUtils.hasText(request.getSkill());
+        if (!hasAttachments && !hasSkill) {
             throw new BizException("用户消息不能为空");
         }
-        return blank ? "请查看我发送的文件" : request.getMessage();
+        return hasSkill ? "" : "请查看我发送的文件";
     }
 
     public UserMessage buildUserMessage(String userId, String sessionId, String text,
@@ -78,28 +82,20 @@ public class ChatMessageFactory {
     }
 
     /**
-     * /skill:&lt;name&gt; 前缀转换为技能使用提示；技能存在时告知模型使用哪个技能，
-     * 详情由 Agent 调内置工具 load_skill_through_path 自行加载；非技能消息原样返回
+     * 技能名转换为技能使用提示：告知模型使用哪个技能，
+     * 详情由 Agent 调内置工具 load_skill_through_path 自行加载；无技能时原样返回
      */
-    public String applySkillHint(String message) {
-        if (message == null || !message.startsWith(SKILL_PREFIX)) {
+    public String applySkillHint(String skill, String message) {
+        if (!StringUtils.hasText(skill)) {
             return message;
         }
-        String rest = message.substring(SKILL_PREFIX.length());
-        int split = -1;
-        for (int i = 0; i < rest.length(); i++) {
-            if (Character.isWhitespace(rest.charAt(i))) {
-                split = i;
-                break;
-            }
+        AgentSkill agentSkill = skillRepository.getSkill(skill);
+        if (agentSkill == null) {
+            log.warn("技能不存在: {}", skill);
+            throw new BizException("技能不存在: " + skill);
         }
-        String name = split < 0 ? rest : rest.substring(0, split);
-        String requirement = split < 0 ? "" : rest.substring(split).trim();
-        AgentSkill skill = skillRepository.getSkill(name);
-        if (skill == null) {
-            log.warn("技能不存在，按普通消息处理: {}", name);
-            return message;
-        }
-        return "请使用 " + name + " 技能完成以下需求：" + requirement;
+        return StringUtils.hasText(message)
+                ? "请使用 " + skill + " 技能完成以下需求：" + message
+                : "请使用 " + skill + " 技能";
     }
 }

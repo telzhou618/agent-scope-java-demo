@@ -50,8 +50,9 @@ public class AgentChatService {
         // 按请求指定档位取 Agent，未知名称抛业务异常；先校验当前用户是否有该档位使用权限
         agentPermissionService.checkAgent(loginId, request.getAgentName());
         HarnessAgent agent = agentRegistry.getAgent(request.getAgentName());
-        // /skill:<name> 前缀转成技能使用提示，Agent 通过 load_skill_through_path 自行加载技能详情
-        String message = chatMessageFactory.applySkillHint(chatMessageFactory.effectiveMessage(request));
+        // 技能独立字段转成技能使用提示，Agent 通过 load_skill_through_path 自行加载技能详情
+        String message = chatMessageFactory.applySkillHint(request.getSkill(),
+                chatMessageFactory.effectiveMessage(request));
         // URL 直达等路径进入的会话可能没有 meta：补建占位标题并异步生成正式标题（已有 meta 则跳过）
         if (!sessionTitleService.hasMeta(userId, request.getSessionId())) {
             sessionTitleService.createPlaceholder(userId, request.getSessionId(), request.getAgentName());
