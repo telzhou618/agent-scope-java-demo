@@ -2,6 +2,7 @@ package com.example.agent.agent;
 
 import com.example.agent.error.BizException;
 import io.agentscope.harness.agent.HarnessAgent;
+import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
@@ -18,6 +19,11 @@ public class AgentRegistry {
 
     private final Map<String, HarnessAgent> agents = new LinkedHashMap<>();
     private final Map<String, AgentInfo> infos = new LinkedHashMap<>();
+    /**
+     * -- GETTER --
+     *  默认 Agent 标识名（flash）
+     */
+    @Getter
     private final String defaultAgentName;
 
     public AgentRegistry(List<AbstractAgentFactory> factories) {
@@ -63,10 +69,4 @@ public class AgentRegistry {
         return List.copyOf(infos.values());
     }
 
-    /**
-     * 默认 Agent 标识名（flash）
-     */
-    public String getDefaultAgentName() {
-        return defaultAgentName;
-    }
 }
