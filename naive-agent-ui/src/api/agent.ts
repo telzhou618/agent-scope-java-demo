@@ -1,5 +1,5 @@
 import { API_BASE, http } from './http'
-import type { AgentInfo, AgentSession, ChatAttachment, Msg, Result, SkillInfo } from './types'
+import type { AgentInfo, AgentSession, ChatAttachment, Msg, PageResult, Result, SkillInfo } from './types'
 import type { RecentRequestItem, UsageSummary } from '../utils/usage'
 
 /** 可用 Agent 列表（顶栏选择器；后端已按用户权限过滤） */
@@ -51,6 +51,6 @@ export const getFeedbacks = (sessionId: string) =>
 export const getUsageSummary = (params: { start: string; end: string; granularity: 'hour' | 'day' }) =>
   http.get<Result<UsageSummary>>(`${API_BASE}/usage/summary`, { params }).then((r) => r.data.data)
 
-/** 最近请求记录（区间内最近 10 条，按时间倒序） */
-export const getRecentRequests = (params: { start: string; end: string }) =>
-  http.get<Result<RecentRequestItem[]>>(`${API_BASE}/usage/recent`, { params }).then((r) => r.data.data)
+/** 最近请求记录（区间内按时间倒序分页） */
+export const getRecentRequests = (params: { start: string; end: string; page: number; size: number }) =>
+  http.get<Result<PageResult<RecentRequestItem>>>(`${API_BASE}/usage/recent`, { params }).then((r) => r.data.data)

@@ -1,5 +1,7 @@
 package com.example.agent.service;
 
+import com.baomidou.mybatisplus.core.metadata.IPage;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.example.agent.entity.TokenUsage;
 import com.example.agent.mapper.TokenUsageMapper;
 import com.example.agent.vo.RecentRequestVO;
@@ -122,22 +124,16 @@ public class TokenUsageService {
     }
 
     /**
-     * 最近请求记录：区间内按请求时间倒序取最近 10 条。
+     * 最近请求记录：区间内按请求时间倒序分页
      */
-    public List<RecentRequestVO> recent(long userId, String start, String end) {
-        return recent(userId, LocalDate.parse(start), LocalDate.parse(end));
-    }
+    public Page<RecentRequestVO> recent(long userId, String start, String end, long page, long size) {
+        LocalDateTime startTime = LocalDate.parse(start).atStartOfDay();
+        LocalDateTime endTime = LocalDate.parse(end).plusDays(1).atStartOfDay();
+        IPage<TokenUsage> recordsPage = tokenUsageMapper.selectRecent(
+                new Page<>(page, size), userId, startTime, endTime);
 
-    /**
-     * 最近请求记录：区间内按请求时间倒序取最近 10 条。
-     */
-    public List<RecentRequestVO> recent(long userId, LocalDate start, LocalDate end) {
-        LocalDateTime startTime = start.atStartOfDay();
-        LocalDateTime endTime = end.plusDays(1).atStartOfDay();
-        List<TokenUsage> records = tokenUsageMapper.selectRecent(userId, startTime, endTime);
-
-        List<RecentRequestVO> result = new ArrayList<>(records.size());
-        for (TokenUsage record : records) {
+        Page<RecentRequestVO> result = new Page<>(recordsPage.getCurrent(), recordsPage.getSize(), recordsPage.getTotal());
+        result.setRecords(recordsPage.getRecords().stream().map(record -> {
             RecentRequestVO vo = new RecentRequestVO();
             vo.setSessionId(record.getSessionId());
             vo.setRequestId(record.getRequestId());
@@ -147,8 +143,8 @@ public class TokenUsageService {
             vo.setDurationSeconds(record.getDurationSeconds());
             vo.setCost(record.getCost() == null ? BigDecimal.ZERO : record.getCost());
             vo.setCreateTime(record.getCreateTime());
-            result.add(vo);
-        }
+            return vo;
+        }).toList());
         return result;
     }
 

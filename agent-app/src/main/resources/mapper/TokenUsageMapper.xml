@@ -44,7 +44,6 @@
         FROM t_token_usage
         WHERE user_id = #{userId} AND create_time &gt;= #{start} AND create_time &lt; #{end}
         ORDER BY create_time DESC, id DESC
-        LIMIT 10
     </select>
 
 </mapper>

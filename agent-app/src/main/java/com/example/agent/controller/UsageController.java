@@ -1,6 +1,7 @@
 package com.example.agent.controller;
 
 import cn.dev33.satoken.stp.StpUtil;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.example.agent.dto.Result;
 import com.example.agent.service.TokenUsageService;
 import com.example.agent.vo.RecentRequestVO;
@@ -10,9 +11,8 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
-
-import java.util.List;
 
 /**
  * token 消耗统计接口（用户身份从 token 解析）
@@ -32,8 +32,10 @@ public class UsageController {
     }
 
     @GetMapping("/recent")
-    @Operation(summary = "最近请求记录（区间内最近 10 条）")
-    public Result<List<RecentRequestVO>> recent(String start, String end) {
-        return Result.okData(usageService.recent(StpUtil.getLoginIdAsLong(), start, end));
+    @Operation(summary = "最近请求记录（区间内按时间倒序分页）")
+    public Result<Page<RecentRequestVO>> recent(String start, String end,
+                                                @RequestParam(defaultValue = "1") long page,
+                                                @RequestParam(defaultValue = "10") long size) {
+        return Result.okData(usageService.recent(StpUtil.getLoginIdAsLong(), start, end, page, size));
     }
 }

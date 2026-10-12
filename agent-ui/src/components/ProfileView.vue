@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
-import { useRouter } from 'vue-router'
 import AppIcon from './AppIcon.vue'
 import EditProfileDialog from './EditProfileDialog.vue'
 import PasswordDialog from './PasswordDialog.vue'
@@ -20,7 +19,6 @@ import {
 } from '../utils/usage'
 
 const auth = useAuthStore()
-const router = useRouter()
 
 /** 用户信息：来自 /auth/current 的真实数据 */
 const displayName = computed(() => auth.user?.nickname || auth.user?.username || '未登录')
@@ -42,9 +40,14 @@ const custom = ref(defaultCustomRange())
 const usage = ref<UsageSummary | null>(null)
 const loadingUsage = ref(false)
 
-/** 最近请求记录（区间内最近 10 条） */
+/** 最近请求记录（区间内分页） */
+const RECENT_PAGE_SIZE = 10
 const recent = ref<RecentRequestItem[] | null>(null)
+const recentPage = ref(1)
+const recentTotal = ref(0)
 const loadingRecent = ref(false)
+
+const recentTotalPages = computed(() => Math.max(1, Math.ceil(recentTotal.value / RECENT_PAGE_SIZE)))
 
 const rangeLabel = computed(
   () => RANGE_OPTIONS.find((option) => option.key === rangeKey.value)?.label ?? '',
@@ -64,20 +67,38 @@ async function loadUsage() {
   }
 }
 
-/** 最近请求记录：跟随时间维度变化，取区间内最近 10 条 */
+/** 最近请求记录：跟随时间维度变化，区间内按时间倒序分页 */
 async function loadRecent() {
   const { start, end } = resolveBounds(rangeKey.value, custom.value)
   loadingRecent.value = true
   try {
-    recent.value = await getRecentRequests({ start: toDateInput(start), end: toDateInput(end) })
+    const result = await getRecentRequests({
+      start: toDateInput(start),
+      end: toDateInput(end),
+      page: recentPage.value,
+      size: RECENT_PAGE_SIZE,
+    })
+    recent.value = result.records ?? []
+    recentTotal.value = result.total ?? 0
+    if (recentPage.value > recentTotalPages.value) {
+      recentPage.value = recentTotalPages.value
+      return loadRecent()
+    }
   } finally {
     loadingRecent.value = false
   }
 }
 
+function goRecentPage(next: number) {
+  if (next < 1 || next > recentTotalPages.value || next === recentPage.value) return
+  recentPage.value = next
+  void loadRecent()
+}
+
 watch(
   [rangeKey, () => custom.value.start, () => custom.value.end],
   () => {
+    recentPage.value = 1
     void loadUsage()
     void loadRecent()
   },
@@ -166,12 +187,6 @@ function onBarEnter(event: MouseEvent) {
 /** createTime 是 ISO LocalDateTime（含 T），只展示到秒 */
 function formatTime(value: string): string {
   return value.replace('T', ' ').slice(0, 19)
-}
-
-/** 最近请求行点击：跳到对应会话（没有 sessionId 的行不可点） */
-function openRequest(item: RecentRequestItem) {
-  if (!item.sessionId) return
-  void router.push({ name: 'chat-session', params: { sessionId: item.sessionId } })
 }
 </script>
 
@@ -338,9 +353,6 @@ function openRequest(item: RecentRequestItem) {
             <tr
               v-for="(item, index) in recent"
               :key="index"
-              :class="{ clickable: !!item.sessionId }"
-              :title="item.sessionId ? '打开对应会话' : undefined"
-              @click="openRequest(item)"
             >
               <td class="col-time">{{ formatTime(item.createTime) }}</td>
               <td class="col-title" :title="item.requestId">{{ item.requestId }}</td>
@@ -356,6 +368,26 @@ function openRequest(item: RecentRequestItem) {
           {{ loadingRecent ? '正在加载最近请求…' : '该时间段暂无请求记录' }}
         </div>
       </div>
+    </div>
+
+    <div v-if="recent && recent.length > 0" class="users-pager">
+      <button
+        class="btn-ghost"
+        type="button"
+        :disabled="recentPage <= 1 || loadingRecent"
+        @click="goRecentPage(recentPage - 1)"
+      >
+        上一页
+      </button>
+      <span class="users-pager-info">第 {{ recentPage }} / {{ recentTotalPages }} 页 · 共 {{ recentTotal }} 条</span>
+      <button
+        class="btn-ghost"
+        type="button"
+        :disabled="recentPage >= recentTotalPages || loadingRecent"
+        @click="goRecentPage(recentPage + 1)"
+      >
+        下一页
+      </button>
     </div>
   </div>
 </template>

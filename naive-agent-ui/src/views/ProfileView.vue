@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
-import { useRouter } from 'vue-router'
 import {
   NAvatar,
   NButton,
@@ -35,7 +34,6 @@ import {
 } from '../utils/usage'
 
 const auth = useAuthStore()
-const router = useRouter()
 
 const displayName = computed(() => auth.user?.nickname || auth.user?.username || '未登录')
 
@@ -48,7 +46,11 @@ const custom = ref<[number, number] | null>(defaultCustomRange())
 const usage = ref<UsageSummary | null>(null)
 const loadingUsage = ref(false)
 
+/* ---- 最近请求记录（服务端分页） ---- */
+const RECENT_PAGE_SIZE = 10
 const recent = ref<RecentRequestItem[]>([])
+const recentPage = ref(1)
+const recentTotal = ref(0)
 const loadingRecent = ref(false)
 
 const rangeOptions = RANGE_OPTIONS.map((option) => ({ label: option.label, value: option.key }))
@@ -73,9 +75,22 @@ async function loadRecent() {
   const { start, end } = resolveBounds(rangeKey.value, custom.value)
   loadingRecent.value = true
   try {
-    recent.value = (await getRecentRequests({ start: toDateInput(start), end: toDateInput(end) })) ?? []
+    const result = await getRecentRequests({
+      start: toDateInput(start),
+      end: toDateInput(end),
+      page: recentPage.value,
+      size: RECENT_PAGE_SIZE,
+    })
+    recent.value = result?.records ?? []
+    recentTotal.value = result?.total ?? 0
+    const totalPages = Math.max(1, Math.ceil(recentTotal.value / RECENT_PAGE_SIZE))
+    if (recentPage.value > totalPages) {
+      recentPage.value = totalPages
+      return loadRecent()
+    }
   } catch {
     recent.value = []
+    recentTotal.value = 0
   } finally {
     loadingRecent.value = false
   }
@@ -84,6 +99,7 @@ async function loadRecent() {
 watch(
   [rangeKey, custom],
   () => {
+    recentPage.value = 1
     void loadUsage()
     void loadRecent()
   },
@@ -173,17 +189,6 @@ const recentColumns: DataTableColumns<RecentRequestItem> = [
     render: (row) => formatMoney(row.cost),
   },
 ]
-
-/** 行点击：跳到对应会话（没有 sessionId 的行不可点） */
-function rowProps(row: RecentRequestItem) {
-  return {
-    style: row.sessionId ? 'cursor: pointer;' : '',
-    title: row.sessionId ? '打开对应会话' : undefined,
-    onClick: () => {
-      if (row.sessionId) void router.push(`/chat/${row.sessionId}`)
-    },
-  }
-}
 </script>
 
 <template>
@@ -304,12 +309,21 @@ function rowProps(row: RecentRequestItem) {
       <!-- 最近请求 -->
       <NCard title="最近请求记录">
         <NDataTable
+          remote
           :columns="recentColumns"
           :data="recent"
           :loading="loadingRecent"
-          :row-props="rowProps"
           :bordered="false"
           size="small"
+          :pagination="{
+            page: recentPage,
+            pageSize: RECENT_PAGE_SIZE,
+            itemCount: recentTotal,
+            onUpdatePage: (next: number) => {
+              recentPage = next
+              loadRecent()
+            },
+          }"
         />
       </NCard>
     </div>
