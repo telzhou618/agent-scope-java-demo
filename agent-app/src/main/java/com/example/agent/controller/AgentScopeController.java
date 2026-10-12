@@ -32,7 +32,7 @@ import io.agentscope.core.agent.RuntimeContext;
 import io.agentscope.core.event.*;
 import io.agentscope.core.message.Base64Source;
 import io.agentscope.core.message.ContentBlock;
-import io.agentscope.core.message.ImageBlock;
+import io.agentscope.core.message.DataBlock;
 import io.agentscope.core.message.Msg;
 import io.agentscope.core.message.TextBlock;
 import io.agentscope.core.message.UserMessage;
@@ -171,9 +171,13 @@ public class AgentScopeController {
         for (ChatAttachment attachment : attachments) {
             byte[] bytes = fileStorageService.readBytes(userId, sessionId, attachment.id());
             if (fileStorageService.isImage(attachment.ext())) {
-                blocks.add(new ImageBlock(new Base64Source(
-                        fileStorageService.mediaType(attachment.ext()),
-                        java.util.Base64.getEncoder().encodeToString(bytes))));
+                // DataBlock 是官方推荐的多模态块（统一替代旧版 ImageBlock）
+                blocks.add(DataBlock.builder()
+                        .source(Base64Source.builder()
+                                .mediaType(fileStorageService.mediaType(attachment.ext()))
+                                .data(java.util.Base64.getEncoder().encodeToString(bytes))
+                                .build())
+                        .build());
             } else if (documentTextExtractor.isDocument(attachment.ext())) {
                 blocks.add(TextBlock.builder().text(attachmentText(attachment.name(),
                         documentTextExtractor.extract(attachment.name(), attachment.ext(), bytes))).build());
