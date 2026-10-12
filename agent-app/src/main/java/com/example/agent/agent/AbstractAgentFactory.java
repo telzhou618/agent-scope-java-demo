@@ -2,6 +2,7 @@ package com.example.agent.agent;
 
 import com.example.agent.middleware.TokenUsageMiddleware;
 import com.example.agent.service.TokenUsageService;
+import com.example.agent.tools.DateTimeTools;
 import io.agentscope.core.model.GenerateOptions;
 import io.agentscope.core.permission.PermissionContextState;
 import io.agentscope.core.permission.PermissionMode;
@@ -48,6 +49,9 @@ public abstract class AbstractAgentFactory {
 
     @Autowired
     protected TokenUsageService tokenUsageService;
+
+    @Autowired
+    protected DateTimeTools dateTimeTools;
 
     /**
      * Agent 标识名，直接写入 t_token_usage.agent_name
@@ -101,12 +105,12 @@ public abstract class AbstractAgentFactory {
      */
     private static final String DEFAULT_AVATAR =
             "data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%20100%20100'%3E"
-            + "%3Cdefs%3E%3ClinearGradient%20id='g'%20x1='0'%20y1='0'%20x2='1'%20y2='1'%3E"
-            + "%3Cstop%20offset='0%25'%20stop-color='%236366f1'/%3E"
-            + "%3Cstop%20offset='100%25'%20stop-color='%23a855f7'/%3E"
-            + "%3C/linearGradient%3E%3C/defs%3E"
-            + "%3Ccircle%20cx='50'%20cy='50'%20r='50'%20fill='url(%23g)'/%3E"
-            + "%3C/svg%3E";
+                    + "%3Cdefs%3E%3ClinearGradient%20id='g'%20x1='0'%20y1='0'%20x2='1'%20y2='1'%3E"
+                    + "%3Cstop%20offset='0%25'%20stop-color='%236366f1'/%3E"
+                    + "%3Cstop%20offset='100%25'%20stop-color='%23a855f7'/%3E"
+                    + "%3C/linearGradient%3E%3C/defs%3E"
+                    + "%3Ccircle%20cx='50'%20cy='50'%20r='50'%20fill='url(%23g)'/%3E"
+                    + "%3C/svg%3E";
 
     protected String avatar() {
         return DEFAULT_AVATAR;
@@ -219,8 +223,14 @@ public abstract class AbstractAgentFactory {
         }
         McpClientWrapper mcpClientWrapper = mcpClientBuilder.buildAsync().block();
         toolkit.registerMcpClient(mcpClientWrapper).block();
+        registerBaseTools(toolkit);
         registerLocalTools(toolkit);
+
         return toolkit;
+    }
+
+    private void registerBaseTools(Toolkit toolkit) {
+        toolkit.registerTool(dateTimeTools);
     }
 
     /**
