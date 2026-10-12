@@ -2,7 +2,6 @@ package com.example.agent.agent;
 
 import com.example.agent.tools.DataExportTools;
 import com.example.agent.tools.MysqlQueryTools;
-import com.example.agent.tools.ReportTools;
 import io.agentscope.core.tool.Toolkit;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -10,7 +9,7 @@ import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
 
 /**
- * 旗舰档：qwen3.7-max，开思考、带工具/MCP、挂技能市场、支持附件，注册数据库查询/导出/报告工具
+ * 旗舰档：qwen3.7-max，开思考、带工具/MCP、挂技能市场、支持附件，注册数据库查询/导出工具
  */
 @Order(3)
 @Component
@@ -24,9 +23,6 @@ public class MaxAgentFactory extends AbstractAgentFactory {
 
     @Autowired
     private DataExportTools dataExportTools;
-
-    @Autowired
-    private ReportTools reportTools;
 
     @Override
     protected String name() {
@@ -72,6 +68,5 @@ public class MaxAgentFactory extends AbstractAgentFactory {
     protected void registerLocalTools(Toolkit toolkit) {
         toolkit.registerTool(mysqlQueryTools);
         toolkit.registerTool(dataExportTools);
-        toolkit.registerTool(reportTools);
     }
 }

@@ -2,7 +2,6 @@ package com.example.agent.agent;
 
 import com.example.agent.tools.DataExportTools;
 import com.example.agent.tools.MysqlQueryTools;
-import com.example.agent.tools.ReportTools;
 import io.agentscope.core.tool.Toolkit;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -24,9 +23,6 @@ public class FlashAgentFactory extends AbstractAgentFactory {
 
     @Autowired
     private DataExportTools dataExportTools;
-
-    @Autowired
-    private ReportTools reportTools;
 
     @Override
     protected String name() {
@@ -77,6 +73,5 @@ public class FlashAgentFactory extends AbstractAgentFactory {
     protected void registerLocalTools(Toolkit toolkit) {
         toolkit.registerTool(mysqlQueryTools);
         toolkit.registerTool(dataExportTools);
-        toolkit.registerTool(reportTools);
     }
 }
