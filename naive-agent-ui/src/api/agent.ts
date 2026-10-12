@@ -79,6 +79,9 @@ export const getMessageDetail = (id: number) =>
 export const markMessageRead = (id: number) =>
   http.post<Result<void>>(`${API_BASE}/message/read`, { id }).then((r) => r.data.data)
 
+export const deleteMessage = (id: number) =>
+  http.post<Result<void>>(`${API_BASE}/message/delete`, { id }).then((r) => r.data.data)
+
 /* ---------- 定时任务 ---------- */
 
 export const listSchedules = () =>

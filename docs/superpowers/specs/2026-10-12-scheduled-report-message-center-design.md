@@ -117,6 +117,7 @@ spring:
 | `GET /message/unreadCount` | 未读数（顶栏角标） |
 | `GET /message/detail?id=` | 消息详情 |
 | `POST /message/read` | 标记已读 `{id}` |
+| `POST /message/delete` | 删除消息 `{id}`（列表行悬停出现删除按钮） |
 | `GET /schedule/list` | 当前用户任务列表；下次执行时间从 Quartz trigger 实时读取 |
 | `POST /schedule/toggle` | 启用/停用 `{id, status}`：更新业务表 + `scheduler.pauseTrigger/resumeTrigger`；恢复时 Quartz 按 cron 自动计算下一周期（不补跑） |
 | `POST /schedule/delete` | 删除 `{id}`：`scheduler.deleteJob` + 删业务行 |
@@ -178,4 +179,4 @@ spring:
 - 不做 agent-ui 端的对应界面。
 - 不做 Agent 侧删除/修改任务的工具，不做工具调用人工确认链路。
 - 不做 Quartz 集群、任务执行历史列表、消息实时推送（WebSocket），角标轮询即可。
-- 不做消息删除、消息类型筛选。
+- 不做消息类型筛选。

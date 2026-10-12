@@ -54,4 +54,12 @@ public class MessageController {
         messageService.markRead(StpUtil.getLoginIdAsLong(), request.getId());
         return Result.ok();
     }
+
+    @PostMapping("/delete")
+    @Operation(summary = "删除消息")
+    @OperationLog("删除消息")
+    public Result<Void> delete(@RequestBody @Validated IdRequest request) {
+        messageService.delete(StpUtil.getLoginIdAsLong(), request.getId());
+        return Result.ok();
+    }
 }

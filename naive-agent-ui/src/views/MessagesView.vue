@@ -1,9 +1,9 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
-import { NAvatar, NIcon, NPagination, NSpin, NTag, NText, useMessage } from 'naive-ui'
-import { MailOutline } from '@vicons/ionicons5'
-import { markMessageRead, pageMessages } from '../api/agent'
+import { NAvatar, NButton, NIcon, NPagination, NPopconfirm, NSpin, NTag, NText, useMessage } from 'naive-ui'
+import { MailOutline, TrashOutline } from '@vicons/ionicons5'
+import { deleteMessage, markMessageRead, pageMessages } from '../api/agent'
 import type { MessageItem } from '../api/types'
 import { useAgentsStore } from '../stores/agents'
 import { useWideMode } from '../composables/useWideMode'
@@ -61,6 +61,17 @@ async function openMessage(item: MessageItem) {
   await router.push(`/messages/${item.id}`)
 }
 
+async function onDelete(item: MessageItem) {
+  try {
+    await deleteMessage(item.id)
+    records.value = records.value.filter((m) => m.id !== item.id)
+    total.value = Math.max(0, total.value - 1)
+    message.success('已删除')
+  } catch (error) {
+    message.error(error instanceof Error ? error.message : '删除失败')
+  }
+}
+
 onMounted(() => void load())
 </script>
 
@@ -102,6 +113,24 @@ onMounted(() => void load())
             <span class="msg-time">{{ formatTime(item.createTime) }}</span>
             <span class="dot" :class="{ on: !item.isRead }" />
           </div>
+          <!-- 悬停行才显示的删除按钮；阻止冒泡避免触发行点击 -->
+          <NPopconfirm @positive-click="onDelete(item)">
+            <template #trigger>
+              <NButton
+                quaternary
+                circle
+                size="small"
+                class="msg-del"
+                title="删除消息"
+                @click.stop
+              >
+                <template #icon>
+                  <NIcon size="15"><TrashOutline /></NIcon>
+                </template>
+              </NButton>
+            </template>
+            确认删除这条消息？
+          </NPopconfirm>
         </div>
       </div>
 
@@ -190,6 +219,24 @@ onMounted(() => void load())
 
 .dot.on {
   background: #ef4444;
+}
+
+/* 行悬停才显示删除按钮 */
+.msg-del {
+  flex: none;
+  align-self: center;
+  opacity: 0;
+  transition: opacity 0.15s;
+  color: var(--text-3, #9aa0b4);
+}
+
+.msg-row:hover .msg-del,
+.msg-del:focus-visible {
+  opacity: 1;
+}
+
+.msg-del:hover {
+  color: #ef4444;
 }
 
 .av-system {

@@ -73,6 +73,11 @@ public class MessageService {
         messageMapper.updateById(update);
     }
 
+    public void delete(long userId, long id) {
+        Message message = requireOwn(userId, id);
+        messageMapper.deleteById(message.getId());
+    }
+
     private Message requireOwn(long userId, long id) {
         Message message = messageMapper.selectById(id);
         if (message == null || !message.getUserId().equals(userId)) {
