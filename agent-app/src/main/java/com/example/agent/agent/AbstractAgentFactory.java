@@ -1,7 +1,6 @@
 package com.example.agent.agent;
 
 import com.example.agent.middleware.TokenUsageMiddleware;
-import com.example.agent.middleware.VisionRoutingMiddleware;
 import com.example.agent.service.TokenUsageService;
 import io.agentscope.core.model.GenerateOptions;
 import io.agentscope.core.permission.PermissionContextState;
@@ -201,19 +200,6 @@ public abstract class AbstractAgentFactory {
         }
         builder.defaultOptions(options.build());
         return builder.build();
-    }
-
-    /**
-     * 视觉模型：仅用于含图片的调用，沿用主模型的流式/思考配置，模型名走 agents.vision-model
-     */
-    private DashScopeChatModel buildVisionModel() {
-        return DashScopeChatModel.builder()
-                .apiKey(dashScopeApiKey)
-                .modelName(visionModel)
-                .stream(true)
-                .enableThinking(thinkingEnabled())
-                .formatter(new DashScopeChatFormatter())
-                .build();
     }
 
     /**
