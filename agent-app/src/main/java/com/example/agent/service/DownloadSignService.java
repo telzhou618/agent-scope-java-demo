@@ -1,5 +1,6 @@
 package com.example.agent.service;
 
+import com.example.agent.error.BizException;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
@@ -41,6 +42,15 @@ public class DownloadSignService {
         String expected = hmac(fileName, expires);
         return MessageDigest.isEqual(expected.getBytes(StandardCharsets.UTF_8),
                 sign.getBytes(StandardCharsets.UTF_8));
+    }
+
+    /**
+     * 验签失败抛业务异常
+     */
+    public void verifyOrThrow(String fileName, long expires, String sign) {
+        if (!verify(fileName, expires, sign)) {
+            throw new BizException("下载链接无效或已过期");
+        }
     }
 
     private String hmac(String fileName, long expires) {

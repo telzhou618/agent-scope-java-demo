@@ -4,7 +4,6 @@ import cn.dev33.satoken.stp.StpUtil;
 import com.example.agent.annotation.OperationLog;
 import com.example.agent.dto.ChatAttachment;
 import com.example.agent.dto.Result;
-import com.example.agent.error.BizException;
 import com.example.agent.service.DownloadSignService;
 import com.example.agent.service.FileStorageService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -53,9 +52,7 @@ public class FileController {
     public ResponseEntity<Resource> download(@PathVariable String fileName,
                                              @RequestParam long expires,
                                              @RequestParam String sign) {
-        if (!downloadSignService.verify(fileName, expires, sign)) {
-            throw new BizException("下载链接无效或已过期");
-        }
+        downloadSignService.verifyOrThrow(fileName, expires, sign);
         Path path = fileStorageService.exportFile(fileName);
         String encoded = URLEncoder.encode(fileName, StandardCharsets.UTF_8).replace("+", "%20");
         String mediaType = fileName.toLowerCase().endsWith(".docx")

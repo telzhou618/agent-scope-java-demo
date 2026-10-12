@@ -124,6 +124,13 @@ public class TokenUsageService {
     /**
      * 最近请求记录：区间内按请求时间倒序取最近 10 条。
      */
+    public List<RecentRequestVO> recent(long userId, String start, String end) {
+        return recent(userId, LocalDate.parse(start), LocalDate.parse(end));
+    }
+
+    /**
+     * 最近请求记录：区间内按请求时间倒序取最近 10 条。
+     */
     public List<RecentRequestVO> recent(long userId, LocalDate start, LocalDate end) {
         LocalDateTime startTime = start.atStartOfDay();
         LocalDateTime endTime = end.plusDays(1).atStartOfDay();
@@ -143,6 +150,13 @@ public class TokenUsageService {
             result.add(vo);
         }
         return result;
+    }
+
+    /**
+     * 按区间统计：聚合后把整段区间补零，保证图表形状完整。
+     */
+    public UsageSummaryVO summary(long userId, String start, String end, String granularity) {
+        return summary(userId, LocalDate.parse(start), LocalDate.parse(end), granularity);
     }
 
     /**

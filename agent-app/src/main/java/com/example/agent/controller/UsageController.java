@@ -12,7 +12,6 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import java.time.LocalDate;
 import java.util.List;
 
 /**
@@ -29,14 +28,12 @@ public class UsageController {
     @GetMapping("/summary")
     @Operation(summary = "按区间统计 token 消耗（total / 分桶）")
     public Result<UsageSummaryVO> summary(String start, String end, String granularity) {
-        long userId = StpUtil.getLoginIdAsLong();
-        return Result.okData(usageService.summary(userId, LocalDate.parse(start), LocalDate.parse(end), granularity));
+        return Result.okData(usageService.summary(StpUtil.getLoginIdAsLong(), start, end, granularity));
     }
 
     @GetMapping("/recent")
     @Operation(summary = "最近请求记录（区间内最近 10 条）")
     public Result<List<RecentRequestVO>> recent(String start, String end) {
-        long userId = StpUtil.getLoginIdAsLong();
-        return Result.okData(usageService.recent(userId, LocalDate.parse(start), LocalDate.parse(end)));
+        return Result.okData(usageService.recent(StpUtil.getLoginIdAsLong(), start, end));
     }
 }
