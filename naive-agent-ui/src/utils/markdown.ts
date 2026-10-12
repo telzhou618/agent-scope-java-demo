@@ -55,22 +55,38 @@ export const escapeHtml = (value: string) =>
   })
 
 const copyIcon = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg>`
+const playIcon = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><polygon points="10 8 16 12 10 16 10 8"/></svg>`
+const downloadIcon = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12"/><path d="m7 11 5 5 5-5"/><path d="M5 20h14"/></svg>`
 
-/** 代码块渲染成 .md-code 卡片（样式见 styles/markdown.css）；导出到文件时不需要复制按钮 */
+/** 围栏代码块是否已闭合（流式输出中未闭合 = 代码还没输出完，不提供运行/下载） */
+function isClosedFence(raw: string): boolean {
+  return /(`{3,}|~{3,})\s*$/.test(raw)
+}
+
+/** 代码块渲染成 .md-code 卡片（样式见 styles/markdown.css）；导出到文件时不需要操作按钮 */
 function codeBlock(token: Tokens.Code, withCopyButton: boolean): string {
   const language = (token.lang ?? '').trim().split(/\s+/)[0]
   const body =
     language && hljs.getLanguage(language)
       ? hljs.highlight(token.text, { language, ignoreIllegals: true }).value
       : escapeHtml(token.text)
+  // 完整的 html 代码块才给运行/下载按钮；点击处理在 MarkdownBlock 的点击委托里
+  const runnable =
+    withCopyButton && (language === 'html' || language === 'xml') && isClosedFence(token.raw)
   const copy = withCopyButton
     ? `<button class="md-code-copy" type="button" data-copy>${copyIcon}<span>复制</span></button>`
     : ''
+  const run = runnable
+    ? `<button class="md-code-copy" type="button" data-download-html title="下载为 .html 文件">${downloadIcon}<span>下载</span></button>` +
+      `<button class="md-code-copy" type="button" data-run title="在新标签页运行">${playIcon}<span>运行</span></button>`
+    : ''
+  // 操作按钮成组靠右，顺序：复制 / 下载 / 运行
+  const actions = withCopyButton ? `<span class="md-code-actions">${copy}${run}</span>` : ''
   return (
     '<div class="md-code">' +
     '<div class="md-code-head">' +
     `<span class="md-code-lang">${escapeHtml(language || 'text')}</span>` +
-    copy +
+    actions +
     '</div>' +
     `<pre><code>${body}</code></pre>` +
     '</div>'

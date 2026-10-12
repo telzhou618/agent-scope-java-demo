@@ -118,11 +118,44 @@ onBeforeUnmount(() => {
   if (timer !== null) window.clearTimeout(timer)
 })
 
+/** 取按钮所在代码卡的源码文本（DOM 自动反转义） */
+function codeTextOf(button: HTMLElement): string {
+  return button.closest('.md-code')?.querySelector('code')?.textContent ?? ''
+}
+
+/** 在新标签页运行 html：blob URL + noopener；延时回收，给新标签页加载留时间 */
+function runHtml(code: string) {
+  if (!code) return
+  const url = URL.createObjectURL(new Blob([code], { type: 'text/html' }))
+  window.open(url, '_blank', 'noopener')
+  window.setTimeout(() => URL.revokeObjectURL(url), 60_000)
+}
+
+function downloadHtml(code: string) {
+  if (!code) return
+  const url = URL.createObjectURL(new Blob([code], { type: 'text/html' }))
+  const link = document.createElement('a')
+  link.href = url
+  link.download = `agent-${Date.now()}.html`
+  link.click()
+  window.setTimeout(() => URL.revokeObjectURL(url), 60_000)
+}
+
 function onClick(event: MouseEvent) {
   const target = event.target as HTMLElement | null
   // 正文里的图片：点击弹层放大查看
   if (target instanceof HTMLImageElement && target.src) {
     openImage(target.src, target.alt)
+    return
+  }
+  const runButton = target?.closest<HTMLElement>('[data-run]')
+  if (runButton) {
+    runHtml(codeTextOf(runButton))
+    return
+  }
+  const downloadButton = target?.closest<HTMLElement>('[data-download-html]')
+  if (downloadButton) {
+    downloadHtml(codeTextOf(downloadButton))
     return
   }
   const button = target?.closest<HTMLElement>('[data-copy]')
