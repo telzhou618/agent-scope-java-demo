@@ -26,7 +26,7 @@ public class PlusAgentFactory extends AbstractAgentFactory {
 
     @Override
     protected String description() {
-        return "标准档，开思考，支持 MCP 工具与附件，不支持技能";
+        return "标准档，开起思考，支持工具、MCP、技能、技能";
     }
 
     @Override
@@ -46,7 +46,7 @@ public class PlusAgentFactory extends AbstractAgentFactory {
 
     @Override
     protected boolean skillsEnabled() {
-        return false;
+        return true;
     }
 
     @Override

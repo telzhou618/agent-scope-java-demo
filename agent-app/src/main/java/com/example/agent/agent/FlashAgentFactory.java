@@ -26,7 +26,7 @@ public class FlashAgentFactory extends AbstractAgentFactory {
 
     @Override
     protected String description() {
-        return "轻量快速档，适合简单问答，不支持工具、技能与附件";
+        return "轻量快速档，不开启思考，适合简单问答";
     }
 
     @Override
@@ -41,12 +41,12 @@ public class FlashAgentFactory extends AbstractAgentFactory {
 
     @Override
     protected boolean toolsEnabled() {
-        return false;
+        return true;
     }
 
     @Override
     protected boolean skillsEnabled() {
-        return false;
+        return true;
     }
 
     @Override
