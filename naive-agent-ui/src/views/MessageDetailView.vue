@@ -6,12 +6,14 @@ import { ChevronBackOutline, MailOutline } from '@vicons/ionicons5'
 import { getMessageDetail } from '../api/agent'
 import type { MessageItem } from '../api/types'
 import { useAgentsStore } from '../stores/agents'
+import { useWideMode } from '../composables/useWideMode'
 import MarkdownBlock from '../components/MarkdownBlock.vue'
 
 const route = useRoute()
 const router = useRouter()
 const message = useMessage()
 const agents = useAgentsStore()
+const { wide } = useWideMode()
 
 const detail = ref<MessageItem | null>(null)
 const loading = ref(true)
@@ -44,7 +46,7 @@ onMounted(async () => {
 
 <template>
   <div class="p-4 pb-12 md:p-6 md:pb-12">
-    <div class="max-w-3xl mx-auto flex flex-col gap-4">
+    <div class="mx-auto flex flex-col gap-4" :class="wide ? 'max-w-[1200px]' : 'max-w-[800px]'">
       <div>
         <NButton quaternary size="small" @click="router.push('/messages')">
           <template #icon>

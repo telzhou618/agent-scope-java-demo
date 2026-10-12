@@ -6,10 +6,12 @@ import { MailOutline } from '@vicons/ionicons5'
 import { markMessageRead, pageMessages } from '../api/agent'
 import type { MessageItem } from '../api/types'
 import { useAgentsStore } from '../stores/agents'
+import { useWideMode } from '../composables/useWideMode'
 
 const router = useRouter()
 const message = useMessage()
 const agents = useAgentsStore()
+const { wide } = useWideMode()
 
 const PAGE_SIZE = 10
 const records = ref<MessageItem[]>([])
@@ -64,7 +66,7 @@ onMounted(() => void load())
 
 <template>
   <div class="p-4 pb-12 md:p-6 md:pb-12">
-    <div class="max-w-3xl mx-auto flex flex-col gap-4">
+    <div class="mx-auto flex flex-col gap-4" :class="wide ? 'max-w-[1200px]' : 'max-w-[800px]'">
       <div class="flex items-center gap-3">
         <span class="text-lg font-600">消息中心</span>
         <NText depth="3" class="text-xs">共 {{ total }} 条</NText>

@@ -4,9 +4,11 @@ import { NButton, NPopconfirm, NSpin, NSwitch, NText, useMessage } from 'naive-u
 import { deleteSchedule, listSchedules, toggleSchedule } from '../api/agent'
 import type { ScheduleTaskItem } from '../api/types'
 import { useAgentsStore } from '../stores/agents'
+import { useWideMode } from '../composables/useWideMode'
 
 const message = useMessage()
 const agents = useAgentsStore()
+const { wide } = useWideMode()
 
 const tasks = ref<ScheduleTaskItem[]>([])
 const loading = ref(false)
@@ -55,7 +57,7 @@ onMounted(() => void load())
 
 <template>
   <div class="p-4 pb-12 md:p-6 md:pb-12">
-    <div class="max-w-3xl mx-auto flex flex-col gap-4">
+    <div class="mx-auto flex flex-col gap-4" :class="wide ? 'max-w-[1200px]' : 'max-w-[800px]'">
       <div class="flex items-center gap-3">
         <span class="text-lg font-600">定时任务</span>
         <NText depth="3" class="text-xs">{{ tasks.length }} 个任务</NText>
