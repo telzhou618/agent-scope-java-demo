@@ -94,7 +94,7 @@ onMounted(() => void load())
           <div class="msg-main">
             <div class="msg-from">
               {{ senderInfo(item.sender).name }}
-              <NTag v-if="item.runStatus === 'failed'" size="tiny" type="error" :bordered="false">生成失败</NTag>
+              <NTag v-if="item.runStatus === 'failed'" size="tiny" type="error" :bordered="false">执行失败</NTag>
             </div>
             <div class="msg-title">{{ item.title }}</div>
           </div>

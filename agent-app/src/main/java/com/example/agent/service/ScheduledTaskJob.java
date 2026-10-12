@@ -69,10 +69,14 @@ public class ScheduledTaskJob extends QuartzJobBean {
             log.info("定时任务执行成功, taskId={}", taskId);
         } catch (Exception e) {
             log.error("定时任务执行失败, taskId={}", taskId, e);
-            messageService.create(task.getUserId(), Message.TYPE_REPORT, task.getAgentName(),
-                    task.getDescription() + "（" + runDate + "）生成失败",
-                    "**本次定时任务执行失败**：" + e.getMessage()
-                            + "\n\n任务未中断，将于下个周期正常重试；如需立即生成，可直接在对话中向 Agent 发起请求。",
+            // 失败时发系统消息告知用户，内容含失败原因/异常信息
+            messageService.create(task.getUserId(), Message.TYPE_SYSTEM, "",
+                    "定时任务执行失败：" + task.getDescription(),
+                    "**定时任务执行失败**\n\n任务：" + task.getDescription()
+                            + "\n\n执行Agent：" + task.getAgentName()
+                            + "\n\n执行时间：" + runDate
+                            + "\n\n失败原因：" + e.getMessage()
+                            + "\n\n任务未中断，将于下个周期正常重试；如需立即执行，可直接在对话中向 Agent 发起请求。",
                     task.getId(), "failed");
         }
         scheduleService.markRun(taskId);

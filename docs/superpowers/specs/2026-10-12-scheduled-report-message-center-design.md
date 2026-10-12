@@ -100,7 +100,7 @@ spring:
 2. 构建 `RuntimeContext(userId, sessionId = "task-<taskId>-<yyyyMMddHHmmss>")`，调 `agentRegistry.getAgent(agentName).streamEvents(userMessage, context)` 跑完；用户消息 = 任务描述原文。
 3. 从事件流取最终正文（`AgentResultEvent` 内容；兜底取最后文本块）。
 4. 成功 → 写 `t_message`（`type=report`、`sender=agent_name`、`title=描述 + 执行日期`、`run_status=success`）。
-5. 异常或超过 5 分钟（`orTimeout`）→ 写 `run_status=failed` 的消息，内容为失败原因与「将于下个周期重试」说明。
+5. 异常或超过 5 分钟（`orTimeout`）→ 写一条 **系统消息**（`type=system`、`run_status=failed`），内容含失败原因/异常信息与「将于下个周期重试」说明。
 6. 更新 `last_run_at = now`。下次执行时间由 Quartz 触发器自行维护，业务表不存。
 
 ### 2.5 系统消息钩子
@@ -160,7 +160,7 @@ spring:
 | 场景 | 行为 |
 | --- | --- |
 | cron 非法 | `create_schedule` 返回错误文本，LLM 修正或告知用户 |
-| 执行超时（5 分钟） | 写 `run_status=failed` 消息，任务进入下周期 |
+| 执行超时（5 分钟） | 写系统消息（`run_status=failed`）告知失败原因，任务进入下周期 |
 | 执行抛异常 | 同上，内容含异常摘要 |
 | 用户被禁用/删除 | 跳过执行，记日志 |
 | 应用重启 | Quartz JobStore 恢复全部 trigger；misfire 策略 `DO_NOTHING`，错过的周期不补跑 |
