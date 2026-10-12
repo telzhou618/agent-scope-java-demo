@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.example.agent.dto.FeedbackStatusRequest;
 import com.example.agent.dto.UserFeedbackRequest;
+import com.example.agent.entity.Message;
 import com.example.agent.entity.User;
 import com.example.agent.entity.UserFeedback;
 import com.example.agent.error.BizException;
@@ -22,7 +23,7 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 
 /**
- * 用户反馈：提交、管理员分页查询与处理
+ * 用户反馈：提交、管理员分页查询与处理；标记已处理时给提交人发系统通知
  */
 @Service
 @RequiredArgsConstructor
@@ -30,6 +31,7 @@ public class UserFeedbackService {
 
     private final UserFeedbackMapper feedbackMapper;
     private final UserMapper userMapper;
+    private final MessageService messageService;
 
     public void submit(Long userId, UserFeedbackRequest request) {
         UserFeedback record = new UserFeedback();
@@ -85,5 +87,14 @@ public class UserFeedbackService {
         update.setStatus(request.getStatus());
         update.setUpdateTime(LocalDateTime.now());
         feedbackMapper.updateById(update);
+        // 状态变为已处理时给提交人发系统通知（已是已处理的重复设置不重复发）
+        boolean nowDone = request.getStatus() != null && request.getStatus() == 1;
+        boolean wasDone = existing.getStatus() != null && existing.getStatus() == 1;
+        if (nowDone && !wasDone && existing.getUserId() != null) {
+            messageService.create(existing.getUserId(), Message.TYPE_SYSTEM, "",
+                    "你提交的意见反馈已处理",
+                    "你提交的意见反馈已被管理员标记为「已处理」，感谢你的建议！\n\n> " + existing.getContent(),
+                    null, "success");
+        }
     }
 }

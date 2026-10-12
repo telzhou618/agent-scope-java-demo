@@ -95,6 +95,12 @@
             <artifactId>spring-boot-starter-webflux</artifactId>
         </dependency>
 
+        <!-- Quartz 定时任务（JDBC JobStore 持久化到 MySQL，表结构见 sql/schedule.sql） -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-quartz</artifactId>
+        </dependency>
+
         <!-- MyBatis-Plus（Spring Boot 4）+ MySQL -->
         <dependency>
             <groupId>com.baomidou</groupId>

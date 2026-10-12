@@ -21,6 +21,19 @@ spring:
       max-file-size: 10MB
       max-request-size: 20MB
 
+  # Quartz 定时任务：JDBC JobStore 持久化到 MySQL（表结构见 sql/schedule.sql），单实例不集群
+  quartz:
+    job-store-type: jdbc
+    jdbc:
+      initialize-schema: never
+    properties:
+      org:
+        quartz:
+          scheduler:
+            instanceName: agent-demo
+          jobStore:
+            isClustered: false
+
   ai:
     dashscope:
       api-key: ${YOKA_DASHSCOPE_API_KEY}

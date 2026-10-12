@@ -1,5 +1,15 @@
 import { API_BASE, http } from './http'
-import type { AgentInfo, AgentSession, ChatAttachment, Msg, PageResult, Result, SkillInfo } from './types'
+import type {
+  AgentInfo,
+  AgentSession,
+  ChatAttachment,
+  MessageItem,
+  Msg,
+  PageResult,
+  Result,
+  ScheduleTaskItem,
+  SkillInfo,
+} from './types'
 import type { RecentRequestItem, UsageSummary } from '../utils/usage'
 
 /** 可用 Agent 列表（顶栏选择器；后端已按用户权限过滤） */
@@ -54,3 +64,28 @@ export const getUsageSummary = (params: { start: string; end: string; granularit
 /** 最近请求记录（区间内按时间倒序分页） */
 export const getRecentRequests = (params: { start: string; end: string; page: number; size: number }) =>
   http.get<Result<PageResult<RecentRequestItem>>>(`${API_BASE}/usage/recent`, { params }).then((r) => r.data.data)
+
+/* ---------- 消息中心 ---------- */
+
+export const pageMessages = (params: { page: number; size: number }) =>
+  http.get<Result<PageResult<MessageItem>>>(`${API_BASE}/message/page`, { params }).then((r) => r.data.data)
+
+export const getUnreadCount = () =>
+  http.get<Result<number>>(`${API_BASE}/message/unreadCount`).then((r) => r.data.data)
+
+export const getMessageDetail = (id: number) =>
+  http.get<Result<MessageItem>>(`${API_BASE}/message/detail`, { params: { id } }).then((r) => r.data.data)
+
+export const markMessageRead = (id: number) =>
+  http.post<Result<void>>(`${API_BASE}/message/read`, { id }).then((r) => r.data.data)
+
+/* ---------- 定时任务 ---------- */
+
+export const listSchedules = () =>
+  http.get<Result<ScheduleTaskItem[]>>(`${API_BASE}/schedule/list`).then((r) => r.data.data)
+
+export const toggleSchedule = (id: number, status: number) =>
+  http.post<Result<void>>(`${API_BASE}/schedule/toggle`, { id, status }).then((r) => r.data.data)
+
+export const deleteSchedule = (id: number) =>
+  http.post<Result<void>>(`${API_BASE}/schedule/delete`, { id }).then((r) => r.data.data)

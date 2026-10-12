@@ -128,6 +128,33 @@ export interface ChatRequest {
   attachments?: ChatAttachment[]
 }
 
+/** 消息中心条目（列表不含 content，详情含） */
+export interface MessageItem {
+  id: number
+  /** report 定时报告 / system 系统通知 */
+  type: 'report' | 'system'
+  /** 发送方 Agent 名；系统消息为空串 */
+  sender: string
+  title: string
+  content?: string
+  isRead: boolean
+  runStatus: 'success' | 'failed'
+  createTime: string
+}
+
+/** 定时任务 */
+export interface ScheduleTaskItem {
+  id: number
+  agentName: string
+  description: string
+  cron: string
+  /** 1 启用 / 0 停用 */
+  status: number
+  lastRunAt?: string
+  nextRunAt?: string
+  createTime: string
+}
+
 export interface ToolCallInfo {
   toolCallId: string
   toolName?: string

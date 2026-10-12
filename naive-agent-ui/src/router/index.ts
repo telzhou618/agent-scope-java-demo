@@ -7,6 +7,9 @@ const AppLayout = () => import('../layouts/AppLayout.vue')
 const ChatView = () => import('../views/ChatView.vue')
 const ProfileView = () => import('../views/ProfileView.vue')
 const AdminView = () => import('../views/AdminView.vue')
+const MessagesView = () => import('../views/MessagesView.vue')
+const MessageDetailView = () => import('../views/MessageDetailView.vue')
+const SchedulesView = () => import('../views/SchedulesView.vue')
 
 const router = createRouter({
   history: createWebHistory(),
@@ -21,6 +24,9 @@ const router = createRouter({
         { path: 'chat/:sessionId', name: 'chat-session', component: ChatView },
         { path: 'profile', name: 'profile', component: ProfileView },
         { path: 'admin', name: 'admin', component: AdminView },
+        { path: 'messages', name: 'messages', component: MessagesView },
+        { path: 'messages/:id', name: 'message-detail', component: MessageDetailView },
+        { path: 'schedules', name: 'schedules', component: SchedulesView },
       ],
     },
     { path: '/:pathMatch(.*)*', redirect: '/chat' },

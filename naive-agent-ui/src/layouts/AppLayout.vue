@@ -3,6 +3,7 @@ import { computed, h, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import {
   NAvatar,
+  NBadge,
   NButton,
   NDropdown,
   NIcon,
@@ -23,15 +24,18 @@ import {
   LogOutOutline,
   MenuOutline,
   MoonOutline,
+  NotificationsOutline,
   PersonCircleOutline,
   SettingsOutline,
   SunnyOutline,
+  TimeOutline,
 } from '@vicons/ionicons5'
 import AgentSelect from '../components/AgentSelect.vue'
 import FeedbackDialog from '../components/FeedbackDialog.vue'
 import ImageLightbox from '../components/ImageLightbox.vue'
 import SessionList from '../components/SessionList.vue'
 import ShortcutsDialog from '../components/ShortcutsDialog.vue'
+import { getUnreadCount } from '../api/agent'
 import { useComposer } from '../composables/useComposer'
 import { useWideMode } from '../composables/useWideMode'
 import { useAuthStore } from '../stores/auth'
@@ -64,11 +68,25 @@ watch(
   () => route.fullPath,
   () => {
     if (isNarrow.value) collapsed.value = true
+    // 消息中心里标记已读后，离开时刷新角标
+    void refreshUnread()
   },
 )
 
 const feedbackOpen = ref(false)
 const shortcutsOpen = ref(false)
+
+/* ---- 消息中心未读角标：进应用拉一次 + 30s 轮询 + 路由切换时刷新 ---- */
+const unreadCount = ref(0)
+let unreadTimer: number | null = null
+
+async function refreshUnread() {
+  try {
+    unreadCount.value = (await getUnreadCount()) ?? 0
+  } catch {
+    // 角标失败静默，下轮再试
+  }
+}
 
 onMounted(async () => {
   narrowMedia.addEventListener('change', onMediaChange)
@@ -82,11 +100,14 @@ onMounted(async () => {
   }
   void agents.loadAgents()
   void chat.loadSessions()
+  void refreshUnread()
+  unreadTimer = window.setInterval(refreshUnread, 30_000)
 })
 
 onBeforeUnmount(() => {
   narrowMedia.removeEventListener('change', onMediaChange)
   window.removeEventListener('keydown', onGlobalKeydown)
+  if (unreadTimer !== null) window.clearInterval(unreadTimer)
 })
 
 /* ---- 全局快捷键（说明见 ShortcutsDialog） ---- */
@@ -117,6 +138,7 @@ function onGlobalKeydown(event: KeyboardEvent) {
 const accountOptions = computed<DropdownOption[]>(() => {
   const options: DropdownOption[] = [
     { label: '个人中心', key: 'profile', icon: () => h(NIcon, null, { default: () => h(PersonCircleOutline) }) },
+    { label: '定时任务', key: 'schedules', icon: () => h(NIcon, null, { default: () => h(TimeOutline) }) },
   ]
   if (auth.user?.isAdmin) {
     options.push({ label: '管理中心', key: 'admin', icon: () => h(NIcon, null, { default: () => h(SettingsOutline) }) })
@@ -133,6 +155,8 @@ const accountOptions = computed<DropdownOption[]>(() => {
 async function onAccountSelect(key: string) {
   if (key === 'profile') {
     router.push('/profile')
+  } else if (key === 'schedules') {
+    router.push('/schedules')
   } else if (key === 'admin') {
     router.push('/admin')
   } else if (key === 'feedback') {
@@ -236,6 +260,18 @@ const displayName = computed(() => auth.user?.nickname || auth.user?.username ||
               </NIcon>
             </template>
           </NButton>
+          <NTooltip>
+            <template #trigger>
+              <NBadge :value="unreadCount" :max="99" :show="unreadCount > 0" :offset="[-4, 2]">
+                <NButton quaternary circle @click="router.push('/messages')">
+                  <template #icon>
+                    <NIcon><NotificationsOutline /></NIcon>
+                  </template>
+                </NButton>
+              </NBadge>
+            </template>
+            消息中心
+          </NTooltip>
           <NDropdown trigger="click" :options="accountOptions" @select="onAccountSelect">
             <div class="flex items-center gap-2 cursor-pointer">
               <NAvatar round size="small" :src="auth.user?.avatar || undefined">
