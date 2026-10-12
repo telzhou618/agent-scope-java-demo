@@ -1,5 +1,6 @@
 package com.example.agent.service;
 
+import cn.hutool.core.collection.CollUtil;
 import com.example.agent.dto.AgentChatRequest;
 import com.example.agent.dto.ChatAttachment;
 import com.example.agent.error.BizException;
@@ -41,8 +42,9 @@ public class ChatMessageFactory {
         if (!blank) {
             return request.getMessage();
         }
-        boolean hasAttachments = request.getAttachments() != null && !request.getAttachments().isEmpty();
+        boolean hasAttachments = CollUtil.isNotEmpty(request.getAttachments());
         boolean hasSkill = StringUtils.hasText(request.getSkill());
+
         if (!hasAttachments && !hasSkill) {
             throw new BizException("用户消息不能为空");
         }
