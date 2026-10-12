@@ -27,7 +27,9 @@ function upload(item: ComposerAttachment, file: File) {
   // 后端按 <userId>/<sessionId>/ 归档；新会话还没发首条消息时用 store 预生成的 pending id
   uploadFile(file, useChat().ensureSessionId())
     .then((res) => {
-      item.id = res.id
+      // 必须通过响应式数组里的代理回填：直接改闭包里的原始对象不会触发视图更新，进度圈会一直转
+      const stored = attachments.value.find((a) => a.key === item.key)
+      if (stored) stored.id = res.id
     })
     .catch((error) => {
       const index = attachments.value.indexOf(item)
