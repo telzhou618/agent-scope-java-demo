@@ -93,6 +93,8 @@ function onPaste(event: ClipboardEvent) {
 /** 能力开关：列表未加载到时按「全部可用」处理，只有显式 false 才隐藏入口 */
 const skillsEnabled = computed(() => agents.currentAgent.value?.skills !== false)
 const attachmentsEnabled = computed(() => agents.currentAgent.value?.attachments !== false)
+/** 思考模式标识：仅当前 Agent 显式开启时展示，纯只读 */
+const thinkingEnabled = computed(() => agents.currentAgent.value?.thinking === true)
 
 const skills = ref<SkillInfo[]>([])
 let skillsRequested = false
@@ -268,6 +270,10 @@ function onKeydown(event: KeyboardEvent) {
         >
           <AppIcon name="clip" :size="17" />
         </button>
+        <span v-if="thinkingEnabled" class="thinking-badge" title="当前 Agent 已开启思考模式">
+          <AppIcon name="sparkle" :size="12" />
+          已开启思考
+        </span>
         <span class="spacer" />
         <button
           v-if="chat.state.streaming"

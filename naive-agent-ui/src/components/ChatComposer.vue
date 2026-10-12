@@ -3,6 +3,7 @@ import { computed, nextTick, ref, watch } from 'vue'
 import { NButton, NIcon, NInput, NTooltip, useMessage } from 'naive-ui'
 import {
   AttachOutline,
+  BulbOutline,
   CloseOutline,
   DocumentOutline,
   FlashOutline,
@@ -96,6 +97,8 @@ function onPaste(event: ClipboardEvent) {
 /** 能力开关：列表未加载到时按「全部可用」处理，只有显式 false 才隐藏入口 */
 const skillsEnabled = computed(() => agents.currentAgent?.skills !== false)
 const attachmentsEnabled = computed(() => agents.currentAgent?.attachments !== false)
+/** 思考模式标识：仅当前 Agent 显式开启时展示，纯只读 */
+const thinkingEnabled = computed(() => agents.currentAgent?.thinking === true)
 
 const skills = ref<SkillInfo[]>([])
 let skillsRequested = false
@@ -261,6 +264,15 @@ function onKeydown(event: KeyboardEvent) {
           </NButton>
         </template>
         添加文件（支持粘贴）
+      </NTooltip>
+      <NTooltip v-if="thinkingEnabled">
+        <template #trigger>
+          <span class="thinking-badge">
+            <NIcon size="13"><BulbOutline /></NIcon>
+            已开启思考
+          </span>
+        </template>
+        当前 Agent 已开启思考模式
       </NTooltip>
       <span class="flex-1" />
       <NTooltip v-if="chat.state.streaming">
@@ -471,5 +483,21 @@ function onKeydown(event: KeyboardEvent) {
 
 .skill-tag-x:hover {
   opacity: 1;
+}
+
+/* 「已开启思考」只读标识：外形对齐 skill-tag，但不可交互 */
+.thinking-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: 6px;
+  padding: 2px 9px;
+  border-radius: 999px;
+  background: var(--brand-soft-strong);
+  color: var(--brand);
+  font-size: 12px;
+  white-space: nowrap;
+  user-select: none;
+  cursor: default;
 }
 </style>

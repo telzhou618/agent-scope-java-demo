@@ -1380,3 +1380,19 @@
 
 /* ---------- 柱状图维度选择：与时间维度选择器同一套样式 ---------- */
 .metric-picker { margin-left: 0; }
+
+/* ---------- 输入框旁「已开启思考」只读标识 ---------- */
+.thinking-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: 4px;
+  padding: 2px 9px;
+  border-radius: 999px;
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-size: 12px;
+  white-space: nowrap;
+  user-select: none;
+  cursor: default;
+}
