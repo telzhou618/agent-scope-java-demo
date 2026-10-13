@@ -107,7 +107,7 @@ onMounted(() => void load())
                   size="tiny"
                   secondary
                   :loading="triggering === item.id"
-                  title="立即执行一次，结果发到消息中心"
+                  title="立即执行一次"
                 >
                   <template #icon>
                     <NIcon><PlayOutline /></NIcon>
@@ -115,7 +115,7 @@ onMounted(() => void load())
                   执行一次
                 </NButton>
               </template>
-              立即执行该任务一次？完成后结果会发到消息中心。
+              立即执行该任务一次？
             </NPopconfirm>
             <NPopconfirm @positive-click="onDelete(item)">
               <template #trigger>
