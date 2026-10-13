@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import {
   NAlert,
   NButton,
@@ -26,6 +26,7 @@ import type { AgentSession } from '../api/types'
 import { groupLabel, relativeTime } from '../utils/format'
 
 const router = useRouter()
+const route = useRoute()
 const chat = useChatStore()
 const theme = useThemeStore()
 
@@ -70,7 +71,8 @@ function onNewChat() {
 }
 
 function onOpen(session: AgentSession) {
-  if (session.sessionId === chat.state.currentSessionId) return
+  // 会话未变且已在会话页时不重复打开；在消息中心/个人中心等页面点当前会话要能跳回来
+  if (session.sessionId === chat.state.currentSessionId && route.name === 'chat-session') return
   router.push(`/chat/${session.sessionId}`)
 }
 
