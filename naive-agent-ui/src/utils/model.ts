@@ -1,4 +1,4 @@
-export type ToolStatus = 'running' | 'ok' | 'error' | 'none'
+export type ToolStatus = 'running' | 'ok' | 'error' | 'none' | 'confirming' | 'denied'
 
 export interface ThinkingBlockModel {
   kind: 'thinking'
@@ -17,6 +17,8 @@ export interface ToolBlockModel {
   args: string
   output: string
   status: ToolStatus
+  /** 人工确认状态：pending 等待用户选择（confirm-tools 名单内的工具） */
+  confirm?: 'pending' | 'confirmed' | 'rejected'
   open: boolean
 }
 
@@ -25,7 +27,15 @@ export interface TextBlockModel {
   markdown: string
 }
 
-export type AssistantBlock = ThinkingBlockModel | ToolBlockModel | TextBlockModel
+/** 工具调用待确认卡片（agent.confirm-tools 名单内的工具触发） */
+export interface ConfirmBlockModel {
+  kind: 'confirm'
+  toolCalls: { id: string; name: string; input?: Record<string, unknown>; content?: string }[]
+  /** pending 等待用户选择；confirmed/rejected 已处理；历史会话里无此块，仅实时出现 */
+  status: 'pending' | 'confirmed' | 'rejected'
+}
+
+export type AssistantBlock = ThinkingBlockModel | ToolBlockModel | TextBlockModel | ConfirmBlockModel
 
 export interface UserAttachment {
   id?: string

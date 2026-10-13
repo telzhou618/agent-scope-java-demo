@@ -4,8 +4,10 @@ import com.example.agent.middleware.TokenUsageMiddleware;
 import com.example.agent.service.TokenUsageService;
 import com.example.agent.tools.DateTimeTools;
 import io.agentscope.core.model.GenerateOptions;
+import io.agentscope.core.permission.PermissionBehavior;
 import io.agentscope.core.permission.PermissionContextState;
 import io.agentscope.core.permission.PermissionMode;
+import io.agentscope.core.permission.PermissionRule;
 import io.agentscope.core.skill.repository.ClasspathSkillRepository;
 import io.agentscope.core.state.AgentStateStore;
 import io.agentscope.core.tool.Toolkit;
@@ -22,6 +24,7 @@ import org.springframework.util.StringUtils;
 
 import java.nio.file.Path;
 import java.time.Duration;
+import java.util.List;
 
 /**
  * Agent 工厂基类：三档 Agent 的公共构建逻辑（MCP 连接、Toolkit、压缩模型、HarnessAgent 公共配置）
@@ -49,6 +52,13 @@ public abstract class AbstractAgentFactory {
 
     @Autowired
     protected TokenUsageService tokenUsageService;
+
+    /**
+     * 需要人工确认的工具名单（agent.confirm-tools，逗号分隔）：名单内工具调用时挂起等前端确认；
+     * 其余工具按显式 allow 放行（DEFAULT 模式下无规则的工具会默认 ask，必须显式放行）
+     */
+    @Value("${agent.confirm-tools:}")
+    private List<String> confirmTools;
 
     @Autowired
     protected DateTimeTools dateTimeTools;
@@ -120,6 +130,7 @@ public abstract class AbstractAgentFactory {
      * 构建 HarnessAgent：公共配置与原单 Agent 保持一致，差异项由子类模板方法注入
      */
     public HarnessAgent build() {
+        Toolkit toolkit = buildToolkit();
         HarnessAgent.Builder builder = HarnessAgent.builder()
                 // harness 默认工作空间, 存储永久记忆等。
                 .workspace(Path.of(System.getProperty("user.home") + "/.agentscope"))
@@ -128,15 +139,13 @@ public abstract class AbstractAgentFactory {
                 .name(name())
                 .sysPrompt("你是一个有用的助手")
                 .model(buildChatModel())
-                .toolkit(buildToolkit())
+                .toolkit(toolkit)
 
                 // middleware
                 .middleware(new TokenUsageMiddleware(tokenUsageService))
 
-                // 工具权限一律不验证，危险，生产环境不建议
-                .permissionContext(PermissionContextState.builder()
-                        .mode(PermissionMode.BYPASS)
-                        .build())
+                // DEFAULT 模式 + 按工具名单细粒度放行/挂起确认（confirm-tools 见 application.yaml）
+                .permissionContext(buildPermissionContext(toolkit))
                 // 中断/重启导致悬挂工具调用（无结果）时，自动补错误结果让会话恢复，避免下次消息直接崩溃
                 .enablePendingToolRecovery(true)
                 .maxIters(20)   // 最大迭代：技能加载+多步查询+导出/报告的组合流轻松超过 5，留足余量仍防死循环
@@ -204,6 +213,23 @@ public abstract class AbstractAgentFactory {
         }
         builder.defaultOptions(options.build());
         return builder.build();
+    }
+
+    /**
+     * 权限上下文：DEFAULT 模式下无规则的工具默认 ask，所以显式放行 toolkit 里全部工具，
+     * 只有 agent.confirm-tools 名单内的工具挂起等用户确认（如 delete_schedule）。
+     * 后台定时任务等无用户应答场景，名单内工具会被框架自动拒绝。
+     */
+    private PermissionContextState buildPermissionContext(Toolkit toolkit) {
+        PermissionContextState.Builder context = PermissionContextState.builder().mode(PermissionMode.DEFAULT);
+        for (String toolName : toolkit.getToolNames()) {
+            if (confirmTools.contains(toolName)) {
+                context.addAskRule(toolName, new PermissionRule(toolName, "", PermissionBehavior.ASK, "config"));
+            } else {
+                context.addAllowRule(toolName, new PermissionRule(toolName, "", PermissionBehavior.ALLOW, "config"));
+            }
+        }
+        return context.build();
     }
 
     /**

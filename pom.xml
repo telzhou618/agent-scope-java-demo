@@ -23,6 +23,15 @@
         <spring-ai.version>2.0.0</spring-ai.version>
     </properties>
 
+    <!-- settings.xml 把 central 镜像到私服 maven-releases（hosted，缺部分构件）；
+         这里补充私服的 maven-public group（代理中央仓）兜底 -->
+    <repositories>
+        <repository>
+            <id>nexus-public</id>
+            <url>http://10.225.254.206:8081/repository/maven-public/</url>
+        </repository>
+    </repositories>
+
     <dependencyManagement>
         <dependencies>
             <dependency>

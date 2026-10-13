@@ -2,21 +2,18 @@ package com.example.agent.tools;
 
 import com.example.agent.error.BizException;
 import com.example.agent.service.ScheduleService;
-import com.example.agent.vo.ScheduledTaskVO;
 import io.agentscope.core.agent.RuntimeContext;
 import io.agentscope.core.tool.Tool;
-import io.agentscope.core.tool.ToolExecutionContext;
 import io.agentscope.core.tool.ToolParam;
 import lombok.extern.slf4j.Slf4j;
 
 import java.time.LocalDateTime;
 import java.util.LinkedHashMap;
-import java.util.List;
 import java.util.Map;
 
 /**
- * 定时任务工具：用户用自然语言让 Agent 创建/查询定时任务（如「每周一把上周的运营报告发我」）。
- * 删除/启停不走工具，由用户在「定时任务」页面手动操作。
+ * 定时任务工具：用户用自然语言让 Agent 创建/查询/修改/删除定时任务（如「每周一把上周的运营报告发我」）。
+ * delete_schedule 在 agent.confirm-tools 名单内：调用会被权限层挂起，等前端用户确认后才真正执行。
  * 非 Spring Bean：由 Agent 工厂按档位实例化，绑定当前档位名。
  */
 @Slf4j
@@ -35,48 +32,93 @@ public class ScheduleTools {
     public Map<String, Object> createSchedule(
             @ToolParam(name = "description", description = "用户需求原文，到点时将作为消息发给 Agent 执行") String description,
             @ToolParam(name = "cron", description = "Quartz 6 段 cron 表达式（秒 分 时 日 月 周）") String cron,
-            ToolExecutionContext context) {
-        Map<String, Object> result = new LinkedHashMap<>();
+            RuntimeContext context) {
         Long userId = loginUserId(context);
         if (userId == null) {
-            result.put("success", false);
-            result.put("error", "无法识别当前用户");
-            return result;
+            return fail("无法识别当前用户");
         }
         try {
             LocalDateTime nextRunAt = scheduleService.create(userId, agentName, description, cron);
-            result.put("success", true);
-            result.put("nextRunAt", String.valueOf(nextRunAt));
             log.info("定时任务创建成功, userId={}, agent={}, cron={}", userId, agentName, cron);
+            Map<String, Object> result = ok();
+            result.put("nextRunAt", String.valueOf(nextRunAt));
+            return result;
         } catch (BizException e) {
-            result.put("success", false);
-            result.put("error", e.getMessage());
+            return fail(e.getMessage());
         }
-        return result;
     }
 
-    @Tool(name = "list_schedules", description = "查询当前用户的定时任务列表（描述、cron、状态、上次/下次执行时间）")
-    public Object listSchedules(ToolExecutionContext context) {
+    @Tool(name = "list_schedules", description = "查询当前用户的定时任务列表（id、描述、cron、状态、上次/下次执行时间）")
+    public Map<String, Object> listSchedules(RuntimeContext context) {
         Long userId = loginUserId(context);
         if (userId == null) {
-            return Map.of("success", false, "error", "无法识别当前用户");
+            return fail("无法识别当前用户");
         }
-        List<ScheduledTaskVO> tasks = scheduleService.listForUser(userId);
-        Map<String, Object> result = new LinkedHashMap<>();
-        result.put("success", true);
-        result.put("tasks", tasks);
+        Map<String, Object> result = ok();
+        result.put("tasks", scheduleService.listForUser(userId));
         return result;
     }
 
-    private Long loginUserId(ToolExecutionContext context) {
-        RuntimeContext runtimeContext = context == null ? null : context.get(RuntimeContext.class);
-        if (runtimeContext == null || runtimeContext.getUserId() == null) {
+    @Tool(name = "update_schedule", description = "修改定时任务的描述或执行周期（cron），先用 list_schedules 拿到任务 id；"
+            + "只传需要改的字段，cron 非空时校验合法性并重排触发器")
+    public Map<String, Object> updateSchedule(
+            @ToolParam(name = "id", description = "任务 ID") long id,
+            @ToolParam(name = "description", required = false, description = "新的需求描述，不传则不修改") String description,
+            @ToolParam(name = "cron", required = false, description = "新的 Quartz 6 段 cron 表达式，不传则不修改") String cron,
+            RuntimeContext context) {
+        Long userId = loginUserId(context);
+        if (userId == null) {
+            return fail("无法识别当前用户");
+        }
+        try {
+            LocalDateTime nextRunAt = scheduleService.update(userId, id, description, cron);
+            log.info("定时任务修改成功, userId={}, taskId={}", userId, id);
+            Map<String, Object> result = ok();
+            result.put("nextRunAt", String.valueOf(nextRunAt));
+            return result;
+        } catch (BizException e) {
+            return fail(e.getMessage());
+        }
+    }
+
+    @Tool(name = "delete_schedule", description = "删除定时任务，先用 list_schedules 拿到任务 id；删除后任务不再执行且不可恢复")
+    public Map<String, Object> deleteSchedule(
+            @ToolParam(name = "id", description = "任务 ID") long id,
+            RuntimeContext context) {
+        Long userId = loginUserId(context);
+        if (userId == null) {
+            return fail("无法识别当前用户");
+        }
+        try {
+            scheduleService.delete(userId, id);
+            log.info("定时任务删除成功, userId={}, taskId={}", userId, id);
+            return ok();
+        } catch (BizException e) {
+            return fail(e.getMessage());
+        }
+    }
+
+    private Long loginUserId(RuntimeContext context) {
+        if (context == null || context.getUserId() == null) {
             return null;
         }
         try {
-            return Long.valueOf(runtimeContext.getUserId());
+            return Long.valueOf(context.getUserId());
         } catch (NumberFormatException e) {
             return null;
         }
+    }
+
+    private Map<String, Object> ok() {
+        Map<String, Object> result = new LinkedHashMap<>();
+        result.put("success", true);
+        return result;
+    }
+
+    private Map<String, Object> fail(String error) {
+        Map<String, Object> result = new LinkedHashMap<>();
+        result.put("success", false);
+        result.put("error", error);
+        return result;
     }
 }

@@ -114,6 +114,19 @@ public class SseEventMapper {
                     .content("任务步骤较多，已达到最大执行步数（" + e.getMaxIters()
                             + "），以上为基于当前信息的收尾总结，内容可能不完整。")
                     .build();
+        } else if (event instanceof RequireUserConfirmEvent e) {
+            // 工具调用待用户确认（agent.confirm-tools 名单内）：Agent 挂起，前端确认后携 ConfirmResult 恢复
+            return AgentSseEvent.builder()
+                    .type("require_confirm")
+                    .toolCalls(e.getToolCalls().stream()
+                            .map(call -> AgentSseEvent.ToolCallInfo.builder()
+                                    .toolCallId(call.getId())
+                                    .toolName(call.getName())
+                                    .toolInput(call.getInput())
+                                    .toolContent(call.getContent())
+                                    .build())
+                            .toList())
+                    .build();
         }
 
         return null;

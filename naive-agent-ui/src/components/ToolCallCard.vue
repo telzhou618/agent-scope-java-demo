@@ -8,17 +8,20 @@ import {
   ConstructOutline,
   CopyOutline,
   RemoveOutline,
+  ShieldCheckmarkOutline,
 } from '@vicons/ionicons5'
 import { copyText, flashLabel } from '../utils/clipboard'
 import type { ToolBlockModel, ToolStatus } from '../utils/model'
 
 const props = defineProps<{ block: ToolBlockModel }>()
 
-const STATUS: Record<ToolStatus, { label: string; type: 'default' | 'info' | 'success' | 'error' }> = {
+const STATUS: Record<ToolStatus, { label: string; type: 'default' | 'info' | 'success' | 'error' | 'warning' }> = {
   running: { label: '运行中', type: 'info' },
   ok: { label: '成功', type: 'success' },
   error: { label: '失败', type: 'error' },
   none: { label: '无结果', type: 'default' },
+  confirming: { label: '待确认', type: 'warning' },
+  denied: { label: '已取消', type: 'default' },
 }
 
 const status = computed(() => STATUS[props.block.status])
@@ -69,6 +72,8 @@ function toggle() {
             <CheckmarkOutline v-if="props.block.status === 'ok'" />
             <CloseOutline v-else-if="props.block.status === 'error'" />
             <RemoveOutline v-else-if="props.block.status === 'none'" />
+            <ShieldCheckmarkOutline v-else-if="props.block.status === 'confirming'" />
+            <RemoveOutline v-else-if="props.block.status === 'denied'" />
             <ConstructOutline v-else />
           </NIcon>
         </template>

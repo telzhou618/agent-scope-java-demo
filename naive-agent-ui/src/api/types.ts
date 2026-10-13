@@ -125,6 +125,8 @@ export interface ChatRequest {
   requestId?: string
   /** 技能名（/skill:<name> 快捷指令选中的技能），独立传参 */
   skill?: string
+  /** 工具确认结果：响应 require_confirm 事件时携带 */
+  confirmResults?: ConfirmResultItem[]
   attachments?: ChatAttachment[]
 }
 
@@ -162,6 +164,19 @@ export interface ToolCallInfo {
   toolResults?: string
   /** tool_end 时携带：success/error/interrupted/denied */
   state?: string
+  /** require_confirm 时携带：结构化入参（确认后原样回传） */
+  toolInput?: Record<string, unknown>
+  /** require_confirm 时携带：ToolUseBlock 原始 content（确认后原样回传，框架校验需要） */
+  toolContent?: string
+}
+
+/** 工具确认结果（响应 require_confirm 事件） */
+export interface ConfirmResultItem {
+  toolCallId: string
+  toolName: string
+  toolInput?: Record<string, unknown>
+  toolContent?: string
+  confirmed: boolean
 }
 
 export type SseEventType =
@@ -175,6 +190,8 @@ export type SseEventType =
   | 'agent_end'
   /** 轻量提示（如达到最大执行步数） */
   | 'notice'
+  /** 工具调用待用户确认（agent.confirm-tools 名单内） */
+  | 'require_confirm'
 
 export interface AgentSseEvent {
   type: SseEventType
@@ -183,6 +200,8 @@ export interface AgentSseEvent {
   /** agent_result 时携带：最终 Assistant 消息 ID（反馈锚点） */
   messageId?: string
   toolCall?: ToolCallInfo
+  /** require_confirm 时携带：待确认的工具调用列表 */
+  toolCalls?: ToolCallInfo[]
 }
 
 export const isTextBlock = (block: ContentBlock): block is TextBlock =>

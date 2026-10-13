@@ -10,6 +10,7 @@ import {
 import MarkdownBlock from './MarkdownBlock.vue'
 import ThinkingBlock from './ThinkingBlock.vue'
 import ToolCallCard from './ToolCallCard.vue'
+import ConfirmCard from './ConfirmCard.vue'
 import { copyText } from '../utils/clipboard'
 import { useAgentsStore } from '../stores/agents'
 import { useChatStore } from '../stores/chat'
@@ -66,6 +67,7 @@ function vote(value: 'up' | 'down') {
       <div class="block-in">
         <ThinkingBlock v-if="block.kind === 'thinking'" :block="block" />
         <ToolCallCard v-else-if="block.kind === 'tool'" :block="block" />
+        <ConfirmCard v-else-if="block.kind === 'confirm'" :block="block" />
         <MarkdownBlock v-else :markdown="block.markdown" :streaming="props.turn.streaming" />
       </div>
     </template>

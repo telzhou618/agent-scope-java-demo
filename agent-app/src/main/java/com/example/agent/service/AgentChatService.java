@@ -8,6 +8,9 @@ import com.example.agent.dto.InterruptRequest;
 import com.example.agent.vo.SkillVO;
 import io.agentscope.core.agent.RuntimeContext;
 import io.agentscope.core.event.AgentEvent;
+import io.agentscope.core.event.ConfirmResult;
+import io.agentscope.core.message.Msg;
+import io.agentscope.core.message.ToolUseBlock;
 import io.agentscope.core.message.UserMessage;
 import io.agentscope.core.skill.repository.ClasspathSkillRepository;
 import io.agentscope.harness.agent.HarnessAgent;
@@ -50,6 +53,12 @@ public class AgentChatService {
         // 按请求指定档位取 Agent，未知名称抛业务异常；先校验当前用户是否有该档位使用权限
         agentPermissionService.checkAgent(loginId, request.getAgentName());
         HarnessAgent agent = agentRegistry.getAgent(request.getAgentName());
+
+        UserMessage userMessage;
+        if (request.getConfirmResults() != null && !request.getConfirmResults().isEmpty()) {
+            // 工具确认恢复：消息文本仅作会话记录，真正的确认结果在 metadata 里（框架约定）
+            userMessage = buildConfirmMessage(request.getConfirmResults());
+        } else {
         // 技能独立字段转成技能使用提示，Agent 通过 load_skill_through_path 自行加载技能详情
         String message = chatMessageFactory.applySkillHint(request.getSkill(),
                 chatMessageFactory.effectiveMessage(request));
@@ -58,8 +67,9 @@ public class AgentChatService {
             sessionTitleService.createPlaceholder(userId, request.getSessionId(), request.getAgentName());
             sessionTitleService.generateAndUpdateAsync(userId, request.getSessionId(), message);
         }
-        UserMessage userMessage = chatMessageFactory.buildUserMessage(userId, request.getSessionId(), message,
+        userMessage = chatMessageFactory.buildUserMessage(userId, request.getSessionId(), message,
                 request.getAttachments());
+        }
         RuntimeContext context = RuntimeContext.builder()
                 .sessionId(request.getSessionId())
                 .userId(userId)
@@ -92,6 +102,26 @@ public class AgentChatService {
                         .event("error")
                         .data(error.getMessage())
                         .build()));
+    }
+
+    /**
+     * 把前端的确认结果组装成恢复消息：metadata 携带 ConfirmResult 列表，Agent 从挂起处恢复执行
+     */
+    private UserMessage buildConfirmMessage(List<AgentChatRequest.ConfirmResultItem> items) {
+        List<ConfirmResult> results = items.stream()
+                .map(item -> new ConfirmResult(Boolean.TRUE.equals(item.getConfirmed()),
+                        ToolUseBlock.builder()
+                                .id(item.getToolCallId())
+                                .name(item.getToolName())
+                                .input(item.getToolInput() == null ? Map.of() : item.getToolInput())
+                                .content(item.getToolContent() == null ? "" : item.getToolContent())
+                                .build()))
+                .toList();
+        boolean allConfirmed = items.stream().allMatch(item -> Boolean.TRUE.equals(item.getConfirmed()));
+        return UserMessage.builder()
+                .textContent(allConfirmed ? "确认执行" : "取消执行")
+                .metadata(Map.of(Msg.METADATA_CONFIRM_RESULTS, results))
+                .build();
     }
 
     /**

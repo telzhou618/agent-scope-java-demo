@@ -5,16 +5,20 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.util.List;
+import java.util.Map;
+
 @Data
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
 public class AgentSseEvent {
-    private String type;       // agent_start | thinking | text_block | tool_call | tool_result | tool_end | agent_result | agent_end | notice（提示，如达到最大迭代）
+    private String type;       // agent_start | thinking | text_block | tool_call | tool_result | tool_end | agent_result | agent_end | notice（提示，如达到最大迭代）| require_confirm（工具调用待用户确认）
     private String content;    // 文本增量或完整文本
     private String role;
     private String messageId;  // agent_result 时携带：最终 Assistant 消息 ID（反馈锚点）
     private ToolCallInfo toolCall;  // 工具调用信息
+    private List<ToolCallInfo> toolCalls;  // require_confirm 时携带：待确认的工具调用列表
 
     @Data
     @Builder
@@ -26,6 +30,8 @@ public class AgentSseEvent {
         private String toolParams;  // 完整参数（JSON 字符串），tool_call 时使用
         private String toolResults;  // 工具调用结果（JSON 字符串），tool_result 时使用
         private String state;       // 工具结果状态（success/error/interrupted/denied），tool_end 时使用
+        private Map<String, Object> toolInput;  // 结构化入参，require_confirm 时携带（确认后原样回传）
+        private String toolContent;  // ToolUseBlock 原始 content，require_confirm 时携带（确认后原样回传，框架校验需要）
     }
 }
 

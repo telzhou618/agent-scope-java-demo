@@ -15,7 +15,7 @@ import type { AgentSession } from '../api/types'
 import { chatStream, type StreamHandle } from '../sse/chatStream'
 import { toTurns } from '../utils/history'
 import { createLiveTurn, type LiveTurn } from '../utils/stream'
-import type { AssistantTurn, Turn, UserAttachment, UserTurn } from '../utils/model'
+import type { AssistantTurn, ConfirmBlockModel, ToolBlockModel, Turn, UserAttachment, UserTurn } from '../utils/model'
 import { useAgentsStore } from './agents'
 
 function toMessage(error: unknown): string {
@@ -350,6 +350,78 @@ export const useChatStore = defineStore('chat', () => {
     if (pending) await pending
   }
 
+  /**
+   * 工具确认卡片的用户选择：携 ConfirmResult 重开流，Agent 从挂起处恢复执行。
+   * 确认后把待确认的工具卡片从旧回合挪进新回合（同一卡片继续累积执行结果，不开重复卡片）；
+   * 推一条「确认执行/取消执行」用户回合，与历史里恢复的 metadata 消息文本保持一致。
+   */
+  function respondConfirm(block: ConfirmBlockModel, confirmed: boolean) {
+    if (state.streaming || block.status !== 'pending') return
+    const sessionId = state.currentSessionId
+    if (!sessionId) return
+    block.status = confirmed ? 'confirmed' : 'rejected'
+
+    const turns = state.turns
+    // 找到确认卡片所在回合里的待确认工具块
+    let ownerTurn: AssistantTurn | undefined
+    for (let i = turns.length - 1; i >= 0; i -= 1) {
+      const t = turns[i]
+      if (t.kind === 'assistant' && t.blocks.includes(block)) {
+        ownerTurn = t
+        break
+      }
+    }
+    const pendingTools: ToolBlockModel[] = []
+    if (ownerTurn) {
+      for (const call of block.toolCalls) {
+        const tool = ownerTurn.blocks.find(
+          (b): b is ToolBlockModel => b.kind === 'tool' && b.id === call.id && b.confirm === 'pending',
+        )
+        if (tool) pendingTools.push(tool)
+      }
+    }
+
+    turns.push({ kind: 'user', id: newId('user'), text: confirmed ? '确认执行' : '取消执行', timestamp: '' })
+    const live = createLiveTurn(newId('live'), confirmed ? pendingTools : undefined)
+    turns.push(live.turn)
+    state.streaming = true
+    state.messagesError = ''
+    liveTurn = live
+
+    for (const tool of pendingTools) {
+      tool.confirm = confirmed ? 'confirmed' : 'rejected'
+      if (confirmed) {
+        // 挪进新回合继续执行
+        if (ownerTurn) ownerTurn.blocks.splice(ownerTurn.blocks.indexOf(tool), 1)
+        tool.status = 'running'
+      } else {
+        tool.status = 'denied'
+      }
+    }
+
+    const stream = chatStream(
+      {
+        message: confirmed ? '确认执行' : '取消执行',
+        sessionId,
+        agentName: agentsStore.state.current,
+        requestId: crypto.randomUUID(),
+        confirmResults: block.toolCalls.map((call) => ({
+          toolCallId: call.id,
+          toolName: call.name,
+          toolInput: call.input,
+          toolContent: call.content,
+          confirmed,
+        })),
+      },
+      {
+        onEvent: (event) => live.handle(event),
+        onError: (error) => live.fail(error),
+      },
+    )
+    handle = stream
+    void stream.done.then(() => finishStream(sessionId, turns, live))
+  }
+
   /** 重新生成：重发最后一条用户消息 */
   function regenerate() {
     if (state.streaming) return
@@ -458,6 +530,7 @@ export const useChatStore = defineStore('chat', () => {
     togglePin,
     send,
     stop,
+    respondConfirm,
     regenerate,
     retryFailed,
     setFeedback,

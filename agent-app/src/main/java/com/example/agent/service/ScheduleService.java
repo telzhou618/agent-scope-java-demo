@@ -18,6 +18,7 @@ import org.quartz.Trigger;
 import org.quartz.TriggerBuilder;
 import org.quartz.TriggerKey;
 import org.springframework.stereotype.Service;
+import org.springframework.util.StringUtils;
 
 import java.time.LocalDateTime;
 import java.time.ZoneId;
@@ -99,6 +100,34 @@ public class ScheduleService {
             throw new BizException("触发器删除失败: " + e.getMessage());
         }
         taskMapper.deleteById(task.getId());
+    }
+
+    /**
+     * 修改任务（描述/cron 非空才更新）；cron 变化时重排触发器，返回下次执行时间
+     */
+    public LocalDateTime update(long userId, long id, String description, String cron) {
+        ScheduledTask task = requireOwn(userId, id);
+        boolean cronChanged = false;
+        if (StringUtils.hasText(description)) {
+            task.setDescription(description);
+        }
+        if (StringUtils.hasText(cron) && !cron.equals(task.getCron())) {
+            if (!CronExpression.isValidExpression(cron)) {
+                throw new BizException("cron 表达式不合法: " + cron);
+            }
+            task.setCron(cron);
+            cronChanged = true;
+        }
+        task.setUpdateTime(LocalDateTime.now());
+        taskMapper.updateById(task);
+        if (cronChanged) {
+            try {
+                scheduler.rescheduleJob(triggerKey(task.getId()), buildTrigger(task));
+            } catch (SchedulerException e) {
+                throw new BizException("触发器重排失败: " + e.getMessage());
+            }
+        }
+        return nextFireTime(task.getId());
     }
 
     public ScheduledTask findById(long id) {
