@@ -44,6 +44,14 @@ public class ScheduleController {
         return Result.ok();
     }
 
+    @PostMapping("/trigger")
+    @Operation(summary = "立即执行一次")
+    @OperationLog("手动触发定时任务")
+    public Result<Void> trigger(@RequestBody @Validated IdRequest request) {
+        scheduleService.triggerNow(StpUtil.getLoginIdAsLong(), request.getId());
+        return Result.ok();
+    }
+
     @PostMapping("/delete")
     @Operation(summary = "删除任务")
     @OperationLog("删除定时任务")

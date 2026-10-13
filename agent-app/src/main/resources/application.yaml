@@ -92,8 +92,8 @@ agent:
   # 导出文件下载链接签名密钥，生产环境用环境变量覆盖
   download:
     secret: ${DOWNLOAD_SIGN_SECRET:dev-download-secret}
-  # 需要人工确认的工具名单：这些工具被调用时 Agent 挂起，前端弹确认卡，用户确认后才执行
-  confirm-tools: ${AGENT_CONFIRM_TOOLS:delete_schedule}
+  # 需要人工确认的工具名单，这些工具被调用时 Agent 挂起，前端弹确认卡，用户确认后才执行
+  confirm-tools: ${AGENT_CONFIRM_TOOLS:delete_schedule,trigger_schedule}
 
 
 # 接口分组配置

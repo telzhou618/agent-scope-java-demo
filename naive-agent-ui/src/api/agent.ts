@@ -90,5 +90,9 @@ export const listSchedules = () =>
 export const toggleSchedule = (id: number, status: number) =>
   http.post<Result<void>>(`${API_BASE}/schedule/toggle`, { id, status }).then((r) => r.data.data)
 
+/** 立即手动执行一次（不影响正常周期，结果发到消息中心） */
+export const triggerSchedule = (id: number) =>
+  http.post<Result<void>>(`${API_BASE}/schedule/trigger`, { id }).then((r) => r.data.data)
+
 export const deleteSchedule = (id: number) =>
   http.post<Result<void>>(`${API_BASE}/schedule/delete`, { id }).then((r) => r.data.data)

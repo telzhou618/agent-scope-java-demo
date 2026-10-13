@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue'
-import { NButton, NPopconfirm, NSpin, NSwitch, NText, useMessage } from 'naive-ui'
-import { deleteSchedule, listSchedules, toggleSchedule } from '../api/agent'
+import { NButton, NIcon, NPopconfirm, NSpin, NSwitch, NText, useMessage } from 'naive-ui'
+import { PlayOutline } from '@vicons/ionicons5'
+import { deleteSchedule, listSchedules, toggleSchedule, triggerSchedule } from '../api/agent'
 import type { ScheduleTaskItem } from '../api/types'
 import { useAgentsStore } from '../stores/agents'
 import { useWideMode } from '../composables/useWideMode'
@@ -39,6 +40,21 @@ async function onToggle(item: ScheduleTaskItem, next: boolean) {
     message.success(next ? '已启用' : '已停用')
   } catch (error) {
     message.error(error instanceof Error ? error.message : '操作失败')
+  }
+}
+
+/** 立即执行一次：后台跑完后结果发到消息中心 */
+const triggering = ref<number | null>(null)
+
+async function onTrigger(item: ScheduleTaskItem) {
+  triggering.value = item.id
+  try {
+    await triggerSchedule(item.id)
+    message.success('已触发执行，完成后结果会发到消息中心')
+  } catch (error) {
+    message.error(error instanceof Error ? error.message : '触发失败')
+  } finally {
+    triggering.value = null
   }
 }
 
@@ -85,6 +101,18 @@ onMounted(() => void load())
               size="small"
               @update:value="(v: boolean) => onToggle(item, v)"
             />
+            <NButton
+              size="tiny"
+              secondary
+              :loading="triggering === item.id"
+              title="立即执行一次，结果发到消息中心"
+              @click="onTrigger(item)"
+            >
+              <template #icon>
+                <NIcon><PlayOutline /></NIcon>
+              </template>
+              执行一次
+            </NButton>
             <NPopconfirm @positive-click="onDelete(item)">
               <template #trigger>
                 <NButton size="tiny" type="error" quaternary>删除</NButton>

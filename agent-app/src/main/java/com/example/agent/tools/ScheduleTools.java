@@ -12,8 +12,8 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 
 /**
- * 定时任务工具：用户用自然语言让 Agent 创建/查询/修改/删除定时任务（如「每周一把上周的运营报告发我」）。
- * delete_schedule 在 agent.confirm-tools 名单内：调用会被权限层挂起，等前端用户确认后才真正执行。
+ * 定时任务工具：用户用自然语言让 Agent 创建/查询/修改/删除/立即执行定时任务（如「每周一把上周的运营报告发我」）。
+ * delete_schedule、trigger_schedule 在 agent.confirm-tools 名单内：调用会被权限层挂起，等前端用户确认后才真正执行。
  * 非 Spring Bean：由 Agent 工厂按档位实例化，绑定当前档位名。
  */
 @Slf4j
@@ -93,6 +93,26 @@ public class ScheduleTools {
             scheduleService.delete(userId, id);
             log.info("定时任务删除成功, userId={}, taskId={}", userId, id);
             return ok();
+        } catch (BizException e) {
+            return fail(e.getMessage());
+        }
+    }
+
+    @Tool(name = "trigger_schedule", description = "立即手动执行一次定时任务（不等下一个周期），先用 list_schedules 拿到任务 id；"
+            + "执行结果会发到用户的消息中心")
+    public Map<String, Object> triggerSchedule(
+            @ToolParam(name = "id", description = "任务 ID") long id,
+            RuntimeContext context) {
+        Long userId = loginUserId(context);
+        if (userId == null) {
+            return fail("无法识别当前用户");
+        }
+        try {
+            scheduleService.triggerNow(userId, id);
+            log.info("定时任务手动触发, userId={}, taskId={}", userId, id);
+            Map<String, Object> result = ok();
+            result.put("note", "任务已在后台开始执行，完成后结果会发到消息中心");
+            return result;
         } catch (BizException e) {
             return fail(e.getMessage());
         }

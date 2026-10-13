@@ -134,6 +134,18 @@ public class ScheduleService {
         return taskMapper.selectById(id);
     }
 
+    /**
+     * 立即触发一次执行（不影响正常周期）；停用状态的任务也可手动触发
+     */
+    public void triggerNow(long userId, long id) {
+        ScheduledTask task = requireOwn(userId, id);
+        try {
+            scheduler.triggerJob(jobKey(task.getId()));
+        } catch (SchedulerException e) {
+            throw new BizException("触发失败: " + e.getMessage());
+        }
+    }
+
     public void markRun(long id) {
         ScheduledTask update = new ScheduledTask();
         update.setId(id);
