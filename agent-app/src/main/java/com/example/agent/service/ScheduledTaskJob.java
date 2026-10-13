@@ -5,6 +5,7 @@ import com.example.agent.entity.Message;
 import com.example.agent.entity.ScheduledTask;
 import com.example.agent.entity.User;
 import com.example.agent.mapper.UserMapper;
+import com.example.agent.tools.ScheduleTools;
 import io.agentscope.core.agent.RuntimeContext;
 import io.agentscope.core.event.AgentResultEvent;
 import io.agentscope.core.message.ContentBlock;
@@ -92,6 +93,7 @@ public class ScheduledTaskJob extends QuartzJobBean {
                 .userId(String.valueOf(task.getUserId()))
                 .sessionId(sessionId)
                 .put("requestId", sessionId)
+                .put(ScheduleTools.CTX_SCHEDULED_EXECUTION, Boolean.TRUE)
                 .build();
         StringBuilder result = new StringBuilder();
         agentRegistry.getAgent(task.getAgentName())

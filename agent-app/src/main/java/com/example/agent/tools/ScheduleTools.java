@@ -21,6 +21,11 @@ import java.util.Map;
 @Slf4j
 public class ScheduleTools {
 
+    /**
+     * RuntimeContext 标记：定时任务后台执行时置 true，用于禁用再次操作定时任务，避免循环创建
+     */
+    public static final String CTX_SCHEDULED_EXECUTION = "scheduledExecution";
+
     private final ScheduleService scheduleService;
     private final String agentName;
     private final UserPermissionService userPermissionService;
@@ -37,6 +42,9 @@ public class ScheduleTools {
             @ToolParam(name = "description", description = "用户需求原文，到点时将作为消息发给 Agent 执行") String description,
             @ToolParam(name = "cron", description = "Quartz 6 段 cron 表达式（秒 分 时 日 月 周）") String cron,
             RuntimeContext context) {
+        if (isScheduledExecution(context)) {
+            return fail("定时任务自动执行中，禁止再次操作定时任务");
+        }
         Long userId = loginUserId(context);
         if (userId == null) {
             return fail("无法识别当前用户");
@@ -57,6 +65,9 @@ public class ScheduleTools {
 
     @Tool(name = "list_schedules", description = "查询当前用户的定时任务列表（id、描述、cron、状态、上次/下次执行时间）")
     public Map<String, Object> listSchedules(RuntimeContext context) {
+        if (isScheduledExecution(context)) {
+            return fail("定时任务自动执行中，禁止再次操作定时任务");
+        }
         Long userId = loginUserId(context);
         if (userId == null) {
             return fail("无法识别当前用户");
@@ -76,6 +87,9 @@ public class ScheduleTools {
             @ToolParam(name = "description", required = false, description = "新的需求描述，不传则不修改") String description,
             @ToolParam(name = "cron", required = false, description = "新的 Quartz 6 段 cron 表达式，不传则不修改") String cron,
             RuntimeContext context) {
+        if (isScheduledExecution(context)) {
+            return fail("定时任务自动执行中，禁止再次操作定时任务");
+        }
         Long userId = loginUserId(context);
         if (userId == null) {
             return fail("无法识别当前用户");
@@ -98,6 +112,9 @@ public class ScheduleTools {
     public Map<String, Object> deleteSchedule(
             @ToolParam(name = "id", description = "任务 ID") long id,
             RuntimeContext context) {
+        if (isScheduledExecution(context)) {
+            return fail("定时任务自动执行中，禁止再次操作定时任务");
+        }
         Long userId = loginUserId(context);
         if (userId == null) {
             return fail("无法识别当前用户");
@@ -119,6 +136,9 @@ public class ScheduleTools {
     public Map<String, Object> triggerSchedule(
             @ToolParam(name = "id", description = "任务 ID") long id,
             RuntimeContext context) {
+        if (isScheduledExecution(context)) {
+            return fail("定时任务自动执行中，禁止再次操作定时任务");
+        }
         Long userId = loginUserId(context);
         if (userId == null) {
             return fail("无法识别当前用户");
@@ -135,6 +155,10 @@ public class ScheduleTools {
         } catch (BizException e) {
             return fail(e.getMessage());
         }
+    }
+
+    private boolean isScheduledExecution(RuntimeContext context) {
+        return context != null && Boolean.TRUE.equals(context.get(CTX_SCHEDULED_EXECUTION));
     }
 
     private Long loginUserId(RuntimeContext context) {
