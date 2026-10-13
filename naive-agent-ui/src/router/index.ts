@@ -10,11 +10,14 @@ const AdminView = () => import('../views/AdminView.vue')
 const MessagesView = () => import('../views/MessagesView.vue')
 const MessageDetailView = () => import('../views/MessageDetailView.vue')
 const SchedulesView = () => import('../views/SchedulesView.vue')
+const SharedMessageView = () => import('../views/SharedMessageView.vue')
 
 const router = createRouter({
   history: createWebHistory(),
   routes: [
     { path: '/login', name: 'login', component: LoginView },
+    // 分享页：签名链接免登录访问，不走 AppLayout
+    { path: '/share/message', name: 'share-message', component: SharedMessageView },
     {
       path: '/',
       component: AppLayout,
@@ -39,6 +42,10 @@ const router = createRouter({
  * /admin 额外要求管理员：用户信息未加载时先拉取，非管理员打回 /chat。
  */
 router.beforeEach(async (to: RouteLocationNormalized) => {
+  // 分享页公开访问
+  if (to.name === 'share-message') {
+    return true
+  }
   const loggedIn = !!getToken()
   if (to.name === 'login') {
     return loggedIn ? { path: '/chat' } : true

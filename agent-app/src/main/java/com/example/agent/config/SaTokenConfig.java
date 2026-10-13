@@ -23,6 +23,8 @@ public class SaTokenConfig implements WebMvcConfigurer {
                         "/auth/logout",
                         // 导出文件下载走 URL 签名校验，不要求登录态
                         "/agent/scope/files/download/**",
+                        // 消息分享链接走 URL 签名校验，不要求登录态
+                        "/agent/scope/message/shared",
                         "/error",
                         "/doc.html",
                         "/v3/api-docs/**",

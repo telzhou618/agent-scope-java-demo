@@ -1,12 +1,13 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { NAvatar, NButton, NIcon, NSpin, NText, useMessage } from 'naive-ui'
-import { ChevronBackOutline, MailOutline } from '@vicons/ionicons5'
-import { getMessageDetail } from '../api/agent'
+import { NAvatar, NButton, NIcon, NSpin, NText, NTooltip, useMessage } from 'naive-ui'
+import { ChevronBackOutline, MailOutline, ShareSocialOutline } from '@vicons/ionicons5'
+import { getMessageDetail, getMessageShareLink } from '../api/agent'
 import type { MessageItem } from '../api/types'
 import { useAgentsStore } from '../stores/agents'
 import { useWideMode } from '../composables/useWideMode'
+import { copyText } from '../utils/clipboard'
 import MarkdownBlock from '../components/MarkdownBlock.vue'
 
 const route = useRoute()
@@ -17,6 +18,22 @@ const { wide } = useWideMode()
 
 const detail = ref<MessageItem | null>(null)
 const loading = ref(true)
+const sharing = ref(false)
+
+/** 生成 7 天有效的免登录分享链接并复制到剪贴板 */
+async function share() {
+  if (!detail.value || sharing.value) return
+  sharing.value = true
+  try {
+    const path = await getMessageShareLink(detail.value.id)
+    await copyText(window.location.origin + path)
+    message.success('分享链接已复制，7 天内有效')
+  } catch (error) {
+    message.error(error instanceof Error ? error.message : '生成分享链接失败')
+  } finally {
+    sharing.value = false
+  }
+}
 
 function senderInfo(sender: string) {
   if (!sender) return { name: '系统通知', avatar: '', initial: '' }
@@ -67,12 +84,22 @@ onMounted(async () => {
             <NIcon v-if="!detail.sender" :size="19"><MailOutline /></NIcon>
             <template v-else>{{ senderInfo(detail.sender).initial }}</template>
           </NAvatar>
-          <div class="min-w-0">
+          <div class="min-w-0 flex-1">
             <div class="detail-title">{{ detail.title }}</div>
             <NText depth="3" class="text-xs">
               {{ senderInfo(detail.sender).name }} · {{ formatTime(detail.createTime) }}
             </NText>
           </div>
+          <NTooltip>
+            <template #trigger>
+              <NButton quaternary circle :loading="sharing" @click="share">
+                <template #icon>
+                  <NIcon><ShareSocialOutline /></NIcon>
+                </template>
+              </NButton>
+            </template>
+            分享（链接 7 天内有效，免登录访问）
+          </NTooltip>
         </div>
         <!-- 与对话消息同一套 Markdown 渲染（含 echarts 图表块） -->
         <div class="detail-body">

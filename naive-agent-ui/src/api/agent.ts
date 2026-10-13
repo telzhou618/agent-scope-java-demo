@@ -82,6 +82,14 @@ export const markMessageRead = (id: number) =>
 export const deleteMessage = (id: number) =>
   http.post<Result<void>>(`${API_BASE}/message/delete`, { id }).then((r) => r.data.data)
 
+/** 生成分享链接（7 天有效，免登录可访问）；返回相对路径，前端拼 origin */
+export const getMessageShareLink = (id: number) =>
+  http.get<Result<string>>(`${API_BASE}/message/shareLink`, { params: { id } }).then((r) => r.data.data)
+
+/** 分享页取消息详情（签名链接，免登录） */
+export const getSharedMessage = (params: { id: number; expires: number; sign: string }) =>
+  http.get<Result<MessageItem>>(`${API_BASE}/message/shared`, { params }).then((r) => r.data.data)
+
 /* ---------- 定时任务 ---------- */
 
 export const listSchedules = () =>
