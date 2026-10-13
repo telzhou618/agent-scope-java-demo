@@ -14,6 +14,8 @@ import {
 } from '../utils/export'
 import { withChartImages } from '../utils/exportCharts'
 import { printHtmlDocument } from '../utils/print'
+import { getSessionShareLink } from '../api/agent'
+import { copyText } from '../utils/clipboard'
 
 /**
  * 聊天页右侧悬浮操作栏：竖向图标按钮，鼠标进入内容列右侧空白区浮现。
@@ -35,10 +37,12 @@ interface RailAction {
 
 /** 流式中或没有内容时不可导出 */
 const exportDisabled = computed(() => chat.state.streaming || chat.state.turns.length === 0)
+/** 没有已落库的会话（新会话未发首条消息）或流式中时不可分享 */
+const shareDisabled = computed(() => chat.state.streaming || !chat.state.currentSessionId)
 
 const actions = computed<RailAction[]>(() => [
   { key: 'export', icon: DownloadOutline, tooltip: '导出会话', disabled: exportDisabled.value },
-  { key: 'share', icon: ShareSocialOutline, tooltip: '分享会话' },
+  { key: 'share', icon: ShareSocialOutline, tooltip: '分享会话', disabled: shareDisabled.value },
 ])
 
 const exportOptions = [
@@ -48,6 +52,23 @@ const exportOptions = [
 ]
 
 const exporting = ref(false)
+const sharing = ref(false)
+
+/** 生成 7 天有效的免登录会话分享链接并复制到剪贴板 */
+async function shareSession() {
+  const sessionId = chat.state.currentSessionId
+  if (!sessionId || sharing.value) return
+  sharing.value = true
+  try {
+    const path = await getSessionShareLink(sessionId)
+    await copyText(window.location.origin + path)
+    message.success('会话分享链接已复制，7 天内有效')
+  } catch (error) {
+    message.error(error instanceof Error ? error.message : '生成分享链接失败')
+  } finally {
+    sharing.value = false
+  }
+}
 
 function meta(): ExportMeta {
   return {
@@ -81,7 +102,7 @@ async function onExport(key: string) {
 
 function onAction(key: string) {
   if (key === 'share') {
-    message.info('分享功能敬请期待')
+    void shareSession()
   }
 }
 
@@ -156,6 +177,7 @@ watch(wide, () => requestAnimationFrame(measure))
             quaternary
             circle
             :disabled="action.disabled"
+            :loading="action.key === 'share' && sharing"
             @click="onAction(action.key)"
           >
             <template #icon>

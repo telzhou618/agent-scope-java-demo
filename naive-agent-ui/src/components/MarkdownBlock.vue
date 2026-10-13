@@ -1,13 +1,17 @@
 <script setup lang="ts">
 import { onBeforeUnmount, ref, watch } from 'vue'
-import { renderMarkdown } from '../utils/markdown'
+import { renderMarkdown, renderMarkdownForShare } from '../utils/markdown'
 import { copyText, flashLabel } from '../utils/clipboard'
 import { useLightbox } from '../composables/useLightbox'
 import ChartBlock from './ChartBlock.vue'
 
-const props = defineProps<{ markdown: string; streaming?: boolean }>()
+const props = defineProps<{ markdown: string; streaming?: boolean; noLinks?: boolean }>()
 
 const { open: openImage } = useLightbox()
+
+/** 分享页模式：链接降级为纯文本，禁止跳转/下载 */
+const renderMd = (markdown: string) =>
+  props.noLinks ? renderMarkdownForShare(markdown) : renderMarkdown(markdown)
 
 let timer: number | null = null
 
@@ -19,19 +23,19 @@ type Segment = { kind: 'html'; html: string } | { kind: 'chart'; config: string 
 
 const ECHARTS_FENCE = /```echarts[^\S\n]*\n([\s\S]*?)(?:\n```|$)/g
 
-function splitSegments(markdown: string): Segment[] {
+function splitSegments(markdown: string, render: (md: string) => string): Segment[] {
   const segments: Segment[] = []
   let last = 0
   for (const match of markdown.matchAll(ECHARTS_FENCE)) {
     const index = match.index ?? 0
     if (index > last) {
-      segments.push({ kind: 'html', html: renderMarkdown(markdown.slice(last, index)) })
+      segments.push({ kind: 'html', html: render(markdown.slice(last, index)) })
     }
     segments.push({ kind: 'chart', config: match[1].trim() })
     last = index + match[0].length
   }
   if (last < markdown.length) {
-    segments.push({ kind: 'html', html: renderMarkdown(markdown.slice(last)) })
+    segments.push({ kind: 'html', html: render(markdown.slice(last)) })
   }
   return segments
 }
@@ -76,17 +80,17 @@ let cache: { prefix: string; segments: Segment[] } = { prefix: '', segments: [] 
 
 function render(markdown: string): Segment[] {
   const fenceStart = unclosedFenceStart(markdown)
-  if (fenceStart <= 0) return splitSegments(markdown)
+  if (fenceStart <= 0) return splitSegments(markdown, renderMd)
   const prefix = markdown.slice(0, fenceStart)
   const tail = markdown.slice(fenceStart)
-  if (REF_DEFINITION.test(tail)) return splitSegments(markdown)
+  if (REF_DEFINITION.test(tail)) return splitSegments(markdown, renderMd)
   if (cache.prefix !== prefix) {
-    cache = { prefix, segments: splitSegments(prefix) }
+    cache = { prefix, segments: splitSegments(prefix, renderMd) }
   }
-  return [...cache.segments, ...splitSegments(tail)]
+  return [...cache.segments, ...splitSegments(tail, renderMd)]
 }
 
-const rendered = ref<Segment[]>(splitSegments(props.markdown))
+const rendered = ref<Segment[]>(splitSegments(props.markdown, renderMd))
 
 // 流式增量很密，节流到 50ms 再跑一次 Markdown 解析
 watch(
@@ -110,7 +114,7 @@ watch(
       timer = null
     }
     cache = { prefix: '', segments: [] }
-    rendered.value = splitSegments(props.markdown)
+    rendered.value = splitSegments(props.markdown, renderMd)
   },
 )
 

@@ -11,13 +11,15 @@ const MessagesView = () => import('../views/MessagesView.vue')
 const MessageDetailView = () => import('../views/MessageDetailView.vue')
 const SchedulesView = () => import('../views/SchedulesView.vue')
 const SharedMessageView = () => import('../views/SharedMessageView.vue')
+const SharedSessionView = () => import('../views/SharedSessionView.vue')
 
 const router = createRouter({
   history: createWebHistory(),
   routes: [
     { path: '/login', name: 'login', component: LoginView },
-    // 分享页：签名链接免登录访问，不走 AppLayout
+    // 分享页：免登录访问，不走 AppLayout
     { path: '/share/message', name: 'share-message', component: SharedMessageView },
+    { path: '/share/session', name: 'share-session', component: SharedSessionView },
     {
       path: '/',
       component: AppLayout,
@@ -43,7 +45,7 @@ const router = createRouter({
  */
 router.beforeEach(async (to: RouteLocationNormalized) => {
   // 分享页公开访问
-  if (to.name === 'share-message') {
+  if (to.name === 'share-message' || to.name === 'share-session') {
     return true
   }
   const loggedIn = !!getToken()

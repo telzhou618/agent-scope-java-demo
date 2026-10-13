@@ -6,7 +6,7 @@ import com.example.agent.annotation.OperationLog;
 import com.example.agent.dto.IdRequest;
 import com.example.agent.dto.Result;
 import com.example.agent.service.MessageService;
-import com.example.agent.service.MessageShareService;
+import com.example.agent.service.ShareService;
 import com.example.agent.vo.MessageVO;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -29,7 +29,7 @@ import org.springframework.web.bind.annotation.RestController;
 public class MessageController {
 
     private final MessageService messageService;
-    private final MessageShareService messageShareService;
+    private final ShareService shareService;
 
     @GetMapping("/page")
     @Operation(summary = "消息分页列表（倒序，不含正文）")
@@ -55,13 +55,13 @@ public class MessageController {
     public Result<String> shareLink(@RequestParam long id) {
         // 校验消息归属当前用户后才签发链接
         messageService.detail(StpUtil.getLoginIdAsLong(), id);
-        return Result.okData(messageShareService.signPath(id, StpUtil.getLoginIdAsLong()));
+        return Result.okData(shareService.messageSharePath(id, StpUtil.getLoginIdAsLong()));
     }
 
     @GetMapping("/shared")
     @Operation(summary = "分享的消息详情（UUID 短链，7 天内免登录）")
     public Result<MessageVO> shared(@RequestParam String t) {
-        return Result.okData(messageService.sharedDetail(messageShareService.resolve(t)));
+        return Result.okData(messageService.sharedDetail(shareService.resolveMessage(t)));
     }
 
     @PostMapping("/read")

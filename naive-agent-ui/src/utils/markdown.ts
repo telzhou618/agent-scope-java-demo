@@ -105,9 +105,26 @@ function createRenderer(withCopyButton: boolean) {
 const appMarked = new Marked({ gfm: true, breaks: true, renderer: createRenderer(true) })
 const exportMarked = new Marked({ gfm: true, breaks: true, renderer: createRenderer(false) })
 
+/** 分享页渲染器：链接降级为纯文本（禁止跳转/下载文件），代码块不带操作按钮 */
+const shareMarked = new Marked({
+  gfm: true,
+  breaks: true,
+  renderer: {
+    ...createRenderer(false),
+    link(token: Tokens.Link): string {
+      return `<span class="md-link-disabled">${token.text}</span>`
+    },
+  },
+})
+
 /** 界面内渲染：代码块带复制按钮 */
 export function renderMarkdown(markdown: string): string {
   return DOMPurify.sanitize(appMarked.parse(markdown) as string)
+}
+
+/** 分享页渲染：无链接、无代码块按钮 */
+export function renderMarkdownForShare(markdown: string): string {
+  return DOMPurify.sanitize(shareMarked.parse(markdown) as string)
 }
 
 /** 导出文件用：与界面同一套渲染，去掉复制按钮 */

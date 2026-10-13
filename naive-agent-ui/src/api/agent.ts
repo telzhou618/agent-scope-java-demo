@@ -90,6 +90,14 @@ export const getMessageShareLink = (id: number) =>
 export const getSharedMessage = (t: string) =>
   http.get<Result<MessageItem>>(`${API_BASE}/message/shared`, { params: { t } }).then((r) => r.data.data)
 
+/** 生成会话分享链接（7 天有效，免登录可访问）；返回相对路径，前端拼 origin */
+export const getSessionShareLink = (sessionId: string) =>
+  http.get<Result<string>>(`${API_BASE}/share/sessionLink`, { params: { sessionId } }).then((r) => r.data.data)
+
+/** 分享页取会话消息（UUID 短链，免登录；附件/图片内容块不下发） */
+export const getSharedSession = (t: string) =>
+  http.get<Result<Msg[]>>(`${API_BASE}/share/session`, { params: { t } }).then((r) => r.data.data)
+
 /* ---------- 定时任务 ---------- */
 
 export const listSchedules = () =>
