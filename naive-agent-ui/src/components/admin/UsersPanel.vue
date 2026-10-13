@@ -77,6 +77,13 @@ function applySearch() {
 /* ---- Agent 选项（管理员拿到的是全量列表） ---- */
 const agentOptions = ref<AgentInfo[]>([])
 
+/* ---- 权限码中文标签 ---- */
+const PERMISSION_LABELS: Record<string, string> = { schedule: '定时任务' }
+
+function permissionLabel(code: string) {
+  return PERMISSION_LABELS[code] ?? code
+}
+
 /* ---- 新建 / 编辑弹窗 ---- */
 interface UserForm {
   id: number | null
@@ -249,6 +256,24 @@ const columns: DataTableColumns<UserManageItem> = [
     },
   },
   {
+    title: '权限',
+    key: 'permissions',
+    width: 120,
+    render: (row) => {
+      if (row.isAdmin) return h(NTag, { size: 'small', type: 'primary', bordered: false }, { default: () => '全部' })
+      if (row.permissions?.length) {
+        return h(
+          'div',
+          { class: 'flex flex-wrap gap-1' },
+          row.permissions.map((code) =>
+            h(NTag, { key: code, size: 'small', bordered: false }, { default: () => permissionLabel(code) }),
+          ),
+        )
+      }
+      return h('span', { class: 'op-45' }, '无')
+    },
+  },
+  {
     title: '状态',
     key: 'status',
     width: 80,
@@ -376,7 +401,7 @@ onMounted(() => {
           load()
         },
       }"
-      :scroll-x="900"
+      :scroll-x="1000"
     />
 
     <NModal
