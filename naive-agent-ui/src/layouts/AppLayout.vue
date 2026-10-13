@@ -135,11 +135,15 @@ function onGlobalKeydown(event: KeyboardEvent) {
   }
 }
 
+const canSchedule = computed(() => !!auth.user && (auth.user.isAdmin || auth.user.permissions?.includes('schedule')))
+
 const accountOptions = computed<DropdownOption[]>(() => {
   const options: DropdownOption[] = [
     { label: '个人中心', key: 'profile', icon: () => h(NIcon, null, { default: () => h(PersonCircleOutline) }) },
-    { label: '定时任务', key: 'schedules', icon: () => h(NIcon, null, { default: () => h(TimeOutline) }) },
   ]
+  if (canSchedule.value) {
+    options.push({ label: '定时任务', key: 'schedules', icon: () => h(NIcon, null, { default: () => h(TimeOutline) }) })
+  }
   if (auth.user?.isAdmin) {
     options.push({ label: '管理中心', key: 'admin', icon: () => h(NIcon, null, { default: () => h(SettingsOutline) }) })
   }

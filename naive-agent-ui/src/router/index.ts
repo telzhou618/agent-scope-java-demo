@@ -62,6 +62,13 @@ router.beforeEach(async (to: RouteLocationNormalized) => {
     if (!auth.user) await auth.fetchCurrent()
     if (auth.user?.isAdmin !== true) return { path: '/chat' }
   }
+  if (to.name === 'schedules') {
+    const { useAuthStore } = await import('../stores/auth')
+    const auth = useAuthStore()
+    if (!auth.user) await auth.fetchCurrent()
+    const allowed = auth.user?.isAdmin === true || auth.user?.permissions?.includes('schedule')
+    if (!allowed) return { path: '/chat' }
+  }
   return true
 })
 
