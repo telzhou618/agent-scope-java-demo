@@ -1,5 +1,6 @@
 package com.example.agent.controller;
 
+import cn.dev33.satoken.annotation.SaCheckPermission;
 import cn.dev33.satoken.stp.StpUtil;
 import com.example.agent.annotation.OperationLog;
 import com.example.agent.dto.IdRequest;
@@ -26,6 +27,7 @@ import java.util.List;
 @AllArgsConstructor
 @RequestMapping("/agent/scope/schedule")
 @Tag(name = "定时任务")
+@SaCheckPermission("schedule")
 public class ScheduleController {
 
     private final ScheduleService scheduleService;
