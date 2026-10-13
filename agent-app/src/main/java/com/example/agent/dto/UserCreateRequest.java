@@ -39,4 +39,7 @@ public class UserCreateRequest {
 
     @Schema(description = "可用 Agent 名列表，空=无权限；管理员忽略")
     private List<String> agents;
+
+    @Schema(description = "权限码列表（如 schedule），空=无权限；管理员忽略")
+    private List<String> permissions;
 }

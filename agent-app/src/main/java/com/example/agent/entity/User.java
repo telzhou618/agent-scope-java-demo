@@ -51,6 +51,11 @@ public class User {
      */
     private String agents;
 
+    /**
+     * 逗号分隔的权限码（如 schedule），空=无权限（管理员不受限）
+     */
+    private String permissions;
+
     private String createdBy;
 
     private String updatedBy;

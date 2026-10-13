@@ -1,6 +1,7 @@
 package com.example.agent.vo;
 
 import com.example.agent.entity.User;
+import com.example.agent.enums.UserPermission;
 import lombok.Data;
 
 import java.time.LocalDateTime;
@@ -37,6 +38,11 @@ public class UserManageVO {
      */
     private List<String> agents;
 
+    /**
+     * 权限码列表（管理员不受限，仍按库中存储返回）
+     */
+    private List<String> permissions;
+
     private String createdBy;
 
     private String updatedBy;
@@ -57,6 +63,7 @@ public class UserManageVO {
         vo.setStatus(user.getStatus());
         vo.setIsAdmin(user.getIsAdmin() != null && user.getIsAdmin() == 1);
         vo.setAgents(UserVO.splitAgents(user.getAgents()));
+        vo.setPermissions(UserPermission.parse(user.getPermissions()));
         vo.setCreatedBy(user.getCreatedBy());
         vo.setUpdatedBy(user.getUpdatedBy());
         vo.setRegisterTime(user.getRegisterTime());

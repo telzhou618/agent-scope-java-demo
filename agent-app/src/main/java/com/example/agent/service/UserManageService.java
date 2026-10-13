@@ -65,6 +65,8 @@ public class UserManageService {
         user.setIsAdmin(isAdmin ? 1 : 0);
         // 管理员不受 Agent 白名单限制，一律存空串
         user.setAgents(isAdmin ? "" : joinAgents(request.getAgents()));
+        // 管理员不受权限限制，一律存空串
+        user.setPermissions(isAdmin ? "" : joinPermissions(request.getPermissions()));
         user.setCreatedBy(operator);
         user.setUpdatedBy(operator);
         user.setRegisterTime(LocalDateTime.now());
@@ -119,6 +121,13 @@ public class UserManageService {
         } else if (request.getAgents() != null) {
             update.setAgents(joinAgents(request.getAgents()));
         }
+        if (willBeAdmin) {
+            if (request.getIsAdmin() != null || request.getPermissions() != null) {
+                update.setPermissions("");
+            }
+        } else if (request.getPermissions() != null) {
+            update.setPermissions(joinPermissions(request.getPermissions()));
+        }
         // 密码非空才更新
         if (StringUtils.hasText(request.getPassword())) {
             update.setPassword(passwordEncoder.encode(request.getPassword()));
@@ -169,6 +178,16 @@ public class UserManageService {
             return "";
         }
         return String.join(",", agents.stream()
+                .filter(StringUtils::hasText)
+                .map(String::trim)
+                .toList());
+    }
+
+    private String joinPermissions(List<String> permissions) {
+        if (permissions == null || permissions.isEmpty()) {
+            return "";
+        }
+        return String.join(",", permissions.stream()
                 .filter(StringUtils::hasText)
                 .map(String::trim)
                 .toList());

@@ -26,6 +26,7 @@ CREATE TABLE IF NOT EXISTS t_user (
   status        TINYINT      NOT NULL DEFAULT 1  COMMENT '状态：1正常 0禁用',
   is_admin      TINYINT      NOT NULL DEFAULT 0  COMMENT '1=管理员',
   agents        VARCHAR(200) NOT NULL DEFAULT '' COMMENT '逗号分隔agent名，空=无权限',
+  permissions   VARCHAR(100) NOT NULL DEFAULT '' COMMENT '逗号分隔权限码，空=无权限',
   created_by    VARCHAR(50)  NOT NULL DEFAULT '' COMMENT '创建人',
   updated_by    VARCHAR(50)  NOT NULL DEFAULT '' COMMENT '更新人',
   register_time DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '注册时间',
@@ -163,7 +164,8 @@ CREATE TABLE IF NOT EXISTS t_user_oauth (
 --   USE agent_demo;
 --   ALTER TABLE t_user ADD COLUMN is_admin TINYINT NOT NULL DEFAULT 0 COMMENT '1=管理员' AFTER status;
 --   ALTER TABLE t_user ADD COLUMN agents VARCHAR(200) NOT NULL DEFAULT '' COMMENT '逗号分隔agent名，空=无权限' AFTER is_admin;
---   ALTER TABLE t_user ADD COLUMN created_by VARCHAR(50) NOT NULL DEFAULT '' COMMENT '创建人' AFTER agents;
+--   ALTER TABLE t_user ADD COLUMN permissions VARCHAR(100) NOT NULL DEFAULT '' COMMENT '逗号分隔权限码，空=无权限' AFTER agents;
+--   ALTER TABLE t_user ADD COLUMN created_by VARCHAR(50) NOT NULL DEFAULT '' COMMENT '创建人' AFTER permissions;
 --   ALTER TABLE t_user ADD COLUMN updated_by VARCHAR(50) NOT NULL DEFAULT '' COMMENT '更新人' AFTER created_by;
 --   UPDATE t_user SET is_admin = 1 WHERE username = 'admin';
 --

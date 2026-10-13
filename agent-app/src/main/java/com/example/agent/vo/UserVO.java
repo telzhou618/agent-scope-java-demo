@@ -1,6 +1,7 @@
 package com.example.agent.vo;
 
 import com.example.agent.entity.User;
+import com.example.agent.enums.UserPermission;
 import lombok.Data;
 
 import java.util.Arrays;
@@ -32,6 +33,11 @@ public class UserVO {
      */
     private List<String> agents;
 
+    /**
+     * 权限码列表（管理员不受限，仍按库中存储返回）
+     */
+    private List<String> permissions;
+
     public static UserVO from(User user) {
         UserVO vo = new UserVO();
         vo.setId(user.getId());
@@ -41,6 +47,7 @@ public class UserVO {
         vo.setAvatar(user.getAvatar());
         vo.setIsAdmin(user.getIsAdmin() != null && user.getIsAdmin() == 1);
         vo.setAgents(splitAgents(user.getAgents()));
+        vo.setPermissions(UserPermission.parse(user.getPermissions()));
         return vo;
     }
 
