@@ -1,8 +1,11 @@
 package com.example.agent.agent;
 
 import com.example.agent.middleware.TokenUsageMiddleware;
+import com.example.agent.service.ScheduleService;
 import com.example.agent.service.TokenUsageService;
+import com.example.agent.service.UserPermissionService;
 import com.example.agent.tools.DateTimeTools;
+import com.example.agent.tools.ScheduleTools;
 import io.agentscope.core.model.GenerateOptions;
 import io.agentscope.core.permission.PermissionBehavior;
 import io.agentscope.core.permission.PermissionContextState;
@@ -63,6 +66,12 @@ public abstract class AbstractAgentFactory {
     @Autowired
     protected DateTimeTools dateTimeTools;
 
+    @Autowired
+    protected ScheduleService scheduleService;
+
+    @Autowired
+    protected UserPermissionService userPermissionService;
+
     /**
      * Agent 标识名，直接写入 t_token_usage.agent_name
      */
@@ -107,6 +116,13 @@ public abstract class AbstractAgentFactory {
      * 是否默认 Agent，仅 flash 覆写为 true
      */
     protected boolean defaultAgent() {
+        return false;
+    }
+
+    /**
+     * 是否支持定时任务，开启才注册 schedule_* 工具；默认关闭
+     */
+    protected boolean scheduleEnabled() {
         return false;
     }
 
@@ -192,6 +208,7 @@ public abstract class AbstractAgentFactory {
                 .mcp(toolsEnabled())
                 .skills(skillsEnabled())
                 .attachments(attachmentsEnabled())
+                .schedule(scheduleEnabled())
                 .defaultAgent(defaultAgent())
                 .build();
     }
@@ -251,6 +268,9 @@ public abstract class AbstractAgentFactory {
         toolkit.registerMcpClient(mcpClientWrapper).block();
         registerBaseTools(toolkit);
         registerLocalTools(toolkit);
+        if (scheduleEnabled()) {
+            toolkit.registerTool(new ScheduleTools(scheduleService, name(), userPermissionService));
+        }
 
         return toolkit;
     }

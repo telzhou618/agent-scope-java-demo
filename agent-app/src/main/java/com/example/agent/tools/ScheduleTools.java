@@ -1,7 +1,9 @@
 package com.example.agent.tools;
 
+import com.example.agent.enums.UserPermission;
 import com.example.agent.error.BizException;
 import com.example.agent.service.ScheduleService;
+import com.example.agent.service.UserPermissionService;
 import io.agentscope.core.agent.RuntimeContext;
 import io.agentscope.core.tool.Tool;
 import io.agentscope.core.tool.ToolParam;
@@ -21,10 +23,12 @@ public class ScheduleTools {
 
     private final ScheduleService scheduleService;
     private final String agentName;
+    private final UserPermissionService userPermissionService;
 
-    public ScheduleTools(ScheduleService scheduleService, String agentName) {
+    public ScheduleTools(ScheduleService scheduleService, String agentName, UserPermissionService userPermissionService) {
         this.scheduleService = scheduleService;
         this.agentName = agentName;
+        this.userPermissionService = userPermissionService;
     }
 
     @Tool(name = "create_schedule", description = "创建定时任务：当用户要求定期做某件事（如每周报告、每日摘要）时使用。"
@@ -36,6 +40,9 @@ public class ScheduleTools {
         Long userId = loginUserId(context);
         if (userId == null) {
             return fail("无法识别当前用户");
+        }
+        if (!userPermissionService.hasPermission(userId, UserPermission.SCHEDULE)) {
+            return fail("无「定时任务」权限");
         }
         try {
             LocalDateTime nextRunAt = scheduleService.create(userId, agentName, description, cron);
@@ -54,6 +61,9 @@ public class ScheduleTools {
         if (userId == null) {
             return fail("无法识别当前用户");
         }
+        if (!userPermissionService.hasPermission(userId, UserPermission.SCHEDULE)) {
+            return fail("无「定时任务」权限");
+        }
         Map<String, Object> result = ok();
         result.put("tasks", scheduleService.listForUser(userId));
         return result;
@@ -69,6 +79,9 @@ public class ScheduleTools {
         Long userId = loginUserId(context);
         if (userId == null) {
             return fail("无法识别当前用户");
+        }
+        if (!userPermissionService.hasPermission(userId, UserPermission.SCHEDULE)) {
+            return fail("无「定时任务」权限");
         }
         try {
             LocalDateTime nextRunAt = scheduleService.update(userId, id, description, cron);
@@ -89,6 +102,9 @@ public class ScheduleTools {
         if (userId == null) {
             return fail("无法识别当前用户");
         }
+        if (!userPermissionService.hasPermission(userId, UserPermission.SCHEDULE)) {
+            return fail("无「定时任务」权限");
+        }
         try {
             scheduleService.delete(userId, id);
             log.info("定时任务删除成功, userId={}, taskId={}", userId, id);
@@ -106,6 +122,9 @@ public class ScheduleTools {
         Long userId = loginUserId(context);
         if (userId == null) {
             return fail("无法识别当前用户");
+        }
+        if (!userPermissionService.hasPermission(userId, UserPermission.SCHEDULE)) {
+            return fail("无「定时任务」权限");
         }
         try {
             scheduleService.triggerNow(userId, id);

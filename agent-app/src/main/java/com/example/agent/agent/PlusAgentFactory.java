@@ -1,9 +1,7 @@
 package com.example.agent.agent;
 
-import com.example.agent.service.ScheduleService;
 import com.example.agent.tools.DataExportTools;
 import com.example.agent.tools.MysqlQueryTools;
-import com.example.agent.tools.ScheduleTools;
 import io.agentscope.core.tool.Toolkit;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -25,9 +23,6 @@ public class PlusAgentFactory extends AbstractAgentFactory {
 
     @Autowired
     private DataExportTools dataExportTools;
-
-    @Autowired
-    private ScheduleService scheduleService;
 
     @Override
     protected String name() {
@@ -73,6 +68,5 @@ public class PlusAgentFactory extends AbstractAgentFactory {
     protected void registerLocalTools(Toolkit toolkit) {
         toolkit.registerTool(mysqlQueryTools);
         toolkit.registerTool(dataExportTools);
-        toolkit.registerTool(new ScheduleTools(scheduleService, name()));
     }
 }

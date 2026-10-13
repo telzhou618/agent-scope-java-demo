@@ -42,6 +42,9 @@ public class AgentInfo {
     @Schema(description = "是否支持附件")
     private boolean attachments;
 
+    @Schema(description = "是否支持定时任务")
+    private boolean schedule;
+
     @Schema(description = "是否默认 Agent")
     private boolean defaultAgent;
 }

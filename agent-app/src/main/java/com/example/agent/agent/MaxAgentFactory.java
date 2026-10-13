@@ -1,9 +1,7 @@
 package com.example.agent.agent;
 
-import com.example.agent.service.ScheduleService;
 import com.example.agent.tools.DataExportTools;
 import com.example.agent.tools.MysqlQueryTools;
-import com.example.agent.tools.ScheduleTools;
 import com.example.agent.tools.SearchTools;
 import com.example.agent.tools.WeatherTools;
 import io.agentscope.core.tool.Toolkit;
@@ -33,9 +31,6 @@ public class MaxAgentFactory extends AbstractAgentFactory {
 
     @Autowired
     private WeatherTools weatherTools;
-
-    @Autowired
-    private ScheduleService scheduleService;
 
     @Override
     protected String name() {
@@ -78,11 +73,15 @@ public class MaxAgentFactory extends AbstractAgentFactory {
     }
 
     @Override
+    protected boolean scheduleEnabled() {
+        return true;
+    }
+
+    @Override
     protected void registerLocalTools(Toolkit toolkit) {
         toolkit.registerTool(mysqlQueryTools);
         toolkit.registerTool(dataExportTools);
         toolkit.registerTool(searchTools);
         toolkit.registerTool(weatherTools);
-        toolkit.registerTool(new ScheduleTools(scheduleService, name()));
     }
 }
