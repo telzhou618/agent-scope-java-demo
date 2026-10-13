@@ -10,6 +10,7 @@ import {
   FlashOutline,
   HardwareChipOutline,
   SparklesOutline,
+  TimeOutline,
 } from '@vicons/ionicons5'
 import { useAgentsStore } from '../stores/agents'
 import { useChatStore } from '../stores/chat'
@@ -22,12 +23,13 @@ const chat = useChatStore()
 const open = ref(false)
 
 /** 能力徽章：支持则实色，不支持灰显 */
-const CAPABILITIES: { key: 'thinking' | 'tools' | 'mcp' | 'skills' | 'attachments'; label: string; icon: typeof SparklesOutline }[] = [
+const CAPABILITIES: { key: 'thinking' | 'tools' | 'mcp' | 'skills' | 'attachments' | 'schedule'; label: string; icon: typeof SparklesOutline }[] = [
   { key: 'thinking', label: '思考', icon: SparklesOutline },
   { key: 'tools', label: '工具', icon: ConstructOutline },
   { key: 'mcp', label: 'MCP', icon: HardwareChipOutline },
   { key: 'skills', label: '技能', icon: FlashOutline },
   { key: 'attachments', label: '附件', icon: AttachOutline },
+  { key: 'schedule', label: '定时任务', icon: TimeOutline },
 ]
 
 /** 主动切换 Agent：回写偏好并开新会话 */

@@ -25,6 +25,8 @@ export interface UserInfo {
   isAdmin: boolean
   /** 当前用户可用的 Agent 名称列表；管理员为全量 */
   agents: string[]
+  /** 权限码列表（如 schedule）；管理员自动拥有全部 */
+  permissions: string[]
 }
 
 export interface AgentSession {
@@ -53,6 +55,8 @@ export interface AgentInfo {
   mcp: boolean
   skills: boolean
   attachments: boolean
+  /** 是否支持定时任务 */
+  schedule: boolean
   defaultAgent: boolean
 }
 
