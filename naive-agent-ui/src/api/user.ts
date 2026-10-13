@@ -16,6 +16,8 @@ export interface UserManageItem {
   status: number
   isAdmin: boolean
   agents: string[]
+  /** 权限码列表（如 schedule） */
+  permissions: string[]
   createdBy: string
   updatedBy: string
   registerTime: string
@@ -34,6 +36,7 @@ export interface UserSavePayload {
   status?: number
   isAdmin?: boolean
   agents?: string[]
+  permissions?: string[]
 }
 
 /** 用户分页（管理员）；keyword 匹配用户名/昵称/邮箱 */

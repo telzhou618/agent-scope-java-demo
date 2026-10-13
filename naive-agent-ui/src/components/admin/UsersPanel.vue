@@ -88,6 +88,7 @@ interface UserForm {
   status: number
   isAdmin: boolean
   agents: string[]
+  permissions: string[]
 }
 
 const dialogOpen = ref(false)
@@ -104,6 +105,7 @@ const form = reactive<UserForm>({
   status: 1,
   isAdmin: false,
   agents: [],
+  permissions: [],
 })
 
 const formRules = computed<FormRules>(() => ({
@@ -125,6 +127,7 @@ function resetForm() {
   form.status = 1
   form.isAdmin = false
   form.agents = []
+  form.permissions = []
 }
 
 function openCreate() {
@@ -144,6 +147,7 @@ function openEdit(item: UserManageItem) {
   form.status = item.status
   form.isAdmin = item.isAdmin
   form.agents = [...(item.agents ?? [])]
+  form.permissions = [...(item.permissions ?? [])]
   dialogOpen.value = true
 }
 
@@ -165,6 +169,7 @@ async function submitForm() {
       status: form.status,
       isAdmin: form.isAdmin,
       agents: [...form.agents],
+      permissions: [...form.permissions],
     }
     if (editing.value) {
       payload.id = form.id ?? undefined
@@ -435,6 +440,14 @@ onMounted(() => {
             </NCheckboxGroup>
             <span v-if="!agentOptions.length" class="text-xs op-50">暂无可用 Agent</span>
             <span v-else-if="form.isAdmin" class="text-xs op-50">管理员拥有全部 Agent 权限</span>
+          </div>
+        </NFormItem>
+        <NFormItem label="权限">
+          <div class="flex flex-col gap-1">
+            <NCheckboxGroup v-model:value="form.permissions" :disabled="form.isAdmin">
+              <NCheckbox value="schedule">定时任务</NCheckbox>
+            </NCheckboxGroup>
+            <span v-if="form.isAdmin" class="text-xs op-50">管理员拥有全部权限</span>
           </div>
         </NFormItem>
       </NForm>
