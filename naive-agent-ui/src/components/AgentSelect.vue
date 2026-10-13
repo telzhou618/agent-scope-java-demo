@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
-import { NButton, NEmpty, NIcon, NPopover, NTag } from 'naive-ui'
+import { NAvatar, NButton, NEmpty, NIcon, NPopover, NTag } from 'naive-ui'
 import {
   AttachOutline,
   CheckmarkOutline,
@@ -46,12 +46,15 @@ function onSelect(agent: AgentInfo) {
   <NPopover v-model:show="open" trigger="click" placement="bottom-start" :width="360" raw>
     <template #trigger>
       <NButton size="small" secondary>
-        {{ agents.currentAgent?.displayName || agents.state.current }}
-        <template #icon>
+        <div class="flex items-center gap-1.5">
+          <NAvatar round :size="20" :src="agents.currentAgent?.avatar || undefined">
+            {{ (agents.currentAgent?.name || agents.state.current).slice(0, 1).toUpperCase() }}
+          </NAvatar>
+          <span>{{ agents.currentAgent?.displayName || agents.state.current }}</span>
           <NIcon class="transition-transform" :class="{ 'rotate-180': open }">
             <ChevronDownOutline />
           </NIcon>
-        </template>
+        </div>
       </NButton>
     </template>
     <div class="agent-panel">
@@ -65,6 +68,9 @@ function onSelect(agent: AgentInfo) {
         @click="onSelect(agent)"
       >
         <div class="flex items-center gap-2">
+          <NAvatar round size="small" :src="agent.avatar || undefined">
+            {{ agent.name.slice(0, 1).toUpperCase() }}
+          </NAvatar>
           <span class="text-sm font-600">{{ agent.displayName || agent.name }}</span>
           <span class="text-xs op-45">{{ agent.model }}</span>
           <NIcon

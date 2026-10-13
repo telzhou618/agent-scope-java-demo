@@ -25,8 +25,10 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.util.StringUtils;
 
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.time.Duration;
+import java.util.Base64;
 import java.util.List;
 
 /**
@@ -125,19 +127,25 @@ public abstract class AbstractAgentFactory {
     protected abstract boolean scheduleEnabled();
 
     /**
-     * 头像：默认给一个品牌渐变的占位头像，后续可按档位接入真实资源
+     * 头像：每个档位一个简约的圆形渐变 + 首字母头像，颜色按档位区分
      */
-    private static final String DEFAULT_AVATAR =
-            "data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%20100%20100'%3E"
-                    + "%3Cdefs%3E%3ClinearGradient%20id='g'%20x1='0'%20y1='0'%20x2='1'%20y2='1'%3E"
-                    + "%3Cstop%20offset='0%25'%20stop-color='%236366f1'/%3E"
-                    + "%3Cstop%20offset='100%25'%20stop-color='%23a855f7'/%3E"
-                    + "%3C/linearGradient%3E%3C/defs%3E"
-                    + "%3Ccircle%20cx='50'%20cy='50'%20r='50'%20fill='url(%23g)'/%3E"
-                    + "%3C/svg%3E";
+    protected abstract String avatar();
 
-    protected String avatar() {
-        return DEFAULT_AVATAR;
+    /**
+     * 生成简约圆形头像（渐变底色 + 首字母）的 SVG data URI
+     */
+    protected static String buildAvatar(String letter, String fromColor, String toColor) {
+        String svg = "<svg xmlns='http://www.w3.org/2000/svg' width='64' height='64' viewBox='0 0 64 64'>"
+                + "<defs><linearGradient id='g' x1='0' y1='0' x2='1' y2='1'>"
+                + "<stop offset='0%' stop-color='" + fromColor + "'/>"
+                + "<stop offset='100%' stop-color='" + toColor + "'/>"
+                + "</linearGradient></defs>"
+                + "<circle cx='32' cy='32' r='32' fill='url(#g)'/>"
+                + "<text x='32' y='33' font-family='Arial, Helvetica, sans-serif' font-size='26' font-weight='700' "
+                + "fill='#ffffff' text-anchor='middle' dominant-baseline='central'>" + letter + "</text>"
+                + "</svg>";
+        return "data:image/svg+xml;base64," + Base64.getEncoder()
+                .encodeToString(svg.getBytes(StandardCharsets.UTF_8));
     }
 
     /**

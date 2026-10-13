@@ -35,6 +35,11 @@ public class FlashAgentFactory extends AbstractAgentFactory {
     }
 
     @Override
+    protected String avatar() {
+        return buildAvatar("F", "#22d3ee", "#0284c7");
+    }
+
+    @Override
     protected String description() {
         return "轻量快速档，不开启思考，适合简单问答";
     }

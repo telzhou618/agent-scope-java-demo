@@ -35,6 +35,11 @@ public class PlusAgentFactory extends AbstractAgentFactory {
     }
 
     @Override
+    protected String avatar() {
+        return buildAvatar("P", "#34d399", "#059669");
+    }
+
+    @Override
     protected String description() {
         return "标准档，开起思考，支持工具、MCP、技能、技能";
     }

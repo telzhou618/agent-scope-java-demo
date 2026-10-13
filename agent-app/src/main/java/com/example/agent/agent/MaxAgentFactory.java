@@ -43,6 +43,11 @@ public class MaxAgentFactory extends AbstractAgentFactory {
     }
 
     @Override
+    protected String avatar() {
+        return buildAvatar("M", "#a78bfa", "#7c3aed");
+    }
+
+    @Override
     protected String description() {
         return "旗舰档，开思考，支持 MCP 工具、技能市场与附件";
     }
