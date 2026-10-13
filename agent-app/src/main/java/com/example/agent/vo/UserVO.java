@@ -1,5 +1,7 @@
 package com.example.agent.vo;
 
+import cn.hutool.core.collection.ListUtil;
+import cn.hutool.core.util.StrUtil;
 import com.example.agent.entity.User;
 import com.example.agent.enums.UserPermission;
 import lombok.Data;
@@ -55,12 +57,6 @@ public class UserVO {
      * 逗号分隔的 Agent 串拆为列表，空串返回空表
      */
     public static List<String> splitAgents(String agents) {
-        if (agents == null || agents.isBlank()) {
-            return List.of();
-        }
-        return Arrays.stream(agents.split(","))
-                .map(String::trim)
-                .filter(s -> !s.isEmpty())
-                .toList();
+        return StrUtil.split(agents, ",");
     }
 }
