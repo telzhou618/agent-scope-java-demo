@@ -55,14 +55,13 @@ public class MessageController {
     public Result<String> shareLink(@RequestParam long id) {
         // 校验消息归属当前用户后才签发链接
         messageService.detail(StpUtil.getLoginIdAsLong(), id);
-        return Result.okData(messageShareService.signPath(id));
+        return Result.okData(messageShareService.signPath(id, StpUtil.getLoginIdAsLong()));
     }
 
     @GetMapping("/shared")
-    @Operation(summary = "分享的消息详情（签名链接，有效期内免登录）")
-    public Result<MessageVO> shared(@RequestParam long id, @RequestParam long expires, @RequestParam String sign) {
-        messageShareService.verifyOrThrow(id, expires, sign);
-        return Result.okData(messageService.sharedDetail(id));
+    @Operation(summary = "分享的消息详情（UUID 短链，7 天内免登录）")
+    public Result<MessageVO> shared(@RequestParam String t) {
+        return Result.okData(messageService.sharedDetail(messageShareService.resolve(t)));
     }
 
     @PostMapping("/read")

@@ -86,9 +86,9 @@ export const deleteMessage = (id: number) =>
 export const getMessageShareLink = (id: number) =>
   http.get<Result<string>>(`${API_BASE}/message/shareLink`, { params: { id } }).then((r) => r.data.data)
 
-/** 分享页取消息详情（签名链接，免登录） */
-export const getSharedMessage = (params: { id: number; expires: number; sign: string }) =>
-  http.get<Result<MessageItem>>(`${API_BASE}/message/shared`, { params }).then((r) => r.data.data)
+/** 分享页取消息详情（UUID 短链，免登录） */
+export const getSharedMessage = (t: string) =>
+  http.get<Result<MessageItem>>(`${API_BASE}/message/shared`, { params: { t } }).then((r) => r.data.data)
 
 /* ---------- 定时任务 ---------- */
 

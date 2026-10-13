@@ -1,17 +1,19 @@
 package com.example.agent.service;
 
+import cn.hutool.crypto.digest.DigestUtil;
 import com.example.agent.error.BizException;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 
-import javax.crypto.Mac;
-import javax.crypto.spec.SecretKeySpec;
-import java.nio.charset.StandardCharsets;
-import java.security.MessageDigest;
-import java.util.HexFormat;
+import java.time.Duration;
+import java.time.LocalDate;
 
 /**
- * 消息分享链接签名：HMAC-SHA256(messageId:expires)，链接在有效期内免登录可访问
+ * 消息分享：短链 token = MD5(userId:messageId:日期:盐)，确定性生成——同一用户同一天对同一消息
+ * 重复分享天然得到同一 token（无需去重键）；加盐防止外人枚举伪造。
+ * Redis 只存一个 share:token:<md5> → messageId 映射（7 天自动过期）；
+ * 消息删除不清理 Redis，访问时消息不存在即视为已失效。
  */
 @Service
 public class MessageShareService {
@@ -19,44 +21,44 @@ public class MessageShareService {
     /**
      * 分享链接有效期：7 天
      */
-    private static final long EXPIRE_MILLIS = 7 * 24 * 3600 * 1000L;
+    private static final Duration EXPIRE = Duration.ofDays(7);
 
-    private final byte[] secret;
+    private static final String TOKEN_KEY = "share:token:";
 
-    public MessageShareService(@Value("${agent.share.secret:${agent.download.secret:dev-download-secret}}") String secret) {
-        this.secret = ("message-share:" + secret).getBytes(StandardCharsets.UTF_8);
+    private final StringRedisTemplate redis;
+    private final String salt;
+
+    public MessageShareService(StringRedisTemplate redis,
+                               @Value("${agent.share.secret:${agent.download.secret:dev-download-secret}}") String salt) {
+        this.redis = redis;
+        this.salt = salt;
     }
 
     /**
-     * 生成签名分享路径（前端拼 origin 即可用）：/share/message?id=<id>&expires=<毫秒时间戳>&sign=<hex>
+     * 生成分享路径：/share/message?t=<md5>
      */
-    public String signPath(long messageId) {
-        long expires = System.currentTimeMillis() + EXPIRE_MILLIS;
-        return "/share/message?id=" + messageId + "&expires=" + expires + "&sign=" + hmac(messageId, expires);
+    public String signPath(long messageId, long userId) {
+        String token = tokenFor(messageId, userId);
+        // 重复分享时刷新有效期
+        redis.opsForValue().set(TOKEN_KEY + token, String.valueOf(messageId), EXPIRE);
+        return "/share/message?t=" + token;
     }
 
     /**
-     * 验签失败抛业务异常
+     * 解析分享 token；无效或已过期抛业务异常
      */
-    public void verifyOrThrow(long messageId, long expires, String sign) {
-        if (sign == null || expires < System.currentTimeMillis()) {
-            throw new BizException("分享链接无效或已过期");
+    public long resolve(String token) {
+        if (token == null || token.isBlank()) {
+            throw new BizException("分享链接无效或已失效");
         }
-        String expected = hmac(messageId, expires);
-        if (!MessageDigest.isEqual(expected.getBytes(StandardCharsets.UTF_8),
-                sign.getBytes(StandardCharsets.UTF_8))) {
-            throw new BizException("分享链接无效或已过期");
+        String messageId = redis.opsForValue().get(TOKEN_KEY + token);
+        if (messageId == null) {
+            throw new BizException("分享链接无效或已失效");
         }
+        return Long.parseLong(messageId);
     }
 
-    private String hmac(long messageId, long expires) {
-        try {
-            Mac mac = Mac.getInstance("HmacSHA256");
-            mac.init(new SecretKeySpec(secret, "HmacSHA256"));
-            return HexFormat.of().formatHex(
-                    mac.doFinal((messageId + ":" + expires).getBytes(StandardCharsets.UTF_8)));
-        } catch (Exception e) {
-            throw new IllegalStateException("签名计算失败", e);
-        }
+    private String tokenFor(long messageId, long userId) {
+        return DigestUtil.md5Hex("message-share:" + userId + ":" + messageId + ":" + LocalDate.now() + ":" + salt);
     }
 }

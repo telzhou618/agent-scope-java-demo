@@ -22,16 +22,14 @@ function formatTime(value?: string) {
 }
 
 onMounted(async () => {
-  const id = Number(route.query.id)
-  const expires = Number(route.query.expires)
-  const sign = String(route.query.sign ?? '')
-  if (!id || !expires || !sign) {
+  const token = String(route.query.t ?? '')
+  if (!token) {
     error.value = '分享链接无效'
     loading.value = false
     return
   }
   try {
-    detail.value = await getSharedMessage({ id, expires, sign })
+    detail.value = await getSharedMessage(token)
   } catch (e) {
     error.value = e instanceof Error ? e.message : '分享链接无效或已过期'
   } finally {

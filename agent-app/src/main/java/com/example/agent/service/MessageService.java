@@ -63,12 +63,12 @@ public class MessageService {
     }
 
     /**
-     * 分享详情：免登录，调用方必须先完成签名校验
+     * 分享详情：免登录，调用方必须先完成 token 解析；消息已删除时视为分享已失效
      */
     public MessageVO sharedDetail(long id) {
         Message message = messageMapper.selectById(id);
         if (message == null) {
-            throw new BizException("消息不存在");
+            throw new BizException("分享内容已失效");
         }
         return toVO(message, true);
     }
