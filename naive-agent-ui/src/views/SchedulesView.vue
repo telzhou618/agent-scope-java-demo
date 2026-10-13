@@ -101,18 +101,22 @@ onMounted(() => void load())
               size="small"
               @update:value="(v: boolean) => onToggle(item, v)"
             />
-            <NButton
-              size="tiny"
-              secondary
-              :loading="triggering === item.id"
-              title="立即执行一次，结果发到消息中心"
-              @click="onTrigger(item)"
-            >
-              <template #icon>
-                <NIcon><PlayOutline /></NIcon>
+            <NPopconfirm @positive-click="onTrigger(item)" positive-text="执行一次" negative-text="取消">
+              <template #trigger>
+                <NButton
+                  size="tiny"
+                  secondary
+                  :loading="triggering === item.id"
+                  title="立即执行一次，结果发到消息中心"
+                >
+                  <template #icon>
+                    <NIcon><PlayOutline /></NIcon>
+                  </template>
+                  执行一次
+                </NButton>
               </template>
-              执行一次
-            </NButton>
+              立即执行该任务一次？完成后结果会发到消息中心。
+            </NPopconfirm>
             <NPopconfirm @positive-click="onDelete(item)">
               <template #trigger>
                 <NButton size="tiny" type="error" quaternary>删除</NButton>
