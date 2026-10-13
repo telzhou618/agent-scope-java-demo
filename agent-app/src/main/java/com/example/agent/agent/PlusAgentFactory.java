@@ -1,5 +1,6 @@
 package com.example.agent.agent;
 
+import com.example.agent.service.ScheduleService;
 import com.example.agent.tools.DataExportTools;
 import com.example.agent.tools.MysqlQueryTools;
 import com.example.agent.tools.ScheduleTools;
@@ -26,7 +27,7 @@ public class PlusAgentFactory extends AbstractAgentFactory {
     private DataExportTools dataExportTools;
 
     @Autowired
-    private com.example.agent.service.ScheduleService scheduleService;
+    private ScheduleService scheduleService;
 
     @Override
     protected String name() {

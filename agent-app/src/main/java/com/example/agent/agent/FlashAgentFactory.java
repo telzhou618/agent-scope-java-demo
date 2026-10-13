@@ -25,9 +25,6 @@ public class FlashAgentFactory extends AbstractAgentFactory {
     @Autowired
     private DataExportTools dataExportTools;
 
-    @Autowired
-    private com.example.agent.service.ScheduleService scheduleService;
-
     @Override
     protected String name() {
         return "flash";
@@ -77,6 +74,5 @@ public class FlashAgentFactory extends AbstractAgentFactory {
     protected void registerLocalTools(Toolkit toolkit) {
         toolkit.registerTool(mysqlQueryTools);
         toolkit.registerTool(dataExportTools);
-        toolkit.registerTool(new ScheduleTools(scheduleService, name()));
     }
 }
