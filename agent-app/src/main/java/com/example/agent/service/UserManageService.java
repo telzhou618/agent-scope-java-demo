@@ -147,6 +147,10 @@ public class UserManageService {
         if (existing == null) {
             throw new BizException("用户不存在");
         }
+        // 内置 admin 账号不允许被禁用
+        if ("admin".equals(existing.getUsername()) && request.getStatus() == 0) {
+            throw new BizException("内置 admin 账号不能禁用");
+        }
         User update = new User();
         update.setId(request.getId());
         update.setStatus(request.getStatus());

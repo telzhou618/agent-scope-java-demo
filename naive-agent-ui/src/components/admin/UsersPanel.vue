@@ -202,6 +202,9 @@ async function submitForm() {
 /** 当前登录账号本人所在行不允许禁用/删除 */
 const isSelf = (item: UserManageItem) => item.id === auth.user?.id
 
+/** 内置 admin 账号不允许被禁用 */
+const isBuiltinAdminAccount = (item: UserManageItem) => item.username === 'admin'
+
 async function toggleStatus(item: UserManageItem) {
   const next = item.status === 1 ? 0 : 1
   try {
@@ -318,7 +321,7 @@ const columns: DataTableColumns<UserManageItem> = [
                   size: 'tiny',
                   quaternary: true,
                   type: row.status === 1 ? 'warning' : 'success',
-                  disabled: isSelf(row),
+                  disabled: isSelf(row) || (isBuiltinAdminAccount(row) && row.status === 1),
                 },
                 { default: () => (row.status === 1 ? '禁用' : '启用') },
               ),
