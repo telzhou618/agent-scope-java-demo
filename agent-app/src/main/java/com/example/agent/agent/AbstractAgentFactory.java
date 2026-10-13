@@ -122,9 +122,7 @@ public abstract class AbstractAgentFactory {
     /**
      * 是否支持定时任务，开启才注册 schedule_* 工具；默认关闭
      */
-    protected boolean scheduleEnabled() {
-        return false;
-    }
+    protected abstract boolean scheduleEnabled();
 
     /**
      * 头像：默认给一个品牌渐变的占位头像，后续可按档位接入真实资源
@@ -266,17 +264,25 @@ public abstract class AbstractAgentFactory {
         }
         McpClientWrapper mcpClientWrapper = mcpClientBuilder.buildAsync().block();
         toolkit.registerMcpClient(mcpClientWrapper).block();
+
         registerBaseTools(toolkit);
         registerLocalTools(toolkit);
-        if (scheduleEnabled()) {
-            toolkit.registerTool(new ScheduleTools(scheduleService, name(), userPermissionService));
-        }
+        registerMcpTools(toolkit);
 
         return toolkit;
     }
 
+    /**
+     * 注册 MCP 工具的钩子，默认不注册；需要的档位覆写并注入具体工具 Bean
+     */
+    private void registerMcpTools(Toolkit toolkit) {
+    }
+
     private void registerBaseTools(Toolkit toolkit) {
         toolkit.registerTool(dateTimeTools);
+        if (scheduleEnabled()) {
+            toolkit.registerTool(new ScheduleTools(scheduleService, name(), userPermissionService));
+        }
     }
 
     /**

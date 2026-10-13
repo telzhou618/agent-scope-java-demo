@@ -70,6 +70,11 @@ public class FlashAgentFactory extends AbstractAgentFactory {
     }
 
     @Override
+    protected boolean scheduleEnabled() {
+        return false;
+    }
+
+    @Override
     protected void registerLocalTools(Toolkit toolkit) {
         toolkit.registerTool(mysqlQueryTools);
         toolkit.registerTool(dataExportTools);
