@@ -33,7 +33,13 @@ public enum UserPermission {
      * 逗号分隔权限码串 → 权限码列表；null/blank 返回空表
      */
     public static List<String> parse(String csv) {
-        return StrUtil.split(csv, ",");
+        if (csv == null || csv.isBlank()) {
+            return List.of();
+        }
+        return StrUtil.split(csv, ",").stream()
+                .map(String::trim)
+                .filter(s -> !s.isEmpty())
+                .toList();
     }
 
     /**
