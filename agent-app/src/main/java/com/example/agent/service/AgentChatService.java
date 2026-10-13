@@ -118,8 +118,13 @@ public class AgentChatService {
                                 .build()))
                 .toList();
         boolean allConfirmed = items.stream().allMatch(item -> Boolean.TRUE.equals(item.getConfirmed()));
+        boolean noneConfirmed = items.stream().noneMatch(item -> Boolean.TRUE.equals(item.getConfirmed()));
+        long approvedCount = items.stream().filter(item -> Boolean.TRUE.equals(item.getConfirmed())).count();
+        String text = allConfirmed ? "确认执行"
+                : noneConfirmed ? "取消执行"
+                : "确认执行其中 " + approvedCount + " 项";
         return UserMessage.builder()
-                .textContent(allConfirmed ? "确认执行" : "取消执行")
+                .textContent(text)
                 .metadata(Map.of(Msg.METADATA_CONFIRM_RESULTS, results))
                 .build();
     }

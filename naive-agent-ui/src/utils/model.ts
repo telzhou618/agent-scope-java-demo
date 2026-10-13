@@ -28,11 +28,19 @@ export interface TextBlockModel {
 }
 
 /** 工具调用待确认卡片（agent.confirm-tools 名单内的工具触发） */
+/** 工具调用待确认卡片（agent.confirm-tools 名单内的工具触发）：逐项审批后底部统一提交 */
 export interface ConfirmBlockModel {
   kind: 'confirm'
-  toolCalls: { id: string; name: string; input?: Record<string, unknown>; content?: string }[]
-  /** pending 等待用户选择；confirmed/rejected 已处理；历史会话里无此块，仅实时出现 */
-  status: 'pending' | 'confirmed' | 'rejected'
+  toolCalls: {
+    id: string
+    name: string
+    input?: Record<string, unknown>
+    content?: string
+    /** 用户逐项审批的勾选结果；提交前为 undefined */
+    decision?: 'approved' | 'rejected'
+  }[]
+  /** pending 等待逐项审批；done 已提交；历史会话里无此块，仅实时出现 */
+  status: 'pending' | 'done'
 }
 
 export type AssistantBlock = ThinkingBlockModel | ToolBlockModel | TextBlockModel | ConfirmBlockModel
