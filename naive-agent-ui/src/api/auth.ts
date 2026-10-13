@@ -13,6 +13,10 @@ export const logoutApi = () => http.post<Result<void>>('/auth/logout').then((r) 
 
 export const currentUser = () => http.get<Result<UserInfo>>('/auth/current').then((r) => r.data.data)
 
+/** 已开启的第三方登录渠道列表 */
+export const oauthProviders = () =>
+  http.get<Result<string[]>>('/auth/oauth/providers').then((r) => r.data.data)
+
 export interface UpdateProfilePayload {
   nickname?: string
   email?: string
