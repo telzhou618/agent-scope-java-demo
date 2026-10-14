@@ -9,6 +9,7 @@ import {
   NIcon,
   NLayout,
   NLayoutContent,
+  NLayoutFooter,
   NLayoutHeader,
   NLayoutSider,
   NText,
@@ -30,6 +31,7 @@ import {
   SunnyOutline,
   TimeOutline,
 } from '@vicons/ionicons5'
+import AppFooter from '../components/AppFooter.vue'
 import AgentSelect from '../components/AgentSelect.vue'
 import FeedbackDialog from '../components/FeedbackDialog.vue'
 import ImageLightbox from '../components/ImageLightbox.vue'
@@ -292,12 +294,15 @@ const displayName = computed(() => auth.user?.nickname || auth.user?.username ||
         ChatView 恰好撑满高度（h-full）不溢出，不产生外层滚动条，消息列表内部自滚
       -->
       <NLayoutContent
-        style="height: calc(100vh - 3.5rem)"
+        style="height: calc(100vh - 3.5rem - 2rem)"
         :content-style="{ height: '100%' }"
         content-class="hover-scroll"
       >
         <RouterView />
       </NLayoutContent>
+      <NLayoutFooter bordered class="h-8 flex items-center justify-center">
+        <AppFooter />
+      </NLayoutFooter>
     </NLayout>
     <ImageLightbox />
     <FeedbackDialog v-model:show="feedbackOpen" />
