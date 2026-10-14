@@ -137,6 +137,7 @@ public class TokenUsageService {
             RecentRequestVO vo = new RecentRequestVO();
             vo.setSessionId(record.getSessionId());
             vo.setRequestId(record.getRequestId());
+            vo.setAgentName(record.getAgentName());
             vo.setModelName(record.getModelName());
             vo.setInputTokens(record.getInputTokens() == null ? 0L : record.getInputTokens().longValue());
             vo.setOutputTokens(record.getOutputTokens() == null ? 0L : record.getOutputTokens().longValue());

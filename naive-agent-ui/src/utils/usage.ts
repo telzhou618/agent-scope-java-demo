@@ -52,6 +52,8 @@ export interface UsageSummary {
 export interface RecentRequestItem {
   sessionId: string
   requestId: string
+  /** Agent 名称（flash/plus/max） */
+  agentName?: string
   modelName: string
   inputTokens: number
   outputTokens: number

@@ -22,6 +22,7 @@ import EditProfileDialog from '../components/EditProfileDialog.vue'
 import PasswordDialog from '../components/PasswordDialog.vue'
 import { useWideMode } from '../composables/useWideMode'
 import { useAuthStore } from '../stores/auth'
+import { agentShortLabel, useAgentsStore } from '../stores/agents'
 import type { AgentQuotaItem, MonthlyQuotaSummary } from '../api/types'
 import { getMonthlyQuota, getRecentRequests, getUsageSummary } from '../api/agent'
 import { formatInt, formatMoney, formatTokens } from '../utils/format'
@@ -188,6 +189,12 @@ const axisLabels = computed(() => {
 })
 
 /* ---- 最近请求表 ---- */
+const agentsStore = useAgentsStore()
+function agentNameLabel(name?: string): string {
+  if (!name) return '—'
+  return agentsStore.state.agents.find((item) => item.name === name)?.displayName || agentShortLabel(name)
+}
+
 /** createTime 是 ISO LocalDateTime（含 T），只展示到秒 */
 const formatTime = (value: string) => value.replace('T', ' ').slice(0, 19)
 
@@ -197,6 +204,12 @@ const recentColumns: DataTableColumns<RecentRequestItem> = [
     key: 'createTime',
     width: 165,
     render: (row) => formatTime(row.createTime),
+  },
+  {
+    title: 'Agent',
+    key: 'agentName',
+    width: 120,
+    render: (row) => agentNameLabel(row.agentName),
   },
   {
     title: '请求 ID',
