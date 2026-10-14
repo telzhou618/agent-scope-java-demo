@@ -1,13 +1,16 @@
 <script setup lang="ts">
 import { NCard, NTabs, NTabPane } from 'naive-ui'
+import { useWideMode } from '../composables/useWideMode'
 import UsersPanel from '../components/admin/UsersPanel.vue'
 import FeedbacksPanel from '../components/admin/FeedbacksPanel.vue'
 import LogsPanel from '../components/admin/LogsPanel.vue'
+
+const { wide } = useWideMode()
 </script>
 
 <template>
   <div class="p-4 pb-12 md:p-6 md:pb-12">
-    <NCard class="max-w-6xl mx-auto" title="管理中心" :content-style="{ paddingTop: '8px' }">
+    <NCard class="mx-auto" :class="wide ? 'max-w-[1200px]' : 'max-w-[800px]'" title="管理中心" :content-style="{ paddingTop: '8px' }">
       <NTabs type="line" animated placement="top">
         <NTabPane name="users" tab="用户" display-directive="show:lazy">
           <UsersPanel />

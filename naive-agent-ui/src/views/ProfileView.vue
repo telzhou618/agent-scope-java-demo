@@ -19,6 +19,7 @@ import {
 } from '@vicons/ionicons5'
 import EditProfileDialog from '../components/EditProfileDialog.vue'
 import PasswordDialog from '../components/PasswordDialog.vue'
+import { useWideMode } from '../composables/useWideMode'
 import { useAuthStore } from '../stores/auth'
 import { getRecentRequests, getUsageSummary } from '../api/agent'
 import { formatInt, formatMoney, formatTokens } from '../utils/format'
@@ -34,6 +35,7 @@ import {
 } from '../utils/usage'
 
 const auth = useAuthStore()
+const { wide } = useWideMode()
 
 const displayName = computed(() => auth.user?.nickname || auth.user?.username || '未登录')
 
@@ -193,7 +195,7 @@ const recentColumns: DataTableColumns<RecentRequestItem> = [
 
 <template>
   <div class="p-4 pb-12 md:p-6 md:pb-12">
-    <div class="max-w-4xl mx-auto flex flex-col gap-4">
+    <div class="mx-auto flex flex-col gap-4" :class="wide ? 'max-w-[1200px]' : 'max-w-[800px]'">
       <!-- 身份卡 -->
       <NCard>
         <div class="flex items-center gap-4 flex-wrap">
