@@ -5,6 +5,7 @@ import com.example.agent.agent.AgentRegistry;
 import com.example.agent.dto.AgentChatRequest;
 import com.example.agent.dto.AgentSseEvent;
 import com.example.agent.dto.InterruptRequest;
+import com.example.agent.error.BizException;
 import com.example.agent.vo.SkillVO;
 import io.agentscope.core.agent.RuntimeContext;
 import io.agentscope.core.event.AgentEvent;
@@ -47,6 +48,17 @@ public class AgentChatService {
      * 不依赖订阅取消，保持有效。流结束（完成/出错）后驱动订阅自然终止。
      */
     public Flux<ServerSentEvent<String>> chatSse(long loginId, AgentChatRequest request) {
+        try {
+            return doChatSse(loginId, request);
+        } catch (BizException e) {
+            return Flux.just(ServerSentEvent.<String>builder()
+                    .event("error")
+                    .data(e.getMessage())
+                    .build());
+        }
+    }
+
+    private Flux<ServerSentEvent<String>> doChatSse(long loginId, AgentChatRequest request) {
         // 每个请求维护工具参数累积器
         Map<String, StringBuilder> toolParamsAccumulator = sseEventMapper.newToolParamsAccumulator();
 
@@ -61,16 +73,16 @@ public class AgentChatService {
             // 工具确认恢复：消息文本仅作会话记录，真正的确认结果在 metadata 里（框架约定）
             userMessage = buildConfirmMessage(request.getConfirmResults());
         } else {
-        // 技能独立字段转成技能使用提示，Agent 通过 load_skill_through_path 自行加载技能详情
-        String message = chatMessageFactory.applySkillHint(request.getSkill(),
-                chatMessageFactory.effectiveMessage(request));
-        // URL 直达等路径进入的会话可能没有 meta：补建占位标题并异步生成正式标题（已有 meta 则跳过）
-        if (!sessionTitleService.hasMeta(userId, request.getSessionId())) {
-            sessionTitleService.createPlaceholder(userId, request.getSessionId(), request.getAgentName());
-            sessionTitleService.generateAndUpdateAsync(userId, request.getSessionId(), message);
-        }
-        userMessage = chatMessageFactory.buildUserMessage(userId, request.getSessionId(), message,
-                request.getAttachments());
+            // 技能独立字段转成技能使用提示，Agent 通过 load_skill_through_path 自行加载技能详情
+            String message = chatMessageFactory.applySkillHint(request.getSkill(),
+                    chatMessageFactory.effectiveMessage(request));
+            // URL 直达等路径进入的会话可能没有 meta：补建占位标题并异步生成正式标题（已有 meta 则跳过）
+            if (!sessionTitleService.hasMeta(userId, request.getSessionId())) {
+                sessionTitleService.createPlaceholder(userId, request.getSessionId(), request.getAgentName());
+                sessionTitleService.generateAndUpdateAsync(userId, request.getSessionId(), message);
+            }
+            userMessage = chatMessageFactory.buildUserMessage(userId, request.getSessionId(), message,
+                    request.getAttachments());
         }
         RuntimeContext context = RuntimeContext.builder()
                 .sessionId(request.getSessionId())
