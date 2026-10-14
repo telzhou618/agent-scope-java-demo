@@ -95,9 +95,7 @@ onBeforeUnmount(() => observer?.disconnect())
       </button>
       </div>
     </div>
-    <NAvatar round :size="28" :src="userAvatar || undefined" class="user-avatar">
-      {{ userInitial }}
-    </NAvatar>
+    <NAvatar round :size="28" :src="userAvatar || undefined" class="user-avatar" />
   </div>
 </template>
 

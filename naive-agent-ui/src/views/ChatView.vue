@@ -115,9 +115,7 @@ watch(
         {{ chat.state.messagesError }}
       </NAlert>
       <div v-else-if="chat.state.turns.length === 0" class="welcome">
-        <NAvatar round :size="64" :src="agents.currentAgent?.avatar || undefined">
-          {{ agentInitial }}
-        </NAvatar>
+        <NAvatar round :size="64" :src="agents.currentAgent?.avatar || undefined" />
         <div class="welcome-name">{{ agents.currentAgent?.displayName || agents.state.current || 'Agent' }}</div>
         <div v-if="agents.currentAgent?.description" class="welcome-desc">
           {{ agents.currentAgent.description }}

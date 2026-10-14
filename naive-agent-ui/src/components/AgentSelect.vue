@@ -47,9 +47,7 @@ function onSelect(agent: AgentInfo) {
     <template #trigger>
       <NButton size="small" secondary>
         <div class="flex items-center gap-1.5">
-          <NAvatar round :size="20" :src="agents.currentAgent?.avatar || undefined">
-            {{ (agents.currentAgent?.name || agents.state.current).slice(0, 1).toUpperCase() }}
-          </NAvatar>
+          <NAvatar round :size="20" :src="agents.currentAgent?.avatar || undefined" />
           <span>{{ agents.currentAgent?.displayName || agents.state.current }}</span>
           <NIcon class="transition-transform" :class="{ 'rotate-180': open }">
             <ChevronDownOutline />
@@ -68,9 +66,7 @@ function onSelect(agent: AgentInfo) {
         @click="onSelect(agent)"
       >
         <div class="flex items-center gap-2">
-          <NAvatar round size="small" :src="agent.avatar || undefined">
-            {{ agent.name.slice(0, 1).toUpperCase() }}
-          </NAvatar>
+          <NAvatar round size="small" :src="agent.avatar || undefined" />
           <span class="text-sm font-600">{{ agent.displayName || agent.name }}</span>
           <span class="text-xs op-45">{{ agent.model }}</span>
           <NIcon

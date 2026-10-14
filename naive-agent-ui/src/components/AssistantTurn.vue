@@ -50,7 +50,7 @@ function vote(value: 'up' | 'down') {
   <div class="assistant-turn">
     <!-- 会话 Agent 头像与名称 -->
     <div class="asst-head">
-      <NAvatar round :size="26" :src="agentAvatar || undefined">{{ agentInitial }}</NAvatar>
+      <NAvatar round :size="26" :src="agentAvatar || undefined" />
       <span class="asst-name">{{ agentName }}</span>
     </div>
 

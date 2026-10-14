@@ -197,9 +197,7 @@ const recentColumns: DataTableColumns<RecentRequestItem> = [
       <!-- 身份卡 -->
       <NCard>
         <div class="flex items-center gap-4 flex-wrap">
-          <NAvatar round :size="56" :src="auth.user?.avatar || undefined">
-            {{ displayName.charAt(0) }}
-          </NAvatar>
+          <NAvatar round :size="56" :src="auth.user?.avatar || undefined" />
           <div class="min-w-0 flex-1">
             <div class="text-lg font-600 truncate">{{ displayName }}</div>
             <NText depth="3" class="text-sm">@{{ auth.user?.username }} · {{ auth.user?.email || '—' }}</NText>

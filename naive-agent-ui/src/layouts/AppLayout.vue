@@ -280,9 +280,7 @@ const displayName = computed(() => auth.user?.nickname || auth.user?.username ||
           </NTooltip>
           <NDropdown trigger="click" :options="accountOptions" @select="onAccountSelect">
             <div class="flex items-center gap-2 cursor-pointer">
-              <NAvatar round size="small" :src="auth.user?.avatar || undefined">
-                {{ displayName.slice(0, 1) }}
-              </NAvatar>
+              <NAvatar round size="small" :src="auth.user?.avatar || undefined" />
               <NText class="text-sm hidden sm:block">{{ displayName }}</NText>
             </div>
           </NDropdown>
