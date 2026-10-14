@@ -2,6 +2,7 @@ package com.example.agent.controller;
 
 import cn.dev33.satoken.annotation.SaCheckPermission;
 import cn.dev33.satoken.stp.StpUtil;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.example.agent.annotation.OperationLog;
 import com.example.agent.dto.ChatAttachment;
 import com.example.agent.dto.Result;
@@ -19,8 +20,6 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
-
-import java.util.List;
 
 /**
  * 聊天文件：上传走 OSS，下载统一走 OSS 签名链接（见 FileStorageService）。
@@ -45,10 +44,11 @@ public class FileController {
         return Result.okData(fileStorageService.store(file, userId, sessionId));
     }
 
-    @Operation(summary = "我的文件列表")
+    @Operation(summary = "我的文件列表（分页）")
     @GetMapping("/my/list")
-    public Result<List<UserFileVO>> myFiles() {
-        return Result.okData(fileStorageService.listMine(StpUtil.getLoginIdAsLong()));
+    public Result<Page<UserFileVO>> myFiles(@RequestParam(defaultValue = "1") long page,
+                                            @RequestParam(defaultValue = "10") long size) {
+        return Result.okData(fileStorageService.pageMine(StpUtil.getLoginIdAsLong(), page, size));
     }
 
     @Operation(summary = "删除我的文件")

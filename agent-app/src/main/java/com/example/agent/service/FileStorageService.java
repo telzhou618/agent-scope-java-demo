@@ -1,6 +1,7 @@
 package com.example.agent.service;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.example.agent.dto.ChatAttachment;
 import com.example.agent.entity.UserFile;
 import com.example.agent.error.BizException;
@@ -136,13 +137,15 @@ public class FileStorageService {
     }
 
     /**
-     * 我的文件列表（含新生成的签名下载地址）
+     * 我的文件分页列表（含新生成的签名下载地址）
      */
-    public List<UserFileVO> listMine(long userId) {
-        List<UserFile> files = userFileMapper.selectList(new LambdaQueryWrapper<UserFile>()
-                .eq(UserFile::getUserId, userId)
-                .orderByDesc(UserFile::getId));
-        return files.stream()
+    public Page<UserFileVO> pageMine(long userId, long page, long size) {
+        Page<UserFile> filePage = userFileMapper.selectPage(new Page<>(page, size),
+                new LambdaQueryWrapper<UserFile>()
+                        .eq(UserFile::getUserId, userId)
+                        .orderByDesc(UserFile::getId));
+        Page<UserFileVO> voPage = new Page<>(filePage.getCurrent(), filePage.getSize(), filePage.getTotal());
+        voPage.setRecords(filePage.getRecords().stream()
                 .map(f -> UserFileVO.builder()
                         .id(f.getId())
                         .fileName(f.getFileName())
@@ -151,7 +154,8 @@ public class FileStorageService {
                         .createTime(f.getCreateTime())
                         .downloadUrl(storage.presignedGetUrl(f.getOssKey()))
                         .build())
-                .toList();
+                .toList());
+        return voPage;
     }
 
     /**

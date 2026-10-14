@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue'
-import { NButton, NIcon, NPopconfirm, NSpin, NText, useMessage } from 'naive-ui'
+import { NButton, NIcon, NPagination, NPopconfirm, NSpin, NText, useMessage } from 'naive-ui'
 import { DownloadOutline, EyeOutline, TrashOutline } from '@vicons/ionicons5'
 import { deleteFile, myFiles } from '../api/agent'
 import type { UserFileItem } from '../api/types'
@@ -22,13 +22,23 @@ function preview(item: UserFileItem) {
   openLightbox(item.downloadUrl, item.fileName)
 }
 
+const PAGE_SIZE = 10
 const files = ref<UserFileItem[]>([])
+const page = ref(1)
+const total = ref(0)
 const loading = ref(false)
 
 async function load() {
   loading.value = true
   try {
-    files.value = (await myFiles()) ?? []
+    const result = await myFiles({ page: page.value, size: PAGE_SIZE })
+    files.value = result?.records ?? []
+    total.value = result?.total ?? 0
+    const totalPages = Math.max(1, Math.ceil(total.value / PAGE_SIZE))
+    if (page.value > totalPages) {
+      page.value = totalPages
+      return load()
+    }
   } catch (error) {
     message.error(error instanceof Error ? error.message : '加载文件列表失败')
   } finally {
@@ -48,6 +58,7 @@ async function onDelete(item: UserFileItem) {
   try {
     await deleteFile(item.id)
     files.value = files.value.filter((f) => f.id !== item.id)
+    total.value = Math.max(0, total.value - 1)
     message.success('已删除')
   } catch (error) {
     message.error(error instanceof Error ? error.message : '删除失败')
@@ -62,7 +73,7 @@ onMounted(() => void load())
     <div class="mx-auto flex flex-col gap-4" :class="wide ? 'max-w-[1000px]' : 'max-w-[800px]'">
       <div class="flex items-center gap-3">
         <span class="text-lg font-600">我的文件</span>
-        <NText depth="3" class="text-xs">{{ files.length }} 个文件</NText>
+        <NText depth="3" class="text-xs">{{ total }} 个文件</NText>
       </div>
 
       <div v-if="loading && files.length === 0" class="flex justify-center py-16">
@@ -107,6 +118,15 @@ onMounted(() => void load())
         </div>
         <div v-else class="empty">暂无文件</div>
       </template>
+
+      <div v-if="total > PAGE_SIZE" class="flex justify-center">
+        <NPagination
+          v-model:page="page"
+          :item-count="total"
+          :page-size="PAGE_SIZE"
+          @update:page="load"
+        />
+      </div>
     </div>
   </div>
 </template>

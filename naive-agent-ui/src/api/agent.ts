@@ -101,8 +101,8 @@ export const getSharedSession = (t: string) =>
 
 /* ---------- 我的文件 ---------- */
 
-export const myFiles = () =>
-  http.get<Result<UserFileItem[]>>(`${API_BASE}/files/my/list`).then((r) => r.data.data)
+export const myFiles = (params: { page: number; size: number }) =>
+  http.get<Result<PageResult<UserFileItem>>>(`${API_BASE}/files/my/list`, { params }).then((r) => r.data.data)
 
 export const deleteFile = (id: number) =>
   http.delete<Result<void>>(`${API_BASE}/files/${id}`).then((r) => r.data.data)
