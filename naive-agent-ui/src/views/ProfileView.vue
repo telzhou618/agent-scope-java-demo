@@ -46,6 +46,7 @@ const passwordOpen = ref(false)
 
 /* ---- 本月 token 额度 ---- */
 const quota = ref<MonthlyQuotaSummary | null>(null)
+const loadingQuota = ref(false)
 
 /* ---- 用量统计 ---- */
 const rangeKey = ref<RangeKey>('thisMonth')
@@ -104,16 +105,36 @@ async function loadRecent() {
 }
 
 async function loadQuota() {
+  loadingQuota.value = true
   try {
     quota.value = await getMonthlyQuota()
   } catch {
     quota.value = null
+  } finally {
+    loadingQuota.value = false
   }
 }
 
 function quotaPercent(item: AgentQuotaItem): number {
   if (!item.quotaTokens || item.quotaTokens <= 0) return 0
   return Math.min(100, Math.round((item.usedTokens / item.quotaTokens) * 100))
+}
+
+const totalQuota = computed(() => {
+  const agents = quota.value?.agents ?? []
+  if (agents.some((item) => !item.quotaTokens || item.quotaTokens <= 0)) return null
+  return agents.reduce((sum, item) => sum + item.quotaTokens, 0)
+})
+
+const totalQuotaText = computed(() =>
+  totalQuota.value === null ? '不限' : formatTokens(totalQuota.value),
+)
+
+function quotaColor(item: AgentQuotaItem): string {
+  const percent = quotaPercent(item)
+  if (percent >= 85) return '#e5484d'
+  if (percent >= 60) return '#f0a020'
+  return '#18a058'
 }
 
 onMounted(() => {
@@ -223,7 +244,10 @@ const recentColumns: DataTableColumns<RecentRequestItem> = [
         <div class="flex items-center gap-4 flex-wrap">
           <NAvatar round :size="56" :src="auth.user?.avatar || undefined" />
           <div class="min-w-0 flex-1">
-            <div class="text-lg font-600 truncate">{{ displayName }}</div>
+            <div class="flex items-center gap-2">
+              <span class="text-lg font-600 truncate">{{ displayName }}</span>
+              <span v-if="auth.user?.isAdmin" class="badge">管理员</span>
+            </div>
             <NText depth="3" class="text-sm">@{{ auth.user?.username }} · {{ auth.user?.email || '—' }}</NText>
           </div>
           <div class="flex gap-2">
@@ -248,34 +272,52 @@ const recentColumns: DataTableColumns<RecentRequestItem> = [
 
       <!-- 本月 Token 额度 -->
       <NCard>
-        <div class="text-base font-600 mb-4">本月 Token 额度</div>
-        <div class="mb-4">
-          <div class="stat-card max-w-xs">
-            <div class="stat-label">本月总消耗</div>
-            <div class="stat-value">{{ formatTokens(quota?.totalTokens ?? 0) }}</div>
+        <div class="flex items-center gap-3 flex-wrap mb-4">
+          <div>
+            <div class="text-base font-600">本月 Token 额度</div>
+            <NText depth="3" class="text-xs">{{ quota?.month || '—' }}</NText>
+          </div>
+          <span class="flex-1" />
+          <div class="flex items-center gap-6 text-right">
+            <div>
+              <div class="text-xs op-45">本月总消耗</div>
+              <div class="text-base font-700">{{ formatTokens(quota?.totalTokens ?? 0) }}</div>
+            </div>
+            <div>
+              <div class="text-xs op-45">总 Token 额度</div>
+              <div class="text-base font-700">{{ totalQuotaText }}</div>
+            </div>
           </div>
         </div>
-        <div class="flex flex-col gap-3">
-          <div v-for="item in quota?.agents ?? []" :key="item.name" class="flex items-center gap-3">
-            <div class="w-28 text-sm font-600 shrink-0">{{ item.displayName }}</div>
-            <div class="flex-1">
+
+        <div v-if="loadingQuota" class="flex justify-center py-6">
+          <NSpin size="small" />
+        </div>
+        <div v-else-if="quota" class="flex flex-col gap-4">
+          <div v-for="item in quota.agents" :key="item.name" class="flex items-center gap-3">
+            <NAvatar round :size="32" :src="item.avatar || undefined" />
+            <div class="w-28 shrink-0 text-sm font-600">{{ item.displayName }}</div>
+            <div class="flex-1 min-w-0">
               <NProgress
                 v-if="item.quotaTokens > 0"
                 type="line"
                 :percentage="quotaPercent(item)"
+                :color="quotaColor(item)"
                 :height="8"
                 :show-indicator="false"
               />
               <div v-else class="text-xs op-45">不限</div>
             </div>
-            <div class="w-32 shrink-0 text-right text-xs" style="font-variant-numeric: tabular-nums">
+            <div class="w-36 shrink-0 text-right text-xs" style="font-variant-numeric: tabular-nums">
               <template v-if="item.quotaTokens > 0">
-                {{ formatTokens(item.usedTokens) }} / {{ formatTokens(item.quotaTokens) }}
+                <div class="font-600" :style="{ color: quotaColor(item) }">{{ quotaPercent(item) }}%</div>
+                <div class="op-45">{{ formatTokens(item.usedTokens) }} / {{ formatTokens(item.quotaTokens) }}</div>
               </template>
-              <template v-else>—</template>
+              <template v-else>不限</template>
             </div>
           </div>
         </div>
+        <div v-else class="text-sm op-45 py-2">暂无额度信息</div>
       </NCard>
 
       <!-- 用量统计 -->
@@ -424,6 +466,17 @@ const recentColumns: DataTableColumns<RecentRequestItem> = [
   font-size: 12px;
   opacity: 0.6;
   margin-top: 2px;
+}
+
+.badge {
+  flex: none;
+  padding: 1px 8px;
+  border-radius: 999px;
+  font-size: 11.5px;
+  line-height: 1.6;
+  color: var(--brand);
+  background: var(--brand-soft);
+  border: 1px solid var(--brand-border);
 }
 
 .chart {

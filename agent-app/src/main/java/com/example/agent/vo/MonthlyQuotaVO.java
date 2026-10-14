@@ -20,6 +20,7 @@ public class MonthlyQuotaVO {
     public static class AgentItem {
         private String name;
         private String displayName;
+        private String avatar;
         /** 0 = 不限 */
         private Long quotaTokens;
         private long usedTokens;

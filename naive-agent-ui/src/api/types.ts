@@ -64,6 +64,7 @@ export interface AgentInfo {
 export interface AgentQuotaItem {
   name: string
   displayName: string
+  avatar: string
   /** 0 = 不限 */
   quotaTokens: number
   usedTokens: number

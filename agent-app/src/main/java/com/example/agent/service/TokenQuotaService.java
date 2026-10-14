@@ -66,6 +66,7 @@ public class TokenQuotaService {
                     MonthlyQuotaVO.AgentItem item = new MonthlyQuotaVO.AgentItem();
                     item.setName(info.getName());
                     item.setDisplayName(info.getDisplayName());
+                    item.setAvatar(info.getAvatar());
                     item.setQuotaTokens(info.getMonthlyTokenQuota());
                     item.setUsedTokens(usedByAgent.getOrDefault(info.getName(), 0L));
                     return item;
