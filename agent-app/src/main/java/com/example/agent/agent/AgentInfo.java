@@ -47,4 +47,7 @@ public class AgentInfo {
 
     @Schema(description = "是否默认 Agent")
     private boolean defaultAgent;
+
+    @Schema(description = "月度 token 限额（0=不限）")
+    private Long monthlyTokenQuota;
 }

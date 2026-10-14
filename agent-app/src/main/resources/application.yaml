@@ -42,10 +42,13 @@ spring:
 agents:
   flash:
     model: ${AGENT_FLASH_MODEL:qwen3.7-flash}
+    monthly-token-quota: ${AGENT_FLASH_MONTHLY_QUOTA:1000000}
   plus:
     model: ${AGENT_PLUS_MODEL:qwen3.7-plus}
+    monthly-token-quota: ${AGENT_PLUS_MONTHLY_QUOTA:1000000}
   max:
     model: ${AGENT_MAX_MODEL:qwen3.7-max}
+    monthly-token-quota: ${AGENT_MAX_MONTHLY_QUOTA:1000000}
 
 # MCP Server 连接配置
 mcp:

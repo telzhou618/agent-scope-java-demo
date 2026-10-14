@@ -46,6 +46,9 @@ public class ScheduledTaskJob extends QuartzJobBean {
     @Autowired
     private UserMapper userMapper;
 
+    @Autowired
+    private TokenQuotaService tokenQuotaService;
+
     @Override
     protected void executeInternal(JobExecutionContext context) {
         Long taskId = context.getMergedJobDataMap().getLong("taskId");
@@ -88,6 +91,7 @@ public class ScheduledTaskJob extends QuartzJobBean {
      * 跑一轮 Agent 并取最终正文文本
      */
     private String runAgent(ScheduledTask task, String runDate) {
+        tokenQuotaService.checkQuota(task.getUserId(), task.getAgentName());
         String sessionId = "task-" + task.getId() + "-"
                 + LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMddHHmmss"));
         RuntimeContext runtimeContext = RuntimeContext.builder()

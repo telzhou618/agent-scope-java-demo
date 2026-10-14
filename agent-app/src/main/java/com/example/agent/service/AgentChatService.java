@@ -35,6 +35,7 @@ public class AgentChatService {
 
     private final AgentRegistry agentRegistry;
     private final AgentPermissionService agentPermissionService;
+    private final TokenQuotaService tokenQuotaService;
     private final SessionTitleService sessionTitleService;
     private final ChatMessageFactory chatMessageFactory;
     private final SseEventMapper sseEventMapper;
@@ -52,6 +53,7 @@ public class AgentChatService {
         String userId = String.valueOf(loginId);
         // 按请求指定档位取 Agent，未知名称抛业务异常；先校验当前用户是否有该档位使用权限
         agentPermissionService.checkAgent(loginId, request.getAgentName());
+        tokenQuotaService.checkQuota(loginId, request.getAgentName());
         HarnessAgent agent = agentRegistry.getAgent(request.getAgentName());
 
         UserMessage userMessage;

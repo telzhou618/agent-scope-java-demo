@@ -18,6 +18,9 @@ public class FlashAgentFactory extends AbstractAgentFactory {
     @Value("${agents.flash.model}")
     private String model;
 
+    @Value("${agents.flash.monthly-token-quota:1000000}")
+    private Long monthlyTokenQuota;
+
     @Autowired
     private MysqlQueryTools mysqlQueryTools;
 
@@ -47,6 +50,11 @@ public class FlashAgentFactory extends AbstractAgentFactory {
     @Override
     protected String modelName() {
         return model;
+    }
+
+    @Override
+    protected Long monthlyTokenQuota() {
+        return monthlyTokenQuota;
     }
 
     @Override

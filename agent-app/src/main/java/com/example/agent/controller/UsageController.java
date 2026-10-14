@@ -3,7 +3,9 @@ package com.example.agent.controller;
 import cn.dev33.satoken.stp.StpUtil;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.example.agent.dto.Result;
+import com.example.agent.service.TokenQuotaService;
 import com.example.agent.service.TokenUsageService;
+import com.example.agent.vo.MonthlyQuotaVO;
 import com.example.agent.vo.RecentRequestVO;
 import com.example.agent.vo.UsageSummaryVO;
 import io.swagger.v3.oas.annotations.Operation;
@@ -24,6 +26,7 @@ import org.springframework.web.bind.annotation.RestController;
 public class UsageController {
 
     private final TokenUsageService usageService;
+    private final TokenQuotaService quotaService;
 
     @GetMapping("/summary")
     @Operation(summary = "按区间统计 token 消耗（total / 分桶）")
@@ -37,5 +40,11 @@ public class UsageController {
                                                 @RequestParam(defaultValue = "1") long page,
                                                 @RequestParam(defaultValue = "10") long size) {
         return Result.okData(usageService.recent(StpUtil.getLoginIdAsLong(), start, end, page, size));
+    }
+
+    @GetMapping("/month-quota")
+    @Operation(summary = "本月 token 限额与每个 Agent 消耗")
+    public Result<MonthlyQuotaVO> monthQuota() {
+        return Result.okData(quotaService.monthlyUsage(StpUtil.getLoginIdAsLong()));
     }
 }

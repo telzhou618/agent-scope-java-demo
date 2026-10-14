@@ -20,6 +20,9 @@ public class MaxAgentFactory extends AbstractAgentFactory {
     @Value("${agents.max.model}")
     private String model;
 
+    @Value("${agents.max.monthly-token-quota:1000000}")
+    private Long monthlyTokenQuota;
+
     @Autowired
     private MysqlQueryTools mysqlQueryTools;
 
@@ -55,6 +58,11 @@ public class MaxAgentFactory extends AbstractAgentFactory {
     @Override
     protected String modelName() {
         return model;
+    }
+
+    @Override
+    protected Long monthlyTokenQuota() {
+        return monthlyTokenQuota;
     }
 
     @Override

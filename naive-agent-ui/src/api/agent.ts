@@ -4,6 +4,7 @@ import type {
   AgentSession,
   ChatAttachment,
   MessageItem,
+  MonthlyQuotaSummary,
   Msg,
   PageResult,
   Result,
@@ -65,6 +66,10 @@ export const getUsageSummary = (params: { start: string; end: string; granularit
 /** 最近请求记录（区间内按时间倒序分页） */
 export const getRecentRequests = (params: { start: string; end: string; page: number; size: number }) =>
   http.get<Result<PageResult<RecentRequestItem>>>(`${API_BASE}/usage/recent`, { params }).then((r) => r.data.data)
+
+/** 本月 token 限额与每个 Agent 消耗 */
+export const getMonthlyQuota = () =>
+  http.get<Result<MonthlyQuotaSummary>>(`${API_BASE}/usage/month-quota`).then((r) => r.data.data)
 
 /* ---------- 消息中心 ---------- */
 

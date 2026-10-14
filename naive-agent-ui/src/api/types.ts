@@ -60,6 +60,22 @@ export interface AgentInfo {
   defaultAgent: boolean
 }
 
+/** 本月 token 限额：每个 Agent 的限额与消耗 */
+export interface AgentQuotaItem {
+  name: string
+  displayName: string
+  /** 0 = 不限 */
+  quotaTokens: number
+  usedTokens: number
+}
+
+export interface MonthlyQuotaSummary {
+  /** 如 2026-10 */
+  month: string
+  totalTokens: number
+  agents: AgentQuotaItem[]
+}
+
 export type MessageRole = 'USER' | 'ASSISTANT' | 'TOOL' | 'SYSTEM'
 
 export interface TextBlock {

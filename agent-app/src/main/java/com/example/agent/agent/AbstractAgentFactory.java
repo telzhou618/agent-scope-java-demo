@@ -127,6 +127,11 @@ public abstract class AbstractAgentFactory {
     protected abstract boolean scheduleEnabled();
 
     /**
+     * 月度 token 限额（0=不限）
+     */
+    protected abstract Long monthlyTokenQuota();
+
+    /**
      * 头像：每个档位一个简约的圆形渐变 + 首字母头像，颜色按档位区分
      */
     protected abstract String avatar();
@@ -216,6 +221,7 @@ public abstract class AbstractAgentFactory {
                 .attachments(attachmentsEnabled())
                 .schedule(scheduleEnabled())
                 .defaultAgent(defaultAgent())
+                .monthlyTokenQuota(monthlyTokenQuota())
                 .build();
     }
 

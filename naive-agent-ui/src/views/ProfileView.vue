@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import {
   NAvatar,
   NButton,
@@ -8,6 +8,7 @@ import {
   NDatePicker,
   NEmpty,
   NIcon,
+  NProgress,
   NSelect,
   NSpin,
   NText,
@@ -21,7 +22,8 @@ import EditProfileDialog from '../components/EditProfileDialog.vue'
 import PasswordDialog from '../components/PasswordDialog.vue'
 import { useWideMode } from '../composables/useWideMode'
 import { useAuthStore } from '../stores/auth'
-import { getRecentRequests, getUsageSummary } from '../api/agent'
+import type { AgentQuotaItem, MonthlyQuotaSummary } from '../api/types'
+import { getMonthlyQuota, getRecentRequests, getUsageSummary } from '../api/agent'
 import { formatInt, formatMoney, formatTokens } from '../utils/format'
 import {
   RANGE_OPTIONS,
@@ -41,6 +43,9 @@ const displayName = computed(() => auth.user?.nickname || auth.user?.username ||
 
 const editProfileOpen = ref(false)
 const passwordOpen = ref(false)
+
+/* ---- 本月 token 额度 ---- */
+const quota = ref<MonthlyQuotaSummary | null>(null)
 
 /* ---- 用量统计 ---- */
 const rangeKey = ref<RangeKey>('thisMonth')
@@ -97,6 +102,23 @@ async function loadRecent() {
     loadingRecent.value = false
   }
 }
+
+async function loadQuota() {
+  try {
+    quota.value = await getMonthlyQuota()
+  } catch {
+    quota.value = null
+  }
+}
+
+function quotaPercent(item: AgentQuotaItem): number {
+  if (!item.quotaTokens || item.quotaTokens <= 0) return 0
+  return Math.min(100, Math.round((item.usedTokens / item.quotaTokens) * 100))
+}
+
+onMounted(() => {
+  void loadQuota()
+})
 
 watch(
   [rangeKey, custom],
@@ -223,6 +245,38 @@ const recentColumns: DataTableColumns<RecentRequestItem> = [
 
       <EditProfileDialog v-model:show="editProfileOpen" />
       <PasswordDialog v-model:show="passwordOpen" />
+
+      <!-- 本月 Token 额度 -->
+      <NCard>
+        <div class="text-base font-600 mb-4">本月 Token 额度</div>
+        <div class="mb-4">
+          <div class="stat-card max-w-xs">
+            <div class="stat-label">本月总消耗</div>
+            <div class="stat-value">{{ formatTokens(quota?.totalTokens ?? 0) }}</div>
+          </div>
+        </div>
+        <div class="flex flex-col gap-3">
+          <div v-for="item in quota?.agents ?? []" :key="item.name" class="flex items-center gap-3">
+            <div class="w-28 text-sm font-600 shrink-0">{{ item.displayName }}</div>
+            <div class="flex-1">
+              <NProgress
+                v-if="item.quotaTokens > 0"
+                type="line"
+                :percentage="quotaPercent(item)"
+                :height="8"
+                :show-indicator="false"
+              />
+              <div v-else class="text-xs op-45">不限</div>
+            </div>
+            <div class="w-32 shrink-0 text-right text-xs" style="font-variant-numeric: tabular-nums">
+              <template v-if="item.quotaTokens > 0">
+                {{ formatTokens(item.usedTokens) }} / {{ formatTokens(item.quotaTokens) }}
+              </template>
+              <template v-else>—</template>
+            </div>
+          </div>
+        </div>
+      </NCard>
 
       <!-- 用量统计 -->
       <NCard>
