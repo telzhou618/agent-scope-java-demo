@@ -78,7 +78,7 @@ function applySearch() {
 const agentOptions = ref<AgentInfo[]>([])
 
 /* ---- 权限码中文标签 ---- */
-const PERMISSION_LABELS: Record<string, string> = { schedule: '定时任务' }
+const PERMISSION_LABELS: Record<string, string> = { schedule: '定时任务', upload_file: '上传文件' }
 
 function permissionLabel(code: string) {
   return PERMISSION_LABELS[code] ?? code
