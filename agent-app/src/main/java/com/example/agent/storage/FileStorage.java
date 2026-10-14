@@ -12,6 +12,8 @@ public interface FileStorage {
 
     byte[] get(String key);
 
+    void delete(String key);
+
     void deletePrefix(String prefix);
 
     /** 私有桶带签名的临时下载地址 */

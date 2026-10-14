@@ -17,7 +17,12 @@ public enum UserPermission {
     /**
      * 定时任务
      */
-    SCHEDULE("schedule", "定时任务");
+    SCHEDULE("schedule", "定时任务"),
+
+    /**
+     * 上传文件
+     */
+    UPLOAD_FILE("upload_file", "上传文件");
 
     private final String code;
     private final String label;

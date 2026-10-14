@@ -159,6 +159,23 @@ CREATE TABLE IF NOT EXISTS t_user_oauth (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='OAuth 第三方登录绑定';
 
 -- ------------------------------------------------------------
+-- 用户文件（元数据；文件本体在 OSS）
+-- ------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS t_file (
+  id           BIGINT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '主键ID',
+  user_id      BIGINT       NOT NULL COMMENT '上传人',
+  file_name    VARCHAR(255) NOT NULL COMMENT '原文件名',
+  ext          VARCHAR(16)  NOT NULL COMMENT '扩展名',
+  size         BIGINT       NOT NULL COMMENT '字节数',
+  oss_key      VARCHAR(500) NOT NULL COMMENT 'OSS 对象 key',
+  content_type VARCHAR(128) NOT NULL DEFAULT '' COMMENT 'MIME 类型',
+  session_id   VARCHAR(64)  NULL COMMENT '来源会话ID',
+  create_time  DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '上传时间',
+  PRIMARY KEY (id),
+  KEY idx_user_time (user_id, create_time)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='用户文件';
+
+-- ------------------------------------------------------------
 -- 已有库升级（用户管理 + 权限控制新增列/表），已初始化过的库请手工执行：
 --
 --   USE agent_demo;

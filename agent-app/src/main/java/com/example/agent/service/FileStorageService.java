@@ -1,8 +1,12 @@
 package com.example.agent.service;
 
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.example.agent.dto.ChatAttachment;
+import com.example.agent.entity.UserFile;
 import com.example.agent.error.BizException;
+import com.example.agent.mapper.UserFileMapper;
 import com.example.agent.storage.FileStorage;
+import com.example.agent.vo.UserFileVO;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
@@ -10,13 +14,15 @@ import org.springframework.web.multipart.MultipartFile;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
 /**
- * 文件存储门面：类型 / 大小 / key 校验后委托给 FileStorage（阿里云 OSS）。
- * 不再落本地磁盘。
+ * 文件存储门面：类型 / 大小 / key 校验后委托给 FileStorage（阿里云 OSS），
+ * 并维护 t_file 元数据。不再落本地磁盘。
  */
 @Slf4j
 @Service
@@ -40,13 +46,15 @@ public class FileStorageService {
     );
 
     private final FileStorage storage;
+    private final UserFileMapper userFileMapper;
 
-    public FileStorageService(FileStorage storage) {
+    public FileStorageService(FileStorage storage, UserFileMapper userFileMapper) {
         this.storage = storage;
+        this.userFileMapper = userFileMapper;
     }
 
     /**
-     * 上传聊天附件；返回的 id 为存储对象名（不含 key 前缀）
+     * 上传聊天附件并记录文件元数据；返回的 id 为存储对象名（不含 key 前缀）
      */
     public ChatAttachment store(MultipartFile file, String userId, String sessionId) {
         String name = file.getOriginalFilename();
@@ -67,6 +75,17 @@ public class FileStorageService {
         } catch (IOException e) {
             throw new BizException("文件保存失败");
         }
+
+        UserFile record = new UserFile();
+        record.setUserId(Long.valueOf(userId));
+        record.setFileName(name);
+        record.setExt(ext);
+        record.setSize(file.getSize());
+        record.setOssKey(key);
+        record.setContentType(mediaType(ext));
+        record.setSessionId(sessionId);
+        record.setCreateTime(LocalDateTime.now());
+        userFileMapper.insert(record);
         return new ChatAttachment(id, name, ext, file.getSize());
     }
 
@@ -93,7 +112,7 @@ public class FileStorageService {
     }
 
     /**
-     * 导出文件写 OSS 并返回签名下载地址
+     * 导出文件写 OSS 并返回签名下载地址（导出文件不进入 t_file）
      */
     public String putExport(String fileName, byte[] content) {
         if (fileName == null || fileName.isBlank()
@@ -114,6 +133,37 @@ public class FileStorageService {
             // ByteArrayInputStream 不会抛出 IOException
         }
         return storage.presignedGetUrl(key);
+    }
+
+    /**
+     * 我的文件列表（含新生成的签名下载地址）
+     */
+    public List<UserFileVO> listMine(long userId) {
+        List<UserFile> files = userFileMapper.selectList(new LambdaQueryWrapper<UserFile>()
+                .eq(UserFile::getUserId, userId)
+                .orderByDesc(UserFile::getId));
+        return files.stream()
+                .map(f -> UserFileVO.builder()
+                        .id(f.getId())
+                        .fileName(f.getFileName())
+                        .ext(f.getExt())
+                        .size(f.getSize())
+                        .createTime(f.getCreateTime())
+                        .downloadUrl(storage.presignedGetUrl(f.getOssKey()))
+                        .build())
+                .toList();
+    }
+
+    /**
+     * 删除文件：校验归属后删除 OSS 对象与元数据
+     */
+    public void deleteMine(long userId, long id) {
+        UserFile file = userFileMapper.selectById(id);
+        if (file == null || !file.getUserId().equals(userId)) {
+            throw new BizException("文件不存在");
+        }
+        storage.delete(file.getOssKey());
+        userFileMapper.deleteById(id);
     }
 
     public boolean isImage(String ext) {

@@ -474,6 +474,7 @@ onMounted(() => {
           <div class="flex flex-col gap-1">
             <NCheckboxGroup v-model:value="form.permissions" :disabled="form.isAdmin">
               <NCheckbox value="schedule">定时任务</NCheckbox>
+              <NCheckbox value="upload_file">上传文件</NCheckbox>
             </NCheckboxGroup>
             <span v-if="form.isAdmin" class="text-xs op-50">管理员拥有全部权限</span>
           </div>

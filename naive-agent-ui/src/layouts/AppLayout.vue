@@ -20,6 +20,7 @@ import {
 import {
   ChatbubblesOutline,
   ChatboxEllipsesOutline,
+  FolderOpenOutline,
   SwapHorizontalOutline,
   KeypadOutline,
   LogOutOutline,
@@ -138,6 +139,7 @@ function onGlobalKeydown(event: KeyboardEvent) {
 }
 
 const canSchedule = computed(() => !!auth.user && (auth.user.isAdmin || auth.user.permissions?.includes('schedule')))
+const canUploadFile = computed(() => !!auth.user && (auth.user.isAdmin || auth.user.permissions?.includes('upload_file')))
 
 const accountOptions = computed<DropdownOption[]>(() => {
   const options: DropdownOption[] = [
@@ -145,6 +147,9 @@ const accountOptions = computed<DropdownOption[]>(() => {
   ]
   if (canSchedule.value) {
     options.push({ label: '定时任务', key: 'schedules', icon: () => h(NIcon, null, { default: () => h(TimeOutline) }) })
+  }
+  if (canUploadFile.value) {
+    options.push({ label: '我的文件', key: 'my-files', icon: () => h(NIcon, null, { default: () => h(FolderOpenOutline) }) })
   }
   if (auth.user?.isAdmin) {
     options.push({ label: '管理中心', key: 'admin', icon: () => h(NIcon, null, { default: () => h(SettingsOutline) }) })
@@ -163,6 +168,8 @@ async function onAccountSelect(key: string) {
     router.push('/profile')
   } else if (key === 'schedules') {
     router.push('/schedules')
+  } else if (key === 'my-files') {
+    router.push('/my-files')
   } else if (key === 'admin') {
     router.push('/admin')
   } else if (key === 'feedback') {

@@ -10,6 +10,7 @@ const AdminView = () => import('../views/AdminView.vue')
 const MessagesView = () => import('../views/MessagesView.vue')
 const MessageDetailView = () => import('../views/MessageDetailView.vue')
 const SchedulesView = () => import('../views/SchedulesView.vue')
+const MyFilesView = () => import('../views/MyFilesView.vue')
 const SharedMessageView = () => import('../views/SharedMessageView.vue')
 const SharedSessionView = () => import('../views/SharedSessionView.vue')
 
@@ -32,6 +33,7 @@ const router = createRouter({
         { path: 'messages', name: 'messages', component: MessagesView },
         { path: 'messages/:id', name: 'message-detail', component: MessageDetailView },
         { path: 'schedules', name: 'schedules', component: SchedulesView },
+        { path: 'my-files', name: 'my-files', component: MyFilesView },
       ],
     },
     { path: '/:pathMatch(.*)*', redirect: '/chat' },
@@ -41,7 +43,7 @@ const router = createRouter({
 /**
  * 守卫：除 /login 外都要求已登录。
  * 是否登录直接读 localStorage 的 token，避免路由 -> store 的模块循环依赖。
- * /admin 额外要求管理员：用户信息未加载时先拉取，非管理员打回 /chat。
+ * /admin 额外要求管理员；/schedules、/my-files 要求对应权限码。
  */
 router.beforeEach(async (to: RouteLocationNormalized) => {
   // 分享页公开访问
@@ -67,6 +69,13 @@ router.beforeEach(async (to: RouteLocationNormalized) => {
     const auth = useAuthStore()
     if (!auth.user) await auth.fetchCurrent()
     const allowed = auth.user?.isAdmin === true || auth.user?.permissions?.includes('schedule')
+    if (!allowed) return { path: '/chat' }
+  }
+  if (to.name === 'my-files') {
+    const { useAuthStore } = await import('../stores/auth')
+    const auth = useAuthStore()
+    if (!auth.user) await auth.fetchCurrent()
+    const allowed = auth.user?.isAdmin === true || auth.user?.permissions?.includes('upload_file')
     if (!allowed) return { path: '/chat' }
   }
   return true

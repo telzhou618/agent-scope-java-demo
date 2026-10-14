@@ -116,6 +116,17 @@ export interface ChatAttachment {
   size: number
 }
 
+/** 我的文件 */
+export interface UserFileItem {
+  id: number
+  fileName: string
+  ext: string
+  size: number
+  createTime: string
+  /** OSS 签名下载地址（列表返回时新生成） */
+  downloadUrl: string
+}
+
 /** 已安装技能（/skill:<name> 快捷指令） */
 export interface SkillInfo {
   name: string

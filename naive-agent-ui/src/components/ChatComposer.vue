@@ -13,6 +13,7 @@ import {
 import { useComposer } from '../composables/useComposer'
 import { useChatStore } from '../stores/chat'
 import { useAgentsStore } from '../stores/agents'
+import { useAuthStore } from '../stores/auth'
 import { getSkills } from '../api/agent'
 import type { SkillInfo } from '../api/types'
 import { ATTACHMENT_ACCEPT, formatSize } from '../utils/attachments'
@@ -20,6 +21,7 @@ import { ATTACHMENT_ACCEPT, formatSize } from '../utils/attachments'
 const message = useMessage()
 const chat = useChatStore()
 const agents = useAgentsStore()
+const auth = useAuthStore()
 const {
   draft,
   focusToken,
@@ -97,7 +99,11 @@ function onPaste(event: ClipboardEvent) {
 
 /** 能力开关：列表未加载到时按「全部可用」处理，只有显式 false 才隐藏入口 */
 const skillsEnabled = computed(() => agents.currentAgent?.skills !== false)
-const attachmentsEnabled = computed(() => agents.currentAgent?.attachments !== false)
+const attachmentsEnabled = computed(
+  () =>
+    agents.currentAgent?.attachments !== false &&
+    (auth.user?.isAdmin === true || auth.user?.permissions?.includes('upload_file')),
+)
 /** 思考模式标识：仅当前 Agent 显式开启时展示，纯只读 */
 const thinkingEnabled = computed(() => agents.currentAgent?.thinking === true)
 

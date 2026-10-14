@@ -9,6 +9,7 @@ import type {
   Result,
   ScheduleTaskItem,
   SkillInfo,
+  UserFileItem,
 } from './types'
 import type { RecentRequestItem, UsageSummary } from '../utils/usage'
 
@@ -97,6 +98,14 @@ export const getSessionShareLink = (sessionId: string) =>
 /** 分享页取会话消息（UUID 短链，免登录；附件/图片内容块不下发） */
 export const getSharedSession = (t: string) =>
   http.get<Result<Msg[]>>(`${API_BASE}/share/session`, { params: { t } }).then((r) => r.data.data)
+
+/* ---------- 我的文件 ---------- */
+
+export const myFiles = () =>
+  http.get<Result<UserFileItem[]>>(`${API_BASE}/files/my/list`).then((r) => r.data.data)
+
+export const deleteFile = (id: number) =>
+  http.delete<Result<void>>(`${API_BASE}/files/${id}`).then((r) => r.data.data)
 
 /* ---------- 定时任务 ---------- */
 

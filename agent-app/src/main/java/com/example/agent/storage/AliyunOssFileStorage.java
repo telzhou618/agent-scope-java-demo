@@ -84,6 +84,15 @@ public class AliyunOssFileStorage implements FileStorage {
     }
 
     @Override
+    public void delete(String key) {
+        try {
+            oss().deleteObject(bucket, key);
+        } catch (Exception e) {
+            throw new BizException("文件删除失败：" + e.getMessage());
+        }
+    }
+
+    @Override
     public void deletePrefix(String prefix) {
         try {
             String nextMarker = null;
