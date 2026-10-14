@@ -87,7 +87,7 @@ public class ScheduleTools {
             return fail("无「定时任务」权限");
         }
         try {
-            LocalDateTime nextRunAt = scheduleService.update(userId, id, title, description, cron);
+            LocalDateTime nextRunAt = scheduleService.update(userId, id, null, title, description, cron);
             log.info("定时任务修改成功, userId={}, taskId={}", userId, id);
             Map<String, Object> result = ok();
             result.put("nextRunAt", String.valueOf(nextRunAt));

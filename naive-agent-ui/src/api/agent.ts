@@ -112,3 +112,11 @@ export const triggerSchedule = (id: number) =>
 
 export const deleteSchedule = (id: number) =>
   http.post<Result<void>>(`${API_BASE}/schedule/delete`, { id }).then((r) => r.data.data)
+
+/** 新增定时任务 */
+export const createSchedule = (payload: { title: string; agentName: string; description: string; cron: string }) =>
+  http.post<Result<void>>(`${API_BASE}/schedule/create`, payload).then((r) => r.data.data)
+
+/** 编辑定时任务 */
+export const updateSchedule = (payload: { id: number; title: string; agentName: string; description: string; cron: string }) =>
+  http.post<Result<void>>(`${API_BASE}/schedule/update`, payload).then((r) => r.data.data)

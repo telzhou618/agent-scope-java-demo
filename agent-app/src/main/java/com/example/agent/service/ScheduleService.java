@@ -104,11 +104,14 @@ public class ScheduleService {
     }
 
     /**
-     * 修改任务（title/描述/cron 非空才更新）；cron 变化时重排触发器，返回下次执行时间
+     * 修改任务（agentName/title/描述/cron 非空才更新）；cron 变化时重排触发器，返回下次执行时间
      */
-    public LocalDateTime update(long userId, long id, String title, String description, String cron) {
+    public LocalDateTime update(long userId, long id, String agentName, String title, String description, String cron) {
         ScheduledTask task = requireOwn(userId, id);
         boolean cronChanged = false;
+        if (StringUtils.hasText(agentName)) {
+            task.setAgentName(agentName);
+        }
         if (StringUtils.hasText(title)) {
             task.setTitle(title);
         }
