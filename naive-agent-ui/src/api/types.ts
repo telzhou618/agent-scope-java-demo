@@ -152,6 +152,8 @@ export interface MessageItem {
 export interface ScheduleTaskItem {
   id: number
   agentName: string
+  /** 任务标题（老数据可能为空串） */
+  title: string
   description: string
   cron: string
   /** 1 启用 / 0 停用 */

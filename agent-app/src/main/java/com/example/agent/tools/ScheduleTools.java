@@ -32,9 +32,10 @@ public class ScheduleTools {
     }
 
     @Tool(name = "create_schedule", description = "创建定时任务：当用户要求定期/周期性执行某件事时使用。"
-            + "执行周期写入 cron 字段，到点要做的具体事情写入 description 字段；description 只写任务本身，不要包含时间、频率、周期、定时等字眼。"
+            + "title 写一个简短可读的任务标题；执行周期写入 cron 字段，到点要做的具体事情写入 description 字段；description 只写任务本身，不要包含时间、频率、周期、定时等字眼。"
             + "cron 为 Quartz 6 段表达式（秒 分 时 日 月 周），例如每周一 9 点是 0 0 9 ? * MON，每天 8 点是 0 0 8 * * ?")
     public Map<String, Object> createSchedule(
+            @ToolParam(name = "title", description = "简短可读的任务标题，例如「每周运营报告」") String title,
             @ToolParam(name = "description", description = "到点时要执行的具体任务内容（做什么、产出什么）。只写任务本身，禁止包含任何时间、频率、周期、定时相关字眼（如「每天」「每周一」「定期」），执行周期由 cron 表达。") String description,
             @ToolParam(name = "cron", description = "Quartz 6 段 cron 表达式（秒 分 时 日 月 周）") String cron,
             RuntimeContext context) {
@@ -46,7 +47,7 @@ public class ScheduleTools {
             return fail("无「定时任务」权限");
         }
         try {
-            LocalDateTime nextRunAt = scheduleService.create(userId, agentName, description, cron);
+            LocalDateTime nextRunAt = scheduleService.create(userId, agentName, title, description, cron);
             log.info("定时任务创建成功, userId={}, agent={}, cron={}", userId, agentName, cron);
             Map<String, Object> result = ok();
             result.put("nextRunAt", String.valueOf(nextRunAt));
@@ -70,10 +71,11 @@ public class ScheduleTools {
         return result;
     }
 
-    @Tool(name = "update_schedule", description = "修改定时任务的执行内容或执行周期（cron），先用 list_schedules 拿到任务 id。"
+    @Tool(name = "update_schedule", description = "修改定时任务的标题、执行内容或执行周期（cron），先用 list_schedules 拿到任务 id。"
             + "只传需要改的字段；修改 description 时同样只写任务本身、不要包含时间、频率、周期、定时等字眼；cron 非空时校验合法性并重排触发器")
     public Map<String, Object> updateSchedule(
             @ToolParam(name = "id", description = "任务 ID") long id,
+            @ToolParam(name = "title", required = false, description = "修改后的简短任务标题，不传则不修改") String title,
             @ToolParam(name = "description", required = false, description = "修改后的具体任务内容（做什么、产出什么）。只写任务本身，禁止包含时间、频率、周期、定时相关字眼，执行周期由 cron 表达；不传则不修改。") String description,
             @ToolParam(name = "cron", required = false, description = "新的 Quartz 6 段 cron 表达式，不传则不修改") String cron,
             RuntimeContext context) {
@@ -85,7 +87,7 @@ public class ScheduleTools {
             return fail("无「定时任务」权限");
         }
         try {
-            LocalDateTime nextRunAt = scheduleService.update(userId, id, description, cron);
+            LocalDateTime nextRunAt = scheduleService.update(userId, id, title, description, cron);
             log.info("定时任务修改成功, userId={}, taskId={}", userId, id);
             Map<String, Object> result = ok();
             result.put("nextRunAt", String.valueOf(nextRunAt));

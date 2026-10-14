@@ -44,13 +44,14 @@ public class ScheduleService {
     /**
      * 创建任务：校验 cron → 落库 → 注册 Quartz Job/Trigger；返回下次执行时间
      */
-    public LocalDateTime create(long userId, String agentName, String description, String cron) {
+    public LocalDateTime create(long userId, String agentName, String title, String description, String cron) {
         if (!CronExpression.isValidExpression(cron)) {
             throw new BizException("cron 表达式不合法: " + cron);
         }
         ScheduledTask task = new ScheduledTask();
         task.setUserId(userId);
         task.setAgentName(agentName);
+        task.setTitle(title == null ? "" : title);
         task.setDescription(description);
         task.setCron(cron);
         task.setStatus(1);
@@ -103,11 +104,14 @@ public class ScheduleService {
     }
 
     /**
-     * 修改任务（描述/cron 非空才更新）；cron 变化时重排触发器，返回下次执行时间
+     * 修改任务（title/描述/cron 非空才更新）；cron 变化时重排触发器，返回下次执行时间
      */
-    public LocalDateTime update(long userId, long id, String description, String cron) {
+    public LocalDateTime update(long userId, long id, String title, String description, String cron) {
         ScheduledTask task = requireOwn(userId, id);
         boolean cronChanged = false;
+        if (StringUtils.hasText(title)) {
+            task.setTitle(title);
+        }
         if (StringUtils.hasText(description)) {
             task.setDescription(description);
         }
@@ -166,6 +170,7 @@ public class ScheduleService {
         return ScheduledTaskVO.builder()
                 .id(task.getId())
                 .agentName(task.getAgentName())
+                .title(task.getTitle())
                 .description(task.getDescription())
                 .cron(task.getCron())
                 .status(task.getStatus())

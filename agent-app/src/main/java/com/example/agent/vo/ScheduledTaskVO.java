@@ -16,6 +16,8 @@ public class ScheduledTaskVO {
 
     private String agentName;
 
+    private String title;
+
     private String description;
 
     private String cron;

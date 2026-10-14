@@ -62,17 +62,19 @@ public class ScheduledTaskJob extends QuartzJobBean {
         }
 
         String runDate = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm"));
+        String taskTitle = (task.getTitle() == null || task.getTitle().isBlank())
+                ? task.getDescription() : task.getTitle();
         try {
             String content = runAgent(task, runDate);
             messageService.create(task.getUserId(), Message.TYPE_REPORT, task.getAgentName(),
-                    task.getDescription() + "（" + runDate + "）", content, task.getId(), "success");
+                    taskTitle + "（" + runDate + "）", content, task.getId(), "success");
             log.info("定时任务执行成功, taskId={}", taskId);
         } catch (Exception e) {
             log.error("定时任务执行失败, taskId={}", taskId, e);
             // 失败时发系统消息告知用户，内容含失败原因/异常信息
             messageService.create(task.getUserId(), Message.TYPE_SYSTEM, "",
-                    "定时任务执行失败：" + task.getDescription(),
-                    "**定时任务执行失败**\n\n任务：" + task.getDescription()
+                    "定时任务执行失败：" + taskTitle,
+                    "**定时任务执行失败**\n\n任务：" + taskTitle
                             + "\n\n执行Agent：" + task.getAgentName()
                             + "\n\n执行时间：" + runDate
                             + "\n\n失败原因：" + e.getMessage()

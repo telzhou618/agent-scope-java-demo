@@ -87,7 +87,8 @@ onMounted(() => void load())
         <div v-if="tasks.length" class="task-list">
           <div v-for="item in tasks" :key="item.id" class="task-row">
             <div class="task-main">
-              <div class="task-desc">{{ item.description }}</div>
+              <div class="task-desc">{{ item.title || item.description }}</div>
+              <div v-if="item.title" class="task-text">{{ item.description }}</div>
               <div class="task-meta">
                 <code>{{ item.cron }}</code>
                 <span>· {{ agentDisplayName(item.agentName) }}</span>
@@ -159,6 +160,12 @@ onMounted(() => void load())
 .task-desc {
   font-size: 13.5px;
   font-weight: 500;
+}
+
+.task-text {
+  font-size: 12px;
+  opacity: 0.6;
+  margin-top: 2px;
 }
 
 .task-meta {

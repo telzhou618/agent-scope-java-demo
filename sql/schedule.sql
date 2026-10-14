@@ -156,6 +156,7 @@ CREATE TABLE IF NOT EXISTS t_scheduled_task (
   id          BIGINT       NOT NULL AUTO_INCREMENT COMMENT '主键ID',
   user_id     BIGINT       NOT NULL COMMENT '创建人',
   agent_name  VARCHAR(32)  NOT NULL COMMENT '创建时档位 flash/plus/max',
+  title       VARCHAR(200) NOT NULL DEFAULT '' COMMENT '任务标题',
   description VARCHAR(500) NOT NULL COMMENT '需求原文',
   cron        VARCHAR(64)  NOT NULL COMMENT 'Quartz cron（6 段，含秒）',
   status      TINYINT      NOT NULL DEFAULT 1 COMMENT '1启用 0停用',
@@ -184,3 +185,10 @@ CREATE TABLE IF NOT EXISTS t_message (
   KEY idx_user_read (user_id, is_read),
   KEY idx_user_time (user_id, create_time)
 ) ENGINE=InnoDB COMMENT='消息中心';
+
+-- ------------------------------------------------------------
+-- 已有库升级：给 t_scheduled_task 补 title 列（新建库已包含，无需执行）
+--
+--   USE agent_demo;
+--   ALTER TABLE t_scheduled_task ADD COLUMN title VARCHAR(200) NOT NULL DEFAULT '' COMMENT '任务标题' AFTER agent_name;
+-- ------------------------------------------------------------

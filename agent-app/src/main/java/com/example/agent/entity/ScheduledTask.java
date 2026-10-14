@@ -22,6 +22,9 @@ public class ScheduledTask {
     /** 创建时档位 flash/plus/max */
     private String agentName;
 
+    /** 任务标题 */
+    private String title;
+
     /** 需求原文 */
     private String description;
 
