@@ -1,6 +1,5 @@
 package com.example.agent.tools;
 
-import com.example.agent.service.DownloadSignService;
 import com.example.agent.service.FileStorageService;
 import io.agentscope.core.tool.Tool;
 import io.agentscope.core.tool.ToolParam;
@@ -8,11 +7,12 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 
-import java.io.BufferedWriter;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.io.OutputStream;
+import java.io.OutputStreamWriter;
+import java.io.Writer;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.sql.Timestamp;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -27,7 +27,7 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 
 /**
- * 数据导出工具：执行只读 SELECT，将结果写入本地 CSV 文件并返回下载链接
+ * 数据导出工具：执行只读 SELECT，将结果导出为 CSV 上传到 OSS 并返回签名下载链接
  */
 @Slf4j
 @Service
@@ -40,13 +40,10 @@ public class DataExportTools {
 
     private final JdbcTemplate jdbcTemplate;
     private final FileStorageService fileStorageService;
-    private final DownloadSignService downloadSignService;
 
-    public DataExportTools(JdbcTemplate jdbcTemplate, FileStorageService fileStorageService,
-                           DownloadSignService downloadSignService) {
+    public DataExportTools(JdbcTemplate jdbcTemplate, FileStorageService fileStorageService) {
         this.jdbcTemplate = jdbcTemplate;
         this.fileStorageService = fileStorageService;
-        this.downloadSignService = downloadSignService;
     }
 
     @Tool(name = "export_sql_to_csv", description = "执行 SELECT 查询并将结果导出为 CSV 文件，返回下载链接；当用户要求导出/下载数据时使用")
@@ -64,9 +61,9 @@ public class DataExportTools {
             }
 
             String storedName = buildStoredName(fileName);
-            Path path = fileStorageService.exportsDir().resolve(storedName);
-            Files.createDirectories(path.getParent());
-            writeCsv(rows, path);
+            ByteArrayOutputStream out = new ByteArrayOutputStream();
+            writeCsv(rows, out);
+            String downloadUrl = fileStorageService.putExport(storedName, out.toByteArray());
 
             log.info("SQL导出成功：{}，共 {} 条", storedName, rows.size());
             Map<String, Object> result = new LinkedHashMap<>();
@@ -74,8 +71,7 @@ public class DataExportTools {
             result.put("fileName", storedName);
             result.put("rowCount", rows.size());
             result.put("truncated", truncated);
-            result.put("downloadUrl", "/agent/scope/files/download/" + storedName
-                    + "?" + downloadSignService.signQuery(storedName));
+            result.put("downloadUrl", downloadUrl);
             return result;
         } catch (Exception e) {
             log.error("导出异常", e);
@@ -104,18 +100,17 @@ public class DataExportTools {
     /**
      * 写 CSV：UTF-8 + BOM（兼容 Excel 直接打开），首行列名
      */
-    private void writeCsv(List<Map<String, Object>> rows, Path path) throws IOException {
+    private void writeCsv(List<Map<String, Object>> rows, OutputStream out) throws IOException {
         List<String> columns = new ArrayList<>(rows.get(0).keySet());
-        try (BufferedWriter writer = Files.newBufferedWriter(path, StandardCharsets.UTF_8)) {
+        try (Writer writer = new OutputStreamWriter(out, StandardCharsets.UTF_8)) {
             writer.write(0xFEFF); // BOM，兼容 Excel 直接打开
             writer.write(columns.stream().map(this::escape).collect(Collectors.joining(",")));
-            writer.newLine();
+            writer.write("\n");
             for (Map<String, Object> row : rows) {
-                String line = columns.stream()
+                writer.write(columns.stream()
                         .map(col -> escape(formatValue(row.get(col))))
-                        .collect(Collectors.joining(","));
-                writer.write(line);
-                writer.newLine();
+                        .collect(Collectors.joining(",")));
+                writer.write("\n");
             }
         }
     }

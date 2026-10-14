@@ -85,13 +85,16 @@ usage:
       input: 12
       output: 36
 
-# 聊天附件存储目录
+# 文件存储（阿里云 OSS，私有桶 + 签名访问）
 agent:
-  upload:
-    dir: ./files-uploads
-  # 导出文件下载链接签名密钥，生产环境用环境变量覆盖
-  download:
-    secret: ${DOWNLOAD_SIGN_SECRET:dev-download-secret}
+  storage:
+    oss:
+      endpoint: ${OSS_ENDPOINT:}
+      access-key-id: ${OSS_ACCESS_KEY_ID:}
+      access-key-secret: ${OSS_ACCESS_KEY_SECRET:}
+      bucket: ${OSS_BUCKET:}
+      # 私有对象签名下载链接有效期（秒），默认 7 天
+      presign-seconds: ${OSS_PRESIGN_SECONDS:604800}
   # 需要人工确认的工具名单，这些工具被调用时 Agent 挂起，前端弹确认卡，用户确认后才执行
   confirm-tools: ${AGENT_CONFIRM_TOOLS:delete_schedule,trigger_schedule}
   # 第三方 OAuth 登录：各渠道独立开关，未开启的渠道不注册、不暴露

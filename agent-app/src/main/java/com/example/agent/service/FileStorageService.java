@@ -2,19 +2,22 @@ package com.example.agent.service;
 
 import com.example.agent.dto.ChatAttachment;
 import com.example.agent.error.BizException;
+import com.example.agent.storage.FileStorage;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.util.Comparator;
+import java.io.InputStream;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
+/**
+ * 文件存储门面：类型 / 大小 / key 校验后委托给 FileStorage（阿里云 OSS）。
+ * 不再落本地磁盘。
+ */
 @Slf4j
 @Service
 public class FileStorageService {
@@ -36,12 +39,15 @@ public class FileStorageService {
             "bmp", "image/bmp"
     );
 
-    private final Path rootDir;
+    private final FileStorage storage;
 
-    public FileStorageService(@Value("${agent.upload.dir}") String uploadDir) {
-        this.rootDir = Path.of(uploadDir).toAbsolutePath().normalize();
+    public FileStorageService(FileStorage storage) {
+        this.storage = storage;
     }
 
+    /**
+     * 上传聊天附件；返回的 id 为存储对象名（不含 key 前缀）
+     */
     public ChatAttachment store(MultipartFile file, String userId, String sessionId) {
         String name = file.getOriginalFilename();
         if (file.isEmpty() || name == null || name.isBlank()) {
@@ -55,98 +61,86 @@ public class FileStorageService {
             throw new BizException("文件大小不能超过 10MB");
         }
         String id = UUID.randomUUID() + "." + ext;
-        try {
-            Path dir = sessionDir(userId, sessionId);
-            Files.createDirectories(dir);
-            file.transferTo(dir.resolve(id));
+        String key = keyFor(userId, sessionId, id);
+        try (InputStream in = file.getInputStream()) {
+            storage.put(key, in, file.getSize(), mediaType(ext));
         } catch (IOException e) {
             throw new BizException("文件保存失败");
         }
         return new ChatAttachment(id, name, ext, file.getSize());
     }
 
+    /**
+     * 附件字节（非图片：文本/文档提取用）
+     */
     public byte[] readBytes(String userId, String sessionId, String id) {
-        if (id.indexOf('/') >= 0 || id.indexOf('\\') >= 0 || id.contains("..")) {
-            throw new BizException("附件标识无效");
-        }
-        String ext = extOf(id);
-        if (!isAllowed(ext)) {
-            throw new BizException("不支持的附件类型：" + ext);
-        }
-        Path path = sessionDir(userId, sessionId).resolve(id).normalize();
-        if (!path.startsWith(rootDir)) {
-            throw new BizException("附件路径无效");
-        }
-        try {
-            return Files.readAllBytes(path);
-        } catch (IOException e) {
-            throw new BizException("附件读取失败");
-        }
+        return storage.get(keyFor(userId, sessionId, id));
     }
 
     /**
-     * 级联删除会话附件目录，路径穿越校验保证只删预期目录；删除失败仅记日志不影响主流程
+     * 附件签名下载地址（图片给 LLM 用）
+     */
+    public String presignedUrl(String userId, String sessionId, String id) {
+        return storage.presignedGetUrl(keyFor(userId, sessionId, id));
+    }
+
+    /**
+     * 删除会话：级联删除该会话下所有附件
      */
     public void deleteForSession(String userId, String sessionId) {
-        Path dir = sessionDir(userId, sessionId).normalize();
-        if (!dir.startsWith(rootDir) || !Files.isDirectory(dir)) {
-            return;
-        }
-        try (var stream = Files.walk(dir)) {
-            stream.sorted(Comparator.reverseOrder())
-                    .forEach(path -> {
-                        try {
-                            Files.deleteIfExists(path);
-                        } catch (IOException e) {
-                            throw new RuntimeException(e);
-                        }
-                    });
-        } catch (Exception e) {
-            log.warn("删除会话附件目录失败, dir={}", dir, e);
-        }
+        requireSessionId(sessionId);
+        storage.deletePrefix("chat/" + userId + "/" + sessionId + "/");
     }
 
     /**
-     * 会话附件目录：<root>/<userId>/<sessionId>，sessionId 来自客户端需防路径穿越
+     * 导出文件写 OSS 并返回签名下载地址
      */
-    private Path sessionDir(String userId, String sessionId) {
-        if (sessionId == null || sessionId.isBlank()
-                || sessionId.indexOf('/') >= 0 || sessionId.indexOf('\\') >= 0 || sessionId.contains("..")) {
-            throw new BizException("会话ID无效");
+    public String putExport(String fileName, byte[] content) {
+        if (fileName == null || fileName.isBlank()
+                || fileName.indexOf('/') >= 0 || fileName.indexOf('\\') >= 0 || fileName.contains("..")) {
+            throw new BizException("文件名无效");
         }
-        return rootDir.resolve(userId).resolve(sessionId);
+        String lower = fileName.toLowerCase();
+        if (!(lower.endsWith(".csv") || lower.endsWith(".docx"))) {
+            throw new BizException("文件名无效");
+        }
+        String contentType = lower.endsWith(".docx")
+                ? "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                : "text/csv";
+        String key = "exports/" + fileName;
+        try (InputStream in = new ByteArrayInputStream(content)) {
+            storage.put(key, in, content.length, contentType);
+        } catch (IOException ignore) {
+            // ByteArrayInputStream 不会抛出 IOException
+        }
+        return storage.presignedGetUrl(key);
     }
 
     public boolean isImage(String ext) {
         return IMAGE_EXTS.contains(ext);
     }
 
-    /**
-     * 数据导出目录：<root>/exports
-     */
-    public Path exportsDir() {
-        return rootDir.resolve("exports");
-    }
-
-    /**
-     * 校验并返回导出文件路径，防路径穿越，只允许导出生成的 CSV / docx
-     */
-    public Path exportFile(String fileName) {
-        String lower = fileName == null ? "" : fileName.toLowerCase();
-        if (fileName == null || fileName.isBlank()
-                || fileName.indexOf('/') >= 0 || fileName.indexOf('\\') >= 0 || fileName.contains("..")
-                || !(lower.endsWith(".csv") || lower.endsWith(".docx"))) {
-            throw new BizException("文件名无效");
-        }
-        Path path = exportsDir().resolve(fileName).normalize();
-        if (!path.startsWith(exportsDir().normalize()) || !Files.exists(path)) {
-            throw new BizException("文件不存在或已过期");
-        }
-        return path;
-    }
-
     public String mediaType(String ext) {
         return MEDIA_TYPES.getOrDefault(ext, "application/octet-stream");
+    }
+
+    private String keyFor(String userId, String sessionId, String id) {
+        requireSessionId(sessionId);
+        if (id == null || id.indexOf('/') >= 0 || id.indexOf('\\') >= 0 || id.contains("..")) {
+            throw new BizException("附件标识无效");
+        }
+        String ext = extOf(id);
+        if (!isAllowed(ext)) {
+            throw new BizException("不支持的附件类型：" + ext);
+        }
+        return "chat/" + userId + "/" + sessionId + "/" + id;
+    }
+
+    private void requireSessionId(String sessionId) {
+        if (sessionId == null || sessionId.isBlank()
+                || sessionId.indexOf('/') >= 0 || sessionId.indexOf('\\') >= 0 || sessionId.contains("..")) {
+            throw new BizException("会话ID无效");
+        }
     }
 
     private boolean isAllowed(String ext) {

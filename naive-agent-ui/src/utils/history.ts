@@ -28,13 +28,20 @@ const toolArgs = (content?: string, input?: Record<string, unknown>): string => 
   return ''
 }
 
-/** 历史 USER 消息里的 ImageBlock → 气泡附件；data 缺失则忽略 */
+/** 历史 USER 消息里的图片块（OSS 签名 URL 优先，兼容 base64）→ 气泡附件 */
 function imageAttachment(block: ContentBlock, seq: number): UserAttachment | null {
-  if (block.type !== 'image') return null
-  const source = (block as { source?: { mediaType?: string; data?: string } }).source
-  const data = typeof source?.data === 'string' ? source.data : ''
+  const source = (block as {
+    source?: { url?: string; mime_type?: string; media_type?: string; data?: string }
+  }).source
+  if (!source) return null
+  if (typeof source.url === 'string' && source.url) {
+    const mediaType = typeof source.mime_type === 'string' ? source.mime_type : 'image/png'
+    const ext = mediaType.replace(/^image\//, '').split(';')[0] || 'png'
+    return { name: `图片-${seq}.${ext}`, ext, size: 0, url: source.url }
+  }
+  const data = typeof source.data === 'string' ? source.data : ''
   if (!data) return null
-  const mediaType = typeof source?.mediaType === 'string' ? source.mediaType : 'image/png'
+  const mediaType = typeof source.media_type === 'string' ? source.media_type : 'image/png'
   const ext = mediaType.replace(/^image\//, '').split(';')[0] || 'png'
   return { name: `图片-${seq}.${ext}`, ext, size: 0, url: `data:${mediaType};base64,${data}` }
 }

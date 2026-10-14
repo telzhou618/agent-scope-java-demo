@@ -4,10 +4,10 @@ import cn.hutool.core.collection.CollUtil;
 import com.example.agent.dto.AgentChatRequest;
 import com.example.agent.dto.ChatAttachment;
 import com.example.agent.error.BizException;
-import io.agentscope.core.message.Base64Source;
 import io.agentscope.core.message.ContentBlock;
 import io.agentscope.core.message.DataBlock;
 import io.agentscope.core.message.TextBlock;
+import io.agentscope.core.message.URLSource;
 import io.agentscope.core.message.UserMessage;
 import io.agentscope.core.skill.AgentSkill;
 import io.agentscope.core.skill.repository.ClasspathSkillRepository;
@@ -18,7 +18,6 @@ import org.springframework.util.StringUtils;
 
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
-import java.util.Base64;
 import java.util.List;
 
 /**
@@ -59,16 +58,18 @@ public class ChatMessageFactory {
         List<ContentBlock> blocks = new ArrayList<>();
         blocks.add(TextBlock.builder().text(text).build());
         for (ChatAttachment attachment : attachments) {
-            byte[] bytes = fileStorageService.readBytes(userId, sessionId, attachment.id());
             if (fileStorageService.isImage(attachment.ext())) {
-                // DataBlock 是官方推荐的多模态块（统一替代旧版 ImageBlock）
+                // 图片走 OSS 签名地址，不再内嵌 base64
                 blocks.add(DataBlock.builder()
-                        .source(Base64Source.builder()
-                                .mediaType(fileStorageService.mediaType(attachment.ext()))
-                                .data(Base64.getEncoder().encodeToString(bytes))
+                        .source(URLSource.builder()
+                                .url(fileStorageService.presignedUrl(userId, sessionId, attachment.id()))
+                                .mimeType(fileStorageService.mediaType(attachment.ext()))
                                 .build())
                         .build());
-            } else if (documentTextExtractor.isDocument(attachment.ext())) {
+                continue;
+            }
+            byte[] bytes = fileStorageService.readBytes(userId, sessionId, attachment.id());
+            if (documentTextExtractor.isDocument(attachment.ext())) {
                 blocks.add(TextBlock.builder().text(attachmentText(attachment.name(),
                         documentTextExtractor.extract(attachment.name(), attachment.ext(), bytes))).build());
             } else {
