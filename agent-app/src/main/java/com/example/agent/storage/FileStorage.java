@@ -10,6 +10,9 @@ public interface FileStorage {
 
     void put(String key, InputStream in, long size, String contentType);
 
+    /** 公开读上传（头像等无需签名的资源），对象 ACL 设为 public-read */
+    void putPublic(String key, InputStream in, long size, String contentType);
+
     byte[] get(String key);
 
     void delete(String key);

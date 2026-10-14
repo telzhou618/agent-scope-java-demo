@@ -2,6 +2,7 @@ package com.example.agent.storage;
 
 import com.aliyun.oss.OSS;
 import com.aliyun.oss.OSSClientBuilder;
+import com.aliyun.oss.model.CannedAccessControlList;
 import com.aliyun.oss.model.DeleteObjectsRequest;
 import com.aliyun.oss.model.ListObjectsRequest;
 import com.aliyun.oss.model.ObjectListing;
@@ -62,10 +63,22 @@ public class AliyunOssFileStorage implements FileStorage {
 
     @Override
     public void put(String key, InputStream in, long size, String contentType) {
+        putObject(key, in, size, contentType, null);
+    }
+
+    @Override
+    public void putPublic(String key, InputStream in, long size, String contentType) {
+        putObject(key, in, size, contentType, CannedAccessControlList.PublicRead);
+    }
+
+    private void putObject(String key, InputStream in, long size, String contentType, CannedAccessControlList acl) {
         try {
             ObjectMetadata metadata = new ObjectMetadata();
             metadata.setContentLength(size);
             metadata.setContentType(contentType);
+            if (acl != null) {
+                metadata.setObjectAcl(acl);
+            }
             oss().putObject(bucket, key, in, metadata);
         } catch (Exception e) {
             throw new BizException("文件上传失败：" + e.getMessage());

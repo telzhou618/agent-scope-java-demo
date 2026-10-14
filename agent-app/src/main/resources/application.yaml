@@ -98,6 +98,8 @@ agent:
       bucket: ${OSS_BUCKET:}
       # 私有对象签名下载链接有效期（秒），默认 7 天
       presign-seconds: ${OSS_PRESIGN_SECONDS:604800}
+      # 公开读对象的固定访问地址（头像等），不加签名
+      public-base-url: ${OSS_PUBLIC_BASE_URL:https://cf-resources.sanguosha.cn}
   # 需要人工确认的工具名单，这些工具被调用时 Agent 挂起，前端弹确认卡，用户确认后才执行
   confirm-tools: ${AGENT_CONFIRM_TOOLS:delete_schedule,trigger_schedule}
   # 第三方 OAuth 登录：各渠道独立开关，未开启的渠道不注册、不暴露

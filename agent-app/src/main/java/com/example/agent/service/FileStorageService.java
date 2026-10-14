@@ -9,6 +9,7 @@ import com.example.agent.mapper.UserFileMapper;
 import com.example.agent.storage.FileStorage;
 import com.example.agent.vo.UserFileVO;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -30,6 +31,7 @@ import java.util.UUID;
 public class FileStorageService {
 
     private static final long MAX_SIZE = 10 * 1024 * 1024;
+    private static final long AVATAR_MAX_SIZE = 5 * 1024 * 1024;
 
     private static final Set<String> IMAGE_EXTS = Set.of("png", "jpg", "jpeg", "gif", "webp", "bmp");
     private static final Set<String> TEXT_EXTS = Set.of("txt", "md", "csv", "json", "log", "xml", "yaml", "yml",
@@ -48,10 +50,13 @@ public class FileStorageService {
 
     private final FileStorage storage;
     private final UserFileMapper userFileMapper;
+    private final String publicBaseUrl;
 
-    public FileStorageService(FileStorage storage, UserFileMapper userFileMapper) {
+    public FileStorageService(FileStorage storage, UserFileMapper userFileMapper,
+                              @Value("${agent.storage.oss.public-base-url:https://cf-resources.sanguosha.cn}") String publicBaseUrl) {
         this.storage = storage;
         this.userFileMapper = userFileMapper;
+        this.publicBaseUrl = publicBaseUrl;
     }
 
     /**
@@ -88,6 +93,30 @@ public class FileStorageService {
         record.setCreateTime(LocalDateTime.now());
         userFileMapper.insert(record);
         return new ChatAttachment(id, name, ext, file.getSize());
+    }
+
+    /**
+     * 上传头像：公开读对象，返回固定 CDN 地址（不签名、不过期）
+     */
+    public String uploadAvatar(MultipartFile file, long userId) {
+        String name = file.getOriginalFilename();
+        if (file.isEmpty() || name == null || name.isBlank()) {
+            throw new BizException("请选择要上传的图片");
+        }
+        String ext = extOf(name);
+        if (!IMAGE_EXTS.contains(ext)) {
+            throw new BizException("仅支持 png / jpg / jpeg / webp / gif / bmp 图片");
+        }
+        if (file.getSize() > AVATAR_MAX_SIZE) {
+            throw new BizException("头像图片不能超过 5MB");
+        }
+        String key = "avatars/" + userId + "-" + UUID.randomUUID() + "." + ext;
+        try (InputStream in = file.getInputStream()) {
+            storage.putPublic(key, in, file.getSize(), mediaType(ext));
+        } catch (IOException e) {
+            throw new BizException("头像上传失败");
+        }
+        return publicBaseUrl + "/" + key;
     }
 
     /**

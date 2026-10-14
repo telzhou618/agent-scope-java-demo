@@ -13,6 +13,13 @@ export const logoutApi = () => http.post<Result<void>>('/auth/logout').then((r) 
 
 export const currentUser = () => http.get<Result<UserInfo>>('/auth/current').then((r) => r.data.data)
 
+/** 上传头像，返回头像 URL */
+export const uploadAvatar = (file: File) => {
+  const form = new FormData()
+  form.append('file', file)
+  return http.post<Result<string>>('/user/avatar', form).then((r) => r.data.data)
+}
+
 /** 已开启的第三方登录渠道列表 */
 export const oauthProviders = () =>
   http.get<Result<string[]>>('/auth/oauth/providers').then((r) => r.data.data)
