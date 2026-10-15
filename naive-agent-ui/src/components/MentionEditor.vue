@@ -1,11 +1,9 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue'
-import { FlashOutline, ServerOutline } from '@vicons/ionicons5'
-import { NIcon } from 'naive-ui'
 import { getDatasources, getSkills } from '../api/agent'
 import type { DatasourceInfo, SkillInfo } from '../api/types'
 import { useAgentsStore } from '../stores/agents'
-import { mentionDataValue, parseMentions, segmentFromDataValue, stringifySegments, type MentionSegment } from '../utils/mentions'
+import { mentionDataValue, mentionIconSvg, parseMentions, segmentFromDataValue, stringifySegments, type MentionSegment } from '../utils/mentions'
 
 interface MentionItem {
   kind: 'skill' | 'ds'
@@ -41,8 +39,8 @@ function escapeHtml(value: string): string {
 }
 
 function chipHtml(kind: 'skill' | 'ds', value: string): string {
-  const label = kind === 'skill' ? `@skill:${value}` : `@ds:${value}`
-  return `<span contenteditable="false" class="mention-tag mention-tag--${kind}" data-m="${mentionDataValue(kind, value)}">${escapeHtml(label)}<span class="mention-tag-x" role="button" aria-label="删除">×</span></span>`
+  const label = kind === 'skill' ? `skill:${value}` : `ds:${value}`
+  return `<span contenteditable="false" class="mention-tag mention-tag--${kind}" data-m="${mentionDataValue(kind, value)}">${mentionIconSvg(kind)}${escapeHtml(label)}<span class="mention-tag-x" role="button" aria-label="删除">×</span></span>`
 }
 
 function renderSegments(segments: MentionSegment[]): string {
@@ -201,7 +199,7 @@ function insertMention(item: MentionItem) {
   chip.setAttribute('contenteditable', 'false')
   chip.setAttribute('data-m', mentionDataValue(item.kind, item.value))
   chip.className = `mention-tag mention-tag--${item.kind}`
-  chip.innerHTML = `${escapeHtml(item.label)}<span class="mention-tag-x" role="button" aria-label="删除">×</span>`
+  chip.innerHTML = `${mentionIconSvg(item.kind)}${escapeHtml(item.label)}<span class="mention-tag-x" role="button" aria-label="删除">×</span>`
   range.insertNode(chip)
   range.setStartAfter(chip)
   range.collapse(true)
@@ -267,18 +265,18 @@ function onKeydown(event: KeyboardEvent) {
 function activeItem(): MentionItem | null {
   if (activeIndex.value < visibleSkills.value.length) {
     const s = visibleSkills.value[activeIndex.value]
-    return { kind: 'skill', value: s.name, label: `@skill:${s.name}` }
+    return { kind: 'skill', value: s.name, label: `skill:${s.name}` }
   }
   const d = visibleDatasources.value[activeIndex.value - visibleSkills.value.length]
-  return d ? { kind: 'ds', value: d.id, label: `@ds:${d.id}` } : null
+  return d ? { kind: 'ds', value: d.id, label: `ds:${d.id}` } : null
 }
 
 function skillItem(s: SkillInfo): MentionItem {
-  return { kind: 'skill', value: s.name, label: `@skill:${s.name}` }
+  return { kind: 'skill', value: s.name, label: `skill:${s.name}` }
 }
 
 function dsItem(d: DatasourceInfo): MentionItem {
-  return { kind: 'ds', value: d.id, label: `@ds:${d.id}` }
+  return { kind: 'ds', value: d.id, label: `ds:${d.id}` }
 }
 
 function onPaste(event: ClipboardEvent) {
@@ -335,8 +333,8 @@ defineExpose({ focus })
           @mouseenter="activeIndex = i"
         >
           <span class="mention-token skill">
-            <NIcon size="13"><FlashOutline /></NIcon>
-            @skill:{{ s.name }}
+            <span class="mention-icon" v-html="mentionIconSvg('skill')"></span>
+            skill:{{ s.name }}
           </span>
           <span class="mention-desc">{{ s.description }}</span>
         </div>
@@ -355,8 +353,8 @@ defineExpose({ focus })
           @mouseenter="activeIndex = i + visibleSkills.length"
         >
           <span class="mention-token ds">
-            <NIcon size="13"><ServerOutline /></NIcon>
-            @ds:{{ d.id }}
+            <span class="mention-icon" v-html="mentionIconSvg('ds')"></span>
+            ds:{{ d.id }}
           </span>
           <span class="mention-desc">{{ d.name }}<template v-if="d.description"> · {{ d.description }}</template></span>
         </div>

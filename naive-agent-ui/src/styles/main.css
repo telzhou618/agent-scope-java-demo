@@ -146,15 +146,6 @@ html[data-theme='dark'] {
   user-select: none;
 }
 
-.mention-tag::before {
-  content: '';
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: currentColor;
-  flex-shrink: 0;
-}
-
 .mention-tag--skill {
   color: var(--mention-skill-fg);
   background: var(--mention-skill-bg);
@@ -184,4 +175,11 @@ html[data-theme='dark'] {
 
 .mention-tag-x:hover {
   opacity: 1;
+}
+
+.mention-icon {
+  display: block;
+  width: 12px;
+  height: 12px;
+  flex-shrink: 0;
 }

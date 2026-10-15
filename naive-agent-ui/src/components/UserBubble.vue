@@ -5,7 +5,7 @@ import { ChevronDownOutline, DocumentOutline } from '@vicons/ionicons5'
 import { formatSize } from '../utils/attachments'
 import { useLightbox } from '../composables/useLightbox'
 import { useAuthStore } from '../stores/auth'
-import { parseMentions } from '../utils/mentions'
+import { mentionIconSvg, parseMentions } from '../utils/mentions'
 import type { UserAttachment } from '../utils/model'
 
 const props = defineProps<{ text: string; attachments?: UserAttachment[] }>()
@@ -68,8 +68,14 @@ onBeforeUnmount(() => observer?.disconnect())
       </div>
       <div class="msg-text">
         <template v-for="(seg, i) in segments" :key="i">
-          <span v-if="seg.type === 'skill'" class="mention-tag mention-tag--skill">@skill:{{ seg.name }}</span>
-          <span v-else-if="seg.type === 'ds'" class="mention-tag mention-tag--ds">@ds:{{ seg.id }}</span>
+          <span v-if="seg.type === 'skill'" class="mention-tag mention-tag--skill">
+            <span class="mention-icon" v-html="mentionIconSvg('skill')"></span>
+            <span>skill:{{ seg.name }}</span>
+          </span>
+          <span v-else-if="seg.type === 'ds'" class="mention-tag mention-tag--ds">
+            <span class="mention-icon" v-html="mentionIconSvg('ds')"></span>
+            <span>ds:{{ seg.id }}</span>
+          </span>
           <template v-else>{{ seg.text }}</template>
         </template>
       </div>
