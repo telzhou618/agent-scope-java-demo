@@ -15,9 +15,9 @@ export interface DsSegment {
 
 export type MentionSegment = TextSegment | SkillSegment | DsSegment
 
-const MENTION_RE = /@skill:([\w-]+)|@ds:([\w-]+)/g
+const MENTION_RE = /\[\[skill:([\w-]+)\]\]|\[\[ds:([\w-]+)\]\]/g
 
-/** 解析正文里的 @skill:<name> / @ds:<id>，其余为普通文本 */
+/** 解析正文里的 [[skill:<name>]] / [[ds:<id>]]，其余为普通文本 */
 export function parseMentions(text: string): MentionSegment[] {
   const segments: MentionSegment[] = []
   let pos = 0
@@ -39,8 +39,8 @@ export function parseMentions(text: string): MentionSegment[] {
 export function stringifySegments(segments: MentionSegment[]): string {
   return segments
     .map((segment) => {
-      if (segment.type === 'skill') return `@skill:${segment.name}`
-      if (segment.type === 'ds') return `@ds:${segment.id}`
+      if (segment.type === 'skill') return `[[skill:${segment.name}]]`
+      if (segment.type === 'ds') return `[[ds:${segment.id}]]`
       return segment.text
     })
     .join('')

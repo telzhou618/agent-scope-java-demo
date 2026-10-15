@@ -92,6 +92,11 @@ public class AgentChatService {
                 .put("requestId", request.getRequestId() == null ? "" : request.getRequestId())
                 .build();
 
+        if (log.isDebugEnabled()) {
+            log.debug("Agent 请求参数：{}", JSON.toJSONString(request));
+            log.debug("Agent 用户上下文：{}", JSON.toJSONString(context));
+            log.info("Agent UserMessage: {}", JSON.toJSONString(userMessage));
+        }
         Sinks.Many<AgentEvent> sink = Sinks.many().multicast().onBackpressureBuffer();
         agent.streamEvents(userMessage, context)
                 .subscribe(sink::tryEmitNext,

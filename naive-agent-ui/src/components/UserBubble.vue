@@ -1,12 +1,7 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import { NAvatar, NIcon } from 'naive-ui'
-import {
-  ChevronDownOutline,
-  DocumentOutline,
-  FlashOutline,
-  ServerOutline,
-} from '@vicons/ionicons5'
+import { ChevronDownOutline, DocumentOutline } from '@vicons/ionicons5'
 import { formatSize } from '../utils/attachments'
 import { useLightbox } from '../composables/useLightbox'
 import { useAuthStore } from '../stores/auth'
@@ -73,14 +68,8 @@ onBeforeUnmount(() => observer?.disconnect())
       </div>
       <div class="msg-text">
         <template v-for="(seg, i) in segments" :key="i">
-          <span v-if="seg.type === 'skill'" class="mention-chip skill">
-            <NIcon size="11"><FlashOutline /></NIcon>
-            @skill:{{ seg.name }}
-          </span>
-          <span v-else-if="seg.type === 'ds'" class="mention-chip ds">
-            <NIcon size="11"><ServerOutline /></NIcon>
-            @ds:{{ seg.id }}
-          </span>
+          <span v-if="seg.type === 'skill'" class="mention-tag mention-tag--skill">@skill:{{ seg.name }}</span>
+          <span v-else-if="seg.type === 'ds'" class="mention-tag mention-tag--ds">@ds:{{ seg.id }}</span>
           <template v-else>{{ seg.text }}</template>
         </template>
       </div>
@@ -146,29 +135,6 @@ onBeforeUnmount(() => observer?.disconnect())
 .msg-text {
   white-space: pre-wrap;
   word-break: break-word;
-}
-
-.mention-chip {
-  display: inline-flex;
-  align-items: center;
-  gap: 3px;
-  margin: 0 2px;
-  padding: 1px 7px;
-  border-radius: 999px;
-  font-size: 12.5px;
-  font-weight: 600;
-  vertical-align: 1px;
-  user-select: none;
-}
-
-.mention-chip.skill {
-  background: rgba(34, 211, 238, 0.32);
-  color: #e0fbff;
-}
-
-.mention-chip.ds {
-  background: rgba(52, 211, 153, 0.3);
-  color: #e8fbf3;
 }
 
 .attach-thumb {

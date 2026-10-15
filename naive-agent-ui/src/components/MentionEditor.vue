@@ -42,7 +42,7 @@ function escapeHtml(value: string): string {
 
 function chipHtml(kind: 'skill' | 'ds', value: string): string {
   const label = kind === 'skill' ? `@skill:${value}` : `@ds:${value}`
-  return `<span contenteditable="false" class="mention-chip ${kind}" data-m="${mentionDataValue(kind, value)}">${escapeHtml(label)}<span class="chip-x" role="button" aria-label="删除">×</span></span>`
+  return `<span contenteditable="false" class="mention-tag mention-tag--${kind}" data-m="${mentionDataValue(kind, value)}">${escapeHtml(label)}<span class="mention-tag-x" role="button" aria-label="删除">×</span></span>`
 }
 
 function renderSegments(segments: MentionSegment[]): string {
@@ -200,8 +200,8 @@ function insertMention(item: MentionItem) {
   const chip = document.createElement('span')
   chip.setAttribute('contenteditable', 'false')
   chip.setAttribute('data-m', mentionDataValue(item.kind, item.value))
-  chip.className = `mention-chip ${item.kind}`
-  chip.innerHTML = `${escapeHtml(item.label)}<span class="chip-x" role="button" aria-label="删除">×</span>`
+  chip.className = `mention-tag mention-tag--${item.kind}`
+  chip.innerHTML = `${escapeHtml(item.label)}<span class="mention-tag-x" role="button" aria-label="删除">×</span>`
   range.insertNode(chip)
   range.setStartAfter(chip)
   range.collapse(true)
@@ -226,10 +226,10 @@ function removeChip(chip: HTMLElement) {
 
 function onEditorClick(event: MouseEvent) {
   const target = event.target as HTMLElement
-  const x = target.closest('.chip-x')
+  const x = target.closest('.mention-tag-x')
   if (!x) return
   event.preventDefault()
-  const chip = x.closest('.mention-chip') as HTMLElement | null
+  const chip = x.closest('.mention-tag') as HTMLElement | null
   if (chip && editorRef.value?.contains(chip)) removeChip(chip)
 }
 
@@ -385,45 +385,6 @@ defineExpose({ focus })
   content: attr(data-placeholder);
   color: var(--text-muted, rgba(148, 163, 184, 0.7));
   pointer-events: none;
-}
-
-.mention-chip {
-  display: inline-flex;
-  align-items: center;
-  gap: 3px;
-  margin: 0 2px;
-  padding: 1px 7px;
-  border-radius: 999px;
-  font-size: 12.5px;
-  font-weight: 600;
-  vertical-align: 1px;
-  user-select: none;
-  white-space: nowrap;
-}
-
-.mention-chip.skill {
-  background: var(--brand-soft-strong);
-  color: var(--brand);
-}
-
-.mention-chip.ds {
-  background: rgba(34, 197, 94, 0.14);
-  color: #22c55e;
-}
-
-.chip-x {
-  display: inline-flex;
-  align-items: center;
-  margin-left: 2px;
-  padding: 0 2px;
-  opacity: 0.65;
-  cursor: pointer;
-  font-size: 13px;
-  line-height: 1;
-}
-
-.chip-x:hover {
-  opacity: 1;
 }
 
 .mention-popup {

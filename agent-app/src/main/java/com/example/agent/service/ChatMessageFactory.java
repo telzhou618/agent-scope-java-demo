@@ -31,13 +31,8 @@ import java.util.regex.Pattern;
 @RequiredArgsConstructor
 public class ChatMessageFactory {
 
-    private static final Pattern SKILL_MENTION = Pattern.compile("@skill:([\\w-]+)");
-    private static final Pattern DS_MENTION = Pattern.compile("@ds:([\\w-]+)");
-
     private final FileStorageService fileStorageService;
     private final DocumentTextExtractor documentTextExtractor;
-    private final ClasspathSkillRepository skillRepository;
-    private final MysqlDatasourceRegistry datasourceRegistry;
 
     /**
      * 空消息兜底：有附件时替换为兜底文案；消息、附件两者皆空抛业务异常
@@ -88,43 +83,12 @@ public class ChatMessageFactory {
     }
 
     /**
-     * 把消息里的 @skill:<name> / @ds:<id> 原位改写成明确的资源标注：
-     * 【技能:name】 / 【数据源:id】；技能/数据源不存在时抛业务异常；无 @ 时原样返回。
+     * 改写用户消息，将来扩展使用
      */
     public String applyMentions(String message) {
         if (!StringUtils.hasText(message)) {
             return message;
         }
-        return replaceDsMentions(replaceSkillMentions(message));
-    }
-
-    private String replaceSkillMentions(String message) {
-        Matcher matcher = SKILL_MENTION.matcher(message);
-        StringBuffer sb = new StringBuffer();
-        while (matcher.find()) {
-            String name = matcher.group(1);
-            AgentSkill skill = skillRepository.getSkill(name);
-            if (skill == null) {
-                log.warn("技能不存在: {}", name);
-                throw new BizException("技能不存在: " + name);
-            }
-            matcher.appendReplacement(sb, Matcher.quoteReplacement("【技能:" + name + "】"));
-        }
-        matcher.appendTail(sb);
-        return sb.toString();
-    }
-
-    private String replaceDsMentions(String message) {
-        Matcher matcher = DS_MENTION.matcher(message);
-        StringBuffer sb = new StringBuffer();
-        while (matcher.find()) {
-            String id = matcher.group(1);
-            if (!datasourceRegistry.contains(id)) {
-                throw new BizException("数据源不存在: " + id);
-            }
-            matcher.appendReplacement(sb, Matcher.quoteReplacement("【数据源:" + id + "】"));
-        }
-        matcher.appendTail(sb);
-        return sb.toString();
+        return message;
     }
 }

@@ -128,3 +128,9 @@ springdoc:
       display-name: 'Agent'
       paths-to-match: '/**'
       packages-to-scan: 'com.example.agent.controller'
+
+# 日志配置
+logging:
+  level:
+    root: INFO
+    com.example: DEBUG
