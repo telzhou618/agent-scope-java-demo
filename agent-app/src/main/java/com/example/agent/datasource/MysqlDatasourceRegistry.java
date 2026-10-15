@@ -77,11 +77,18 @@ public class MysqlDatasourceRegistry {
         for (DatasourceEntry entry : entries.values()) {
             Map<String, Object> item = new LinkedHashMap<>();
             item.put("id", entry.id());
-            item.put("name", entry.name());
-            item.put("description", entry.description());
+            item.put("name", entry.name() == null || entry.name().isBlank() ? entry.id() : entry.name());
+            item.put("description", entry.description() == null ? "" : entry.description());
             result.add(item);
         }
         return result;
+    }
+
+    /**
+     * 是否存在指定 id 的数据源
+     */
+    public boolean contains(String id) {
+        return id != null && entries.containsKey(id.trim());
     }
 
     /**

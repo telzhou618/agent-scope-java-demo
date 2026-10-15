@@ -143,7 +143,6 @@ watch(
           <UserBubble
             v-if="turn.kind === 'user'"
             :text="turn.text"
-            :skill="turn.skill"
             :attachments="turn.attachments"
           />
           <AssistantTurn v-else :turn="turn" />

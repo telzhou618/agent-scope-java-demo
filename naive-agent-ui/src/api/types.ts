@@ -144,8 +144,15 @@ export interface UserFileItem {
   downloadUrl: string
 }
 
-/** 已安装技能（/skill:<name> 快捷指令） */
+/** 已安装技能（@skill:<name>） */
 export interface SkillInfo {
+  name: string
+  description: string
+}
+
+/** 可查询数据源（@ds:<id>） */
+export interface DatasourceInfo {
+  id: string
   name: string
   description: string
 }
@@ -155,8 +162,6 @@ export interface ChatRequest {
   sessionId: string
   agentName: string
   requestId?: string
-  /** 技能名（/skill:<name> 快捷指令选中的技能），独立传参 */
-  skill?: string
   /** 工具确认结果：响应 require_confirm 事件时携带 */
   confirmResults?: ConfirmResultItem[]
   attachments?: ChatAttachment[]

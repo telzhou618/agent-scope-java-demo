@@ -1,17 +1,19 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
-import { NAvatar, NIcon, NTag } from 'naive-ui'
+import { NAvatar, NIcon } from 'naive-ui'
 import {
   ChevronDownOutline,
   DocumentOutline,
   FlashOutline,
+  ServerOutline,
 } from '@vicons/ionicons5'
 import { formatSize } from '../utils/attachments'
 import { useLightbox } from '../composables/useLightbox'
 import { useAuthStore } from '../stores/auth'
+import { parseMentions } from '../utils/mentions'
 import type { UserAttachment } from '../utils/model'
 
-const props = defineProps<{ text: string; attachments?: UserAttachment[]; skill?: string }>()
+const props = defineProps<{ text: string; attachments?: UserAttachment[] }>()
 
 const { open: openImage } = useLightbox()
 
@@ -20,12 +22,8 @@ const displayName = computed(() => auth.user?.nickname || auth.user?.username ||
 const userAvatar = computed(() => auth.user?.avatar || '')
 const userInitial = computed(() => (displayName.value || 'U').charAt(0).toUpperCase())
 
-/** 技能标签：新消息走独立 skill 字段；兼容旧数据里拼在文本上的 /skill:<name> 前缀 */
-const legacySkill = computed(() => /^\/skill:([\w-]+)/.exec(props.text)?.[1] ?? null)
-const skillName = computed(() => props.skill ?? legacySkill.value)
-const restText = computed(() =>
-  legacySkill.value ? props.text.replace(/^\/skill:[\w-]+\s*/, '') : props.text,
-)
+/** 正文按 @skill:<name> / @ds:<id> 分段，技能/数据源渲染为只读标签 */
+const segments = computed(() => parseMentions(props.text))
 
 /** 折叠态最大高度（约 6 行），明显超出才显示展开/收起按钮 */
 const COLLAPSED_HEIGHT = 164
@@ -73,15 +71,19 @@ onBeforeUnmount(() => observer?.disconnect())
           </span>
         </template>
       </div>
-      <div v-if="skillName" class="mb-1">
-        <NTag size="small" :bordered="false" class="skill-tag">
-          <template #icon>
-            <NIcon size="12"><FlashOutline /></NIcon>
-          </template>
-          /skill:{{ skillName }}
-        </NTag>
+      <div class="msg-text">
+        <template v-for="(seg, i) in segments" :key="i">
+          <span v-if="seg.type === 'skill'" class="mention-chip skill">
+            <NIcon size="11"><FlashOutline /></NIcon>
+            @skill:{{ seg.name }}
+          </span>
+          <span v-else-if="seg.type === 'ds'" class="mention-chip ds">
+            <NIcon size="11"><ServerOutline /></NIcon>
+            @ds:{{ seg.id }}
+          </span>
+          <template v-else>{{ seg.text }}</template>
+        </template>
       </div>
-      <span v-if="restText" class="whitespace-pre-wrap break-words">{{ restText }}</span>
       <button
         v-if="collapsible"
         type="button"
@@ -141,6 +143,34 @@ onBeforeUnmount(() => observer?.disconnect())
   overflow: hidden;
 }
 
+.msg-text {
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.mention-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  margin: 0 2px;
+  padding: 1px 7px;
+  border-radius: 999px;
+  font-size: 12.5px;
+  font-weight: 600;
+  vertical-align: 1px;
+  user-select: none;
+}
+
+.mention-chip.skill {
+  background: rgba(34, 211, 238, 0.32);
+  color: #e0fbff;
+}
+
+.mention-chip.ds {
+  background: rgba(52, 211, 153, 0.3);
+  color: #e8fbf3;
+}
+
 .attach-thumb {
   max-width: 180px;
   max-height: 120px;
@@ -156,11 +186,6 @@ onBeforeUnmount(() => observer?.disconnect())
   border-radius: 6px;
   background: rgba(255, 255, 255, 0.2);
   font-size: 12px;
-}
-
-.skill-tag {
-  background: rgba(255, 255, 255, 0.2);
-  color: #fff;
 }
 
 .bubble-toggle {

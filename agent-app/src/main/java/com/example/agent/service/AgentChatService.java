@@ -2,10 +2,12 @@ package com.example.agent.service;
 
 import com.alibaba.fastjson2.JSON;
 import com.example.agent.agent.AgentRegistry;
+import com.example.agent.datasource.MysqlDatasourceRegistry;
 import com.example.agent.dto.AgentChatRequest;
 import com.example.agent.dto.AgentSseEvent;
 import com.example.agent.dto.InterruptRequest;
 import com.example.agent.error.BizException;
+import com.example.agent.vo.DatasourceVO;
 import com.example.agent.vo.SkillVO;
 import io.agentscope.core.agent.RuntimeContext;
 import io.agentscope.core.event.AgentEvent;
@@ -27,7 +29,7 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * 聊天流编排：权限校验、技能提示、会话标题、消息构建、Agent 事件流驱动与 SSE 转换；另含中断与技能列表
+ * 聊天流编排：权限校验、@ 技能/数据源改写、会话标题、消息构建、Agent 事件流驱动与 SSE 转换；另含中断与技能/数据源列表
  */
 @Slf4j
 @Service
@@ -41,6 +43,7 @@ public class AgentChatService {
     private final ChatMessageFactory chatMessageFactory;
     private final SseEventMapper sseEventMapper;
     private final ClasspathSkillRepository skillRepository;
+    private final MysqlDatasourceRegistry datasourceRegistry;
 
     /**
      * 流式对话：事件流转热，驱动订阅与 HTTP 连接解耦，客户端刷新/断开 SSE 后 Agent 仍跑完并落库，
@@ -73,9 +76,8 @@ public class AgentChatService {
             // 工具确认恢复：消息文本仅作会话记录，真正的确认结果在 metadata 里（框架约定）
             userMessage = buildConfirmMessage(request.getConfirmResults());
         } else {
-            // 技能独立字段转成技能使用提示，Agent 通过 load_skill_through_path 自行加载技能详情
-            String message = chatMessageFactory.applySkillHint(request.getSkill(),
-                    chatMessageFactory.effectiveMessage(request));
+            // @ 技能/@数据源 原位改写成明确标注，Agent 通过 load_skill_through_path 自行加载技能详情
+            String message = chatMessageFactory.applyMentions(chatMessageFactory.effectiveMessage(request));
             // URL 直达等路径进入的会话可能没有 meta：补建占位标题并异步生成正式标题（已有 meta 则跳过）
             if (!sessionTitleService.hasMeta(userId, request.getSessionId())) {
                 sessionTitleService.createPlaceholder(userId, request.getSessionId(), request.getAgentName());
@@ -170,6 +172,19 @@ public class AgentChatService {
                 .map(skill -> SkillVO.builder()
                         .name(skill.getName())
                         .description(skill.getDescription())
+                        .build())
+                .toList();
+    }
+
+    /**
+     * 数据源列表（id/名称/描述），供前端 @ 数据源下拉使用
+     */
+    public List<DatasourceVO> listDatasources() {
+        return datasourceRegistry.list().stream()
+                .map(item -> DatasourceVO.builder()
+                        .id((String) item.get("id"))
+                        .name((String) item.get("name"))
+                        .description((String) item.get("description"))
                         .build())
                 .toList();
     }

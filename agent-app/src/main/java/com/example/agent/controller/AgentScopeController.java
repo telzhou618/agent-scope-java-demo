@@ -15,6 +15,7 @@ import com.example.agent.service.AgentChatService;
 import com.example.agent.service.AgentPermissionService;
 import com.example.agent.service.MessageFeedbackService;
 import com.example.agent.service.SessionManageService;
+import com.example.agent.vo.DatasourceVO;
 import com.example.agent.vo.SkillVO;
 import io.agentscope.core.message.Msg;
 import io.swagger.v3.oas.annotations.Operation;
@@ -101,6 +102,12 @@ public class AgentScopeController {
     @Operation(summary = "技能列表")
     public Result<List<SkillVO>> skills(@RequestParam(required = false) String agentName) {
         return Result.okData(agentChatService.listSkills(StpUtil.getLoginIdAsLong(), agentName));
+    }
+
+    @GetMapping("/datasources")
+    @Operation(summary = "数据源列表")
+    public Result<List<DatasourceVO>> datasources() {
+        return Result.okData(agentChatService.listDatasources());
     }
 
     @PostMapping("/feedback")

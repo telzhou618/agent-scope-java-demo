@@ -3,6 +3,7 @@ import type {
   AgentInfo,
   AgentSession,
   ChatAttachment,
+  DatasourceInfo,
   MessageItem,
   MonthlyQuotaSummary,
   Msg,
@@ -47,9 +48,13 @@ export const uploadFile = (file: File, sessionId: string) => {
   return http.post<Result<ChatAttachment>>(`${API_BASE}/files/upload`, form).then((r) => r.data.data)
 }
 
-/** 已安装技能列表（输入 / 唤出）；可按 agent 过滤 */
+/** 已安装技能列表（输入 @ 唤出）；可按 agent 过滤 */
 export const getSkills = (agentName?: string) =>
   http.get<Result<SkillInfo[]>>(`${API_BASE}/skills`, { params: agentName ? { agentName } : undefined }).then((r) => r.data.data)
+
+/** 可查询数据源列表（输入 @ 唤出） */
+export const getDatasources = () =>
+  http.get<Result<DatasourceInfo[]>>(`${API_BASE}/datasources`).then((r) => r.data.data)
 
 /** 消息反馈：feedback 为 null 表示取消 */
 export const sendFeedback = (payload: { sessionId: string; messageId: string; feedback: 'up' | 'down' | null }) =>

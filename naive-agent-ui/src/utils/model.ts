@@ -58,8 +58,6 @@ export interface UserTurn {
   id: string
   text: string
   timestamp: string
-  /** 发送时选中的技能名（/skill:<name>），气泡上展示为技能标签 */
-  skill?: string
   attachments?: UserAttachment[]
 }
 

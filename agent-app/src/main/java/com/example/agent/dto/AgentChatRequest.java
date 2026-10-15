@@ -31,9 +31,6 @@ public class AgentChatRequest {
     @Schema(description = "请求ID")
     private String requestId;
 
-    @Schema(description = "技能名（输入框选中的 /skill:<name>），独立传参，不拼进用户消息")
-    private String skill;
-
     @Schema(description = "工具确认结果：响应 require_confirm 事件时携带，确认/拒绝挂起的工具调用")
     private List<ConfirmResultItem> confirmResults;
 

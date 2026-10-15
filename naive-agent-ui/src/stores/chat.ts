@@ -262,13 +262,11 @@ export const useChatStore = defineStore('chat', () => {
   interface SendOptions {
     /** 重试失败回合：复用已存在的用户气泡，不再 push 新的用户回合 */
     reuseUserTurn?: boolean
-    /** 发送时选中的技能名，随请求独立传给后端，不拼进消息文本 */
-    skill?: string
   }
 
   async function send(text: string, attachments?: UserAttachment[], options?: SendOptions) {
     const message = text.trim()
-    if ((!message && !attachments?.length && !options?.skill) || state.streaming) return
+    if ((!message && !attachments?.length) || state.streaming) return
 
     const sessionId = state.currentSessionId ?? pendingSessionId ?? crypto.randomUUID()
     const isNew = !state.currentSessionId
@@ -280,7 +278,7 @@ export const useChatStore = defineStore('chat', () => {
       try {
         await createSession({
           sessionId,
-          message: message || (options?.skill ? `使用 ${options.skill} 技能` : '请查看我发送的文件'),
+          message: message || '请查看我发送的文件',
           agentName,
         })
       } catch (error) {
@@ -297,7 +295,6 @@ export const useChatStore = defineStore('chat', () => {
     // 闭包持有当前会话的 turns：流式中途切走后，事件仍累积进这个数组
     const turns = state.turns
     const userTurn: UserTurn = { kind: 'user', id: newId('user'), text: message, timestamp: '' }
-    if (options?.skill) userTurn.skill = options.skill
     if (attachments?.length) userTurn.attachments = attachments.map((item) => ({ ...item }))
     if (!options?.reuseUserTurn) turns.push(userTurn)
 
@@ -312,7 +309,6 @@ export const useChatStore = defineStore('chat', () => {
         sessionId,
         agentName,
         requestId,
-        skill: options?.skill,
         attachments: attachments
           ?.filter((item) => item.id)
           .map((item) => ({ id: item.id ?? '', name: item.name, ext: item.ext, size: item.size })),
@@ -437,7 +433,7 @@ export const useChatStore = defineStore('chat', () => {
     for (let index = state.turns.length - 1; index >= 0; index -= 1) {
       const turn = state.turns[index]
       if (turn.kind === 'user') {
-        void send(turn.text, turn.attachments, { skill: turn.skill })
+        void send(turn.text, turn.attachments, {})
         return
       }
     }
@@ -461,7 +457,7 @@ export const useChatStore = defineStore('chat', () => {
     }
     if (!userTurn) return
     state.turns.splice(index, 1)
-    void send(userTurn.text, userTurn.attachments, { reuseUserTurn: true, skill: userTurn.skill })
+    void send(userTurn.text, userTurn.attachments, { reuseUserTurn: true })
   }
 
   /** 反馈落库：先乐观更新本地，接口失败则回滚 */
