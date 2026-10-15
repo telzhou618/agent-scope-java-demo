@@ -14,6 +14,8 @@ import { useComposer } from '../composables/useComposer'
 import { useChatStore } from '../stores/chat'
 import { useAgentsStore } from '../stores/agents'
 import { useAuthStore } from '../stores/auth'
+import { mentionIconSvg } from '../utils/mentions'
+import type { PluginInfo } from '../api/types'
 import { ATTACHMENT_ACCEPT, formatSize } from '../utils/attachments'
 
 const message = useMessage()
@@ -23,10 +25,13 @@ const auth = useAuthStore()
 const {
   draft,
   focusToken,
+  plugin,
   attachments,
   uploading,
   uploadError,
   clear,
+  setPlugin,
+  clearPlugin,
   attachFiles,
   removeAttachment,
   resetAttachments,
@@ -54,12 +59,15 @@ const attachmentsEnabled = computed(
 /** 思考模式标识：仅当前 Agent 显式开启时展示，纯只读 */
 const thinkingEnabled = computed(() => agents.currentAgent?.thinking === true)
 
+const DEFAULT_PLACEHOLDER = '给 Agent 发消息，输入 / 唤起插件，@ 选择技能和数据源…'
+const placeholderText = computed(() => (plugin.value ? plugin.value.placeholder : DEFAULT_PLACEHOLDER))
+
 const canSend = computed(
   () =>
     !chat.state.streaming &&
     uploading.value === 0 &&
     allUploaded() &&
-    (draft.value.trim().length > 0 || attachments.value.length > 0),
+    (draft.value.trim().length > 0 || attachments.value.length > 0 || !!plugin.value),
 )
 
 /** 只有附件没有文字时随附件一起走的默认文案 */
@@ -68,12 +76,17 @@ const DEFAULT_ATTACHMENT_MESSAGE = '请帮我分析这些附件'
 function submit() {
   if (chat.state.streaming || uploading.value > 0) return
   const raw = draft.value.trim()
-  if (!raw && attachments.value.length === 0) return
+  if (!raw && attachments.value.length === 0 && !plugin.value) return
   const list = attachments.value.map((item) => ({ ...item }))
   const text = raw || (list.length > 0 ? DEFAULT_ATTACHMENT_MESSAGE : '')
+  const pluginId = plugin.value?.id
   clear()
   resetAttachments()
-  void chat.send(text, list)
+  void chat.send(text, list, { plugin: pluginId })
+}
+
+function onPluginPick(info: PluginInfo) {
+  setPlugin(info)
 }
 
 function pickFiles() {
@@ -106,13 +119,26 @@ function onPasteFiles(files: File[]) {
       </div>
     </div>
 
-    <MentionEditor
-      ref="editorRef"
-      v-model="draft"
-      placeholder="给 Agent 发消息，输入 @ 选择技能和数据源…"
-      @submit="submit"
-      @paste-files="onPasteFiles"
-    />
+    <div class="composer-input-row">
+      <span v-if="plugin" class="plugin-prefix">
+        <span class="mention-tag mention-tag--plugin">
+          <span class="mention-icon" v-html="mentionIconSvg('plugin')"></span>
+          <span>{{ plugin.name }}</span>
+          <span class="mention-tag-x" role="button" aria-label="移除插件" @click="clearPlugin">×</span>
+        </span>
+        <span class="plugin-colon">：</span>
+      </span>
+      <MentionEditor
+        ref="editorRef"
+        v-model="draft"
+        class="flex-1"
+        :placeholder="placeholderText"
+        :plugin-active="!!plugin"
+        @submit="submit"
+        @paste-files="onPasteFiles"
+        @plugin-pick="onPluginPick"
+      />
+    </div>
 
     <div class="composer-bar">
       <NTooltip v-if="attachmentsEnabled">
@@ -188,6 +214,26 @@ function onPasteFiles(files: File[]) {
   box-shadow:
     0 0 0 3px var(--brand-ring),
     0 6px 20px rgba(15, 23, 42, 0.06);
+}
+
+.composer-input-row {
+  display: flex;
+  align-items: flex-start;
+}
+
+.plugin-prefix {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+  margin-right: 4px;
+  padding-top: 2px;
+  font-size: 14px;
+}
+
+.plugin-colon {
+  color: var(--text-faint, #94a3b8);
+  flex-shrink: 0;
 }
 
 .composer-bar {

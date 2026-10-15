@@ -16,6 +16,7 @@ import com.example.agent.service.AgentPermissionService;
 import com.example.agent.service.MessageFeedbackService;
 import com.example.agent.service.SessionManageService;
 import com.example.agent.vo.DatasourceVO;
+import com.example.agent.vo.PluginVO;
 import com.example.agent.vo.SkillVO;
 import io.agentscope.core.message.Msg;
 import io.swagger.v3.oas.annotations.Operation;
@@ -108,6 +109,12 @@ public class AgentScopeController {
     @Operation(summary = "数据源列表")
     public Result<List<DatasourceVO>> datasources() {
         return Result.okData(agentChatService.listDatasources());
+    }
+
+    @GetMapping("/plugins")
+    @Operation(summary = "插件列表")
+    public Result<List<PluginVO>> plugins() {
+        return Result.okData(agentChatService.listPlugins());
     }
 
     @PostMapping("/feedback")

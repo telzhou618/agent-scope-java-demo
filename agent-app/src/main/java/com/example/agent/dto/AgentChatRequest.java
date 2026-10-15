@@ -31,6 +31,9 @@ public class AgentChatRequest {
     @Schema(description = "请求ID")
     private String requestId;
 
+    @Schema(description = "插件 id，命中时优先执行插件")
+    private String plugin;
+
     @Schema(description = "工具确认结果：响应 require_confirm 事件时携带，确认/拒绝挂起的工具调用")
     private List<ConfirmResultItem> confirmResults;
 

@@ -1,7 +1,6 @@
 package com.example.agent.service;
 
 import cn.hutool.core.collection.CollUtil;
-import com.example.agent.datasource.MysqlDatasourceRegistry;
 import com.example.agent.dto.AgentChatRequest;
 import com.example.agent.dto.ChatAttachment;
 import com.example.agent.error.BizException;
@@ -10,8 +9,6 @@ import io.agentscope.core.message.DataBlock;
 import io.agentscope.core.message.TextBlock;
 import io.agentscope.core.message.URLSource;
 import io.agentscope.core.message.UserMessage;
-import io.agentscope.core.skill.AgentSkill;
-import io.agentscope.core.skill.repository.ClasspathSkillRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
@@ -19,17 +16,22 @@ import org.springframework.util.StringUtils;
 
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
+import java.util.Map;
 
 /**
- * 用户消息构建：空消息兜底、附件（图片/文档/文本）转 ContentBlock、@技能/@数据源 原位改写
+ * 用户消息构建：空消息兜底、附件（图片/文档/文本）转 ContentBlock、插件元数据写入消息 metadata
  */
 @Slf4j
 @Component
 @RequiredArgsConstructor
 public class ChatMessageFactory {
+
+    /** 消息 metadata 键：插件 id */
+    public static final String METADATA_PLUGIN = "plugin";
+    /** 消息 metadata 键：用户输入的原始参数（供历史回显，LLM 不感知） */
+    public static final String METADATA_PLUGIN_ARGS = "pluginArgs";
 
     private final FileStorageService fileStorageService;
     private final DocumentTextExtractor documentTextExtractor;
@@ -50,8 +52,18 @@ public class ChatMessageFactory {
 
     public UserMessage buildUserMessage(String userId, String sessionId, String text,
                                         List<ChatAttachment> attachments) {
+        return buildUserMessage(userId, sessionId, text, attachments, null, null);
+    }
+
+    public UserMessage buildUserMessage(String userId, String sessionId, String text,
+                                        List<ChatAttachment> attachments, String pluginId, String pluginArgs) {
+        Map<String, Object> metadata = new LinkedHashMap<>();
+        if (StringUtils.hasText(pluginId)) {
+            metadata.put(METADATA_PLUGIN, pluginId);
+            metadata.put(METADATA_PLUGIN_ARGS, pluginArgs == null ? "" : pluginArgs);
+        }
         if (attachments == null || attachments.isEmpty()) {
-            return new UserMessage("user", text);
+            return UserMessage.builder().textContent(text).metadata(metadata).build();
         }
         List<ContentBlock> blocks = new ArrayList<>();
         blocks.add(TextBlock.builder().text(text).build());
@@ -75,7 +87,7 @@ public class ChatMessageFactory {
                         new String(bytes, StandardCharsets.UTF_8))).build());
             }
         }
-        return new UserMessage("user", blocks.toArray(new ContentBlock[0]));
+        return UserMessage.builder().content(blocks).metadata(metadata).build();
     }
 
     private String attachmentText(String name, String content) {
@@ -83,7 +95,7 @@ public class ChatMessageFactory {
     }
 
     /**
-     * 改写用户消息，将来扩展使用
+     * @ 技能/数据源不做后端解析改写，原样透传
      */
     public String applyMentions(String message) {
         if (!StringUtils.hasText(message)) {

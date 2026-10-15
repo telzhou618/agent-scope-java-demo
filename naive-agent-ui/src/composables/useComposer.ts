@@ -2,7 +2,7 @@ import { ref } from 'vue'
 import { uploadFile } from '../api/agent'
 import { ApiError } from '../api/http'
 import { useChatStore } from '../stores/chat'
-import type { ChatAttachment } from '../api/types'
+import type { ChatAttachment, PluginInfo } from '../api/types'
 import { MAX_ATTACHMENTS, MAX_FILE_SIZE, attachmentKind, fileExt, isAllowedExt, type ComposerAttachment } from '../utils/attachments'
 
 const draft = ref('')
@@ -10,6 +10,8 @@ const focusToken = ref(0)
 const attachments = ref<ComposerAttachment[]>([])
 const uploading = ref(0)
 const uploadError = ref('')
+/** 当前选中的插件（/ 唤起，单选） */
+const plugin = ref<PluginInfo | null>(null)
 
 let keySeq = 0
 
@@ -44,6 +46,7 @@ export function useComposer() {
   return {
     draft,
     focusToken,
+    plugin,
     attachments,
     uploading,
     uploadError,
@@ -56,8 +59,15 @@ export function useComposer() {
     focus() {
       focusToken.value += 1
     },
+    setPlugin(info: PluginInfo) {
+      plugin.value = info
+    },
+    clearPlugin() {
+      plugin.value = null
+    },
     clear() {
       draft.value = ''
+      plugin.value = null
     },
     attachFiles(list: FileList | File[]) {
       const files = Array.from(list)

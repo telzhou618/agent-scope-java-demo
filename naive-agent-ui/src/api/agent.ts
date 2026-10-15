@@ -5,6 +5,7 @@ import type {
   ChatAttachment,
   DatasourceInfo,
   MessageItem,
+  PluginInfo,
   MonthlyQuotaSummary,
   Msg,
   PageResult,
@@ -55,6 +56,10 @@ export const getSkills = (agentName?: string) =>
 /** 可查询数据源列表（输入 @ 唤出） */
 export const getDatasources = () =>
   http.get<Result<DatasourceInfo[]>>(`${API_BASE}/datasources`).then((r) => r.data.data)
+
+/** 插件列表（输入 / 唤出） */
+export const getPlugins = () =>
+  http.get<Result<PluginInfo[]>>(`${API_BASE}/plugins`).then((r) => r.data.data)
 
 /** 消息反馈：feedback 为 null 表示取消 */
 export const sendFeedback = (payload: { sessionId: string; messageId: string; feedback: 'up' | 'down' | null }) =>

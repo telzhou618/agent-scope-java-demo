@@ -183,3 +183,22 @@ html[data-theme='dark'] {
   height: 12px;
   flex-shrink: 0;
 }
+
+/* 插件标签颜色 */
+:root {
+  --mention-plugin-fg: #b45309;
+  --mention-plugin-bg: #fffbeb;
+  --mention-plugin-border: #fcd34d;
+}
+
+html[data-theme='dark'] {
+  --mention-plugin-fg: #fbbf24;
+  --mention-plugin-bg: rgba(245, 158, 11, 0.16);
+  --mention-plugin-border: rgba(245, 158, 11, 0.4);
+}
+
+.mention-tag--plugin {
+  color: var(--mention-plugin-fg);
+  background: var(--mention-plugin-bg);
+  border-color: var(--mention-plugin-border);
+}

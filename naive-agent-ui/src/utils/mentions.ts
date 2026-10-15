@@ -57,11 +57,13 @@ export function segmentFromDataValue(data: string): MentionSegment {
   return { type: 'ds', id: data.slice(3) }
 }
 
-/** 技能/数据源标签与下拉列表共用的小图标（继承 currentColor） */
-export function mentionIconSvg(kind: 'skill' | 'ds'): string {
+/** 技能/数据源/插件标签与下拉列表共用的小图标（继承 currentColor） */
+export function mentionIconSvg(kind: 'skill' | 'ds' | 'plugin'): string {
   const body =
     kind === 'skill'
       ? '<path d="M13 2 3 14h7l-1 8 10-12h-7l1-8z"/>'
-      : '<rect x="3" y="3" width="18" height="7" rx="1"/><rect x="3" y="14" width="18" height="7" rx="1"/>'
+      : kind === 'ds'
+        ? '<rect x="3" y="3" width="18" height="7" rx="1"/><rect x="3" y="14" width="18" height="7" rx="1"/>'
+        : '<rect x="3" y="3" width="8" height="8" rx="1"/><rect x="13" y="3" width="8" height="8" rx="1"/><rect x="3" y="13" width="8" height="8" rx="1"/><rect x="13" y="13" width="8" height="8" rx="1"/>'
   return `<svg class="mention-icon" viewBox="0 0 24 24" width="12" height="12" fill="currentColor" aria-hidden="true">${body}</svg>`
 }

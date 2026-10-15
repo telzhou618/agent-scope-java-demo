@@ -1,8 +1,9 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue'
 import { getDatasources, getSkills } from '../api/agent'
-import type { DatasourceInfo, SkillInfo } from '../api/types'
+import type { DatasourceInfo, PluginInfo, SkillInfo } from '../api/types'
 import { useAgentsStore } from '../stores/agents'
+import { usePluginsStore } from '../stores/plugins'
 import { mentionDataValue, mentionIconSvg, parseMentions, segmentFromDataValue, stringifySegments, type MentionSegment } from '../utils/mentions'
 
 interface MentionItem {
@@ -11,14 +12,16 @@ interface MentionItem {
   label: string
 }
 
-const props = defineProps<{ modelValue: string; placeholder?: string }>()
+const props = defineProps<{ modelValue: string; placeholder?: string; pluginActive?: boolean }>()
 const emit = defineEmits<{
   'update:modelValue': [value: string]
   submit: []
   'paste-files': [files: File[]]
+  'plugin-pick': [info: PluginInfo]
 }>()
 
 const agents = useAgentsStore()
+const pluginsStore = usePluginsStore()
 
 const editorRef = ref<HTMLElement>()
 const skills = ref<SkillInfo[]>([])
@@ -28,6 +31,11 @@ let lastEmitted = ''
 
 const picker = ref({ open: false, query: '' })
 const activeIndex = ref(0)
+
+/* ---------- 插件（/ 开头，单选） ---------- */
+
+const slash = ref({ open: false, query: '' })
+const pluginActiveIndex = ref(0)
 
 /** 能力开关：技能未加载到（undefined）按可用处理，只有显式 false 才隐藏技能分组 */
 const skillsEnabled = computed(() => agents.currentAgent?.skills !== false)
@@ -170,9 +178,48 @@ function refreshMention() {
   lastQuery = query
 }
 
+/* ---------- / 插件检测与下拉 ---------- */
+
+const visiblePlugins = computed(() => {
+  const q = slash.value.query.toLowerCase()
+  return pluginsStore.state.plugins.filter(
+    (p) =>
+      !q || p.id.toLowerCase().includes(q) || p.name.toLowerCase().includes(q) || (p.description ?? '').toLowerCase().includes(q),
+  )
+})
+const pluginPopupOpen = computed(() => slash.value.open && visiblePlugins.value.length > 0)
+
+function refreshSlash() {
+  if (props.pluginActive) {
+    slash.value.open = false
+    return
+  }
+  const el = editorRef.value
+  const text = el ? stringifySegments(domSegments(el)) : ''
+  if (text.startsWith('/') && !/\s/.test(text)) {
+    slash.value.open = true
+    slash.value.query = text.slice(1)
+    pluginActiveIndex.value = 0
+    void pluginsStore.loadPlugins()
+  } else {
+    slash.value.open = false
+  }
+}
+
+function pickPlugin(info: PluginInfo) {
+  slash.value.open = false
+  const el = editorRef.value
+  if (el) el.innerHTML = ''
+  lastEmitted = ''
+  emit('update:modelValue', '')
+  emit('plugin-pick', info)
+  el?.focus()
+}
+
 function onInput() {
   sync()
   refreshMention()
+  refreshSlash()
 }
 
 /* ---------- 插入 / 删除 chip ---------- */
@@ -233,6 +280,28 @@ function onEditorClick(event: MouseEvent) {
 
 function onKeydown(event: KeyboardEvent) {
   if (event.isComposing) return
+  if (pluginPopupOpen.value) {
+    if (event.key === 'ArrowDown') {
+      event.preventDefault()
+      pluginActiveIndex.value = (pluginActiveIndex.value + 1) % visiblePlugins.value.length
+      return
+    }
+    if (event.key === 'ArrowUp') {
+      event.preventDefault()
+      pluginActiveIndex.value = (pluginActiveIndex.value - 1 + visiblePlugins.value.length) % visiblePlugins.value.length
+      return
+    }
+    if (event.key === 'Escape') {
+      event.preventDefault()
+      slash.value.open = false
+      return
+    }
+    if (event.key === 'Enter' || event.key === 'Tab') {
+      event.preventDefault()
+      if (visiblePlugins.value.length) pickPlugin(visiblePlugins.value[pluginActiveIndex.value])
+      return
+    }
+  }
   if (popupOpen.value) {
     if (event.key === 'ArrowDown') {
       event.preventDefault()
@@ -318,6 +387,28 @@ defineExpose({ focus })
       @click="onEditorClick"
       @paste="onPaste"
     ></div>
+
+    <div v-if="pluginPopupOpen" class="mention-popup" role="listbox" aria-label="插件">
+      <div class="mention-group">
+        <div class="mention-group-title">插件</div>
+        <div
+          v-for="(p, i) in visiblePlugins"
+          :key="`plugin-${p.id}`"
+          class="mention-item"
+          :class="{ active: i === pluginActiveIndex }"
+          role="option"
+          :aria-selected="i === pluginActiveIndex"
+          @mousedown.prevent="pickPlugin(p)"
+          @mouseenter="pluginActiveIndex = i"
+        >
+          <span class="mention-token plugin">
+            <span class="mention-icon" v-html="mentionIconSvg('plugin')"></span>
+            {{ p.name }}
+          </span>
+          <span class="mention-desc">{{ p.description }}</span>
+        </div>
+      </div>
+    </div>
 
     <div v-if="popupOpen" class="mention-popup" role="listbox" aria-label="技能与数据源">
       <div v-if="visibleSkills.length" class="mention-group">
@@ -433,6 +524,10 @@ defineExpose({ focus })
 
 .mention-token.ds {
   color: #22c55e;
+}
+
+.mention-token.plugin {
+  color: var(--mention-plugin-fg);
 }
 
 .mention-desc {

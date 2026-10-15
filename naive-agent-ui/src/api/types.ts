@@ -157,11 +157,21 @@ export interface DatasourceInfo {
   description: string
 }
 
+/** 插件（/ 唤起，单选） */
+export interface PluginInfo {
+  id: string
+  name: string
+  description: string
+  placeholder: string
+}
+
 export interface ChatRequest {
   message: string
   sessionId: string
   agentName: string
   requestId?: string
+  /** 插件 id，命中时优先执行插件 */
+  plugin?: string
   /** 工具确认结果：响应 require_confirm 事件时携带 */
   confirmResults?: ConfirmResultItem[]
   attachments?: ChatAttachment[]

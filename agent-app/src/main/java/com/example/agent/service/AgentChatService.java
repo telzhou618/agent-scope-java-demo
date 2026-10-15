@@ -7,7 +7,11 @@ import com.example.agent.dto.AgentChatRequest;
 import com.example.agent.dto.AgentSseEvent;
 import com.example.agent.dto.InterruptRequest;
 import com.example.agent.error.BizException;
+import com.example.agent.plugin.Plugin;
+import com.example.agent.plugin.PluginContext;
+import com.example.agent.plugin.PluginRegistry;
 import com.example.agent.vo.DatasourceVO;
+import com.example.agent.vo.PluginVO;
 import com.example.agent.vo.SkillVO;
 import io.agentscope.core.agent.RuntimeContext;
 import io.agentscope.core.event.AgentEvent;
@@ -44,6 +48,7 @@ public class AgentChatService {
     private final SseEventMapper sseEventMapper;
     private final ClasspathSkillRepository skillRepository;
     private final MysqlDatasourceRegistry datasourceRegistry;
+    private final PluginRegistry pluginRegistry;
 
     /**
      * 流式对话：事件流转热，驱动订阅与 HTTP 连接解耦，客户端刷新/断开 SSE 后 Agent 仍跑完并落库，
@@ -76,15 +81,30 @@ public class AgentChatService {
             // 工具确认恢复：消息文本仅作会话记录，真正的确认结果在 metadata 里（框架约定）
             userMessage = buildConfirmMessage(request.getConfirmResults());
         } else {
-            // @ 技能/@数据源 原位改写成明确标注，Agent 通过 load_skill_through_path 自行加载技能详情
-            String message = chatMessageFactory.applyMentions(chatMessageFactory.effectiveMessage(request));
+            String params = chatMessageFactory.effectiveMessage(request);
+            Plugin plugin = StringUtils.hasText(request.getPlugin()) ? resolvePlugin(request.getPlugin()) : null;
+
+            String message;
+            String pluginId = null;
+            String pluginArgs = null;
+            if (plugin != null) {
+                // 插件优先：插件改写提示词后走原 Agent 流；原始参数写入 metadata 供历史回显
+                pluginId = plugin.id();
+                pluginArgs = params;
+                message = plugin.process(new PluginContext(userId, request.getAgentName(), params, request.getAttachments()));
+            } else {
+                // @ 技能/@数据源 原样透传，不解析改写
+                message = chatMessageFactory.applyMentions(params);
+            }
+
             // URL 直达等路径进入的会话可能没有 meta：补建占位标题并异步生成正式标题（已有 meta 则跳过）
             if (!sessionTitleService.hasMeta(userId, request.getSessionId())) {
                 sessionTitleService.createPlaceholder(userId, request.getSessionId(), request.getAgentName());
-                sessionTitleService.generateAndUpdateAsync(userId, request.getSessionId(), message);
+                String titleHint = StringUtils.hasText(params) ? params : (plugin != null ? plugin.name() : message);
+                sessionTitleService.generateAndUpdateAsync(userId, request.getSessionId(), titleHint);
             }
             userMessage = chatMessageFactory.buildUserMessage(userId, request.getSessionId(), message,
-                    request.getAttachments());
+                    request.getAttachments(), pluginId, pluginArgs);
         }
         RuntimeContext context = RuntimeContext.builder()
                 .sessionId(request.getSessionId())
@@ -192,5 +212,20 @@ public class AgentChatService {
                         .description((String) item.get("description"))
                         .build())
                 .toList();
+    }
+
+    /**
+     * 插件元信息列表，供前端 / 下拉
+     */
+    public List<PluginVO> listPlugins() {
+        return pluginRegistry.list();
+    }
+
+    private Plugin resolvePlugin(String pluginId) {
+        try {
+            return pluginRegistry.get(pluginId);
+        } catch (IllegalArgumentException e) {
+            throw new BizException(e.getMessage());
+        }
     }
 }

@@ -58,6 +58,8 @@ export interface UserTurn {
   id: string
   text: string
   timestamp: string
+  /** 选中插件的 id（/ 唤起，优先执行） */
+  plugin?: string
   attachments?: UserAttachment[]
 }
 

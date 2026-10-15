@@ -62,9 +62,17 @@ export function toTurns(messages: Msg[]): Turn[] {
 
   for (const message of messages) {
     if (message.role === 'USER' || message.role === 'SYSTEM') {
-      let text = ''
+      const plugin = (message.metadata?.plugin as string | undefined) || undefined
+      const pluginArgs = (message.metadata?.pluginArgs as string | undefined) ?? ''
+      let text = plugin ? pluginArgs : ''
       const attachments: UserAttachment[] = []
       for (const block of message.content ?? []) {
+        if (plugin) {
+          // 插件消息：正文是改写后的内部文案，历史只展示原始参数（metadata.pluginArgs）；附件仍还原
+          const image = imageAttachment(block, seq)
+          if (image) attachments.push(image)
+          continue
+        }
         if (isTextBlock(block)) {
           // 附件文本块（【附件：文件名】\n内容）还原成文件 chip，与首次发送的展示一致；
           // 大小未存库传 0，chip 自动不显示大小
@@ -79,13 +87,14 @@ export function toTurns(messages: Msg[]): Turn[] {
         const image = imageAttachment(block, seq)
         if (image) attachments.push(image)
       }
-      if (!text.trim() && attachments.length === 0) continue
+      if (!text.trim() && attachments.length === 0 && !plugin) continue
       const turn: UserTurn = {
         kind: 'user',
         id: message.id || `user-${seq++}`,
         text,
         timestamp: message.timestamp ?? '',
       }
+      if (plugin) turn.plugin = plugin
       if (attachments.length) turn.attachments = attachments.map((item) => ({ ...item }))
       turns.push(turn)
       current = null
