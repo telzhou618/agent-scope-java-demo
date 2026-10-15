@@ -1,10 +1,10 @@
 package com.example.agent.tools;
 
+import com.example.agent.datasource.MysqlDatasourceRegistry;
 import com.example.agent.service.FileStorageService;
 import io.agentscope.core.tool.Tool;
 import io.agentscope.core.tool.ToolParam;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 
 import java.io.ByteArrayOutputStream;
@@ -27,7 +27,7 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 
 /**
- * 数据导出工具：执行只读 SELECT，将结果导出为 CSV 上传到 OSS 并返回签名下载链接
+ * 数据导出工具：在指定数据源执行只读 SELECT，将结果导出为 CSV 上传到 OSS 并返回签名下载链接
  */
 @Slf4j
 @Service
@@ -38,20 +38,21 @@ public class DataExportTools {
     private static final DateTimeFormatter DATETIME = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
     private static final DateTimeFormatter DATE = DateTimeFormatter.ofPattern("yyyy-MM-dd");
 
-    private final JdbcTemplate jdbcTemplate;
+    private final MysqlDatasourceRegistry registry;
     private final FileStorageService fileStorageService;
 
-    public DataExportTools(JdbcTemplate jdbcTemplate, FileStorageService fileStorageService) {
-        this.jdbcTemplate = jdbcTemplate;
+    public DataExportTools(MysqlDatasourceRegistry registry, FileStorageService fileStorageService) {
+        this.registry = registry;
         this.fileStorageService = fileStorageService;
     }
 
-    @Tool(name = "export_sql_to_csv", description = "执行 SELECT 查询并将结果导出为 CSV 文件，返回下载链接；当用户要求导出/下载数据时使用")
+    @Tool(name = "export_sql_to_csv", description = "在指定数据源执行 SELECT 查询并将结果导出为 CSV 文件，返回下载链接；当用户要求导出/下载数据时使用。执行前先用 read_data_source_spec 读取该数据源使用规范。")
     public Map<String, Object> exportSqlToCsv(
+            @ToolParam(name = "dataSourceId", description = "数据源 id，来自 list_data_sources") String dataSourceId,
             @ToolParam(name = "sql", description = "SELECT 查询语句，最多导出 " + MAX_ROWS + " 行") String sql,
             @ToolParam(name = "fileName", required = false, description = "导出文件名（不含扩展名），可为空") String fileName) {
         try {
-            List<Map<String, Object>> rows = jdbcTemplate.queryForList(SqlValidator.validateReadonlyQuery(sql));
+            List<Map<String, Object>> rows = registry.template(dataSourceId).queryForList(SqlValidator.validateReadonlyQuery(sql));
             if (rows.isEmpty()) {
                 return error("查询结果为空，未生成文件");
             }

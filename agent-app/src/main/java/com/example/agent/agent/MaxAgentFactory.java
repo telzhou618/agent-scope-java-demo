@@ -1,6 +1,7 @@
 package com.example.agent.agent;
 
 import com.example.agent.tools.DataExportTools;
+import com.example.agent.tools.DataSourceTools;
 import com.example.agent.tools.MysqlQueryTools;
 import com.example.agent.tools.SearchTools;
 import com.example.agent.tools.WeatherTools;
@@ -28,6 +29,9 @@ public class MaxAgentFactory extends AbstractAgentFactory {
 
     @Autowired
     private DataExportTools dataExportTools;
+
+    @Autowired
+    private DataSourceTools dataSourceTools;
 
     @Autowired
     private SearchTools searchTools;
@@ -92,6 +96,7 @@ public class MaxAgentFactory extends AbstractAgentFactory {
 
     @Override
     protected void registerLocalTools(Toolkit toolkit) {
+        toolkit.registerTool(dataSourceTools);
         toolkit.registerTool(mysqlQueryTools);
         toolkit.registerTool(dataExportTools);
         toolkit.registerTool(searchTools);

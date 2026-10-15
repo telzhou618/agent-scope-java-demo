@@ -90,6 +90,15 @@ usage:
 
 # 文件存储（阿里云 OSS，私有桶 + 签名访问）
 agent:
+  # 可查询的业务数据源（多数据源）：数据库工具按 id 选择数据源查询，密码用环境变量占位
+  datasources:
+    - id: agent-demo
+      name: 应用主库
+      description: agent_demo 主库的示例数据源，包含用户、消息、定时任务等表
+      driver-class-name: com.mysql.cj.jdbc.Driver
+      url: jdbc:mysql://localhost:3306/agent_demo?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai&useSSL=false&allowPublicKeyRetrieval=true
+      username: root
+      password: ${MYSQL_PASSWORD:root}
   storage:
     oss:
       endpoint: ${OSS_ENDPOINT:}
