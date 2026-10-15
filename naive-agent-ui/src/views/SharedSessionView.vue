@@ -64,7 +64,7 @@ onMounted(async () => {
         <div class="turn-list">
           <template v-for="turn in turns" :key="turn.id">
             <!-- 用户消息：附件已在后端剥离内容，只读展示 -->
-            <UserBubble v-if="turn.kind === 'user'" :text="turn.text" />
+            <UserBubble v-if="turn.kind === 'user'" :text="turn.text" :plugin="turn.plugin" />
             <!-- 助手回合：只读渲染，无操作按钮；正文禁链接（禁下载） -->
             <div v-else class="asst-turn">
               <template v-for="(block, index) in turn.blocks" :key="index">

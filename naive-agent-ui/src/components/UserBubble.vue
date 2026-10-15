@@ -5,20 +5,17 @@ import { ChevronDownOutline, DocumentOutline } from '@vicons/ionicons5'
 import { formatSize } from '../utils/attachments'
 import { useLightbox } from '../composables/useLightbox'
 import { useAuthStore } from '../stores/auth'
-import { usePluginsStore } from '../stores/plugins'
 import { mentionIconSvg, parseMentions } from '../utils/mentions'
-import type { UserAttachment } from '../utils/model'
+import type { PluginMeta, UserAttachment } from '../utils/model'
 
-const props = defineProps<{ text: string; attachments?: UserAttachment[]; plugin?: string }>()
+const props = defineProps<{ text: string; attachments?: UserAttachment[]; plugin?: PluginMeta }>()
 
 const { open: openImage } = useLightbox()
 
 const auth = useAuthStore()
-const pluginsStore = usePluginsStore()
 const displayName = computed(() => auth.user?.nickname || auth.user?.username || '')
 const userAvatar = computed(() => auth.user?.avatar || '')
 const userInitial = computed(() => (displayName.value || 'U').charAt(0).toUpperCase())
-const pluginName = computed(() => (props.plugin ? (pluginsStore.byId(props.plugin)?.name ?? props.plugin) : ''))
 
 /** 正文按 @skill:<name> / @ds:<id> 分段，技能/数据源渲染为只读标签 */
 const segments = computed(() => parseMentions(props.text))
@@ -33,7 +30,6 @@ const expanded = ref(false)
 let observer: ResizeObserver | null = null
 
 onMounted(() => {
-  void pluginsStore.loadPlugins()
   const el = bubbleRef.value
   if (!el) return
   const check = () => {
@@ -73,7 +69,7 @@ onBeforeUnmount(() => observer?.disconnect())
       <div v-if="props.plugin" class="mb-1.5">
         <span class="mention-tag mention-tag--plugin">
           <span class="mention-icon" v-html="mentionIconSvg('plugin')"></span>
-          <span>{{ pluginName }}</span>
+          <span>{{ props.plugin.name }}</span>
         </span>
       </div>
       <div class="msg-text">

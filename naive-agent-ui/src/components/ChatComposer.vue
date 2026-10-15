@@ -79,10 +79,13 @@ function submit() {
   if (!raw && attachments.value.length === 0 && !plugin.value) return
   const list = attachments.value.map((item) => ({ ...item }))
   const text = raw || (list.length > 0 ? DEFAULT_ATTACHMENT_MESSAGE : '')
-  const pluginId = plugin.value?.id
+  const selected = plugin.value
+  const pluginMeta = selected
+    ? { id: selected.id, name: selected.name, description: selected.description, args: text }
+    : undefined
   clear()
   resetAttachments()
-  void chat.send(text, list, { plugin: pluginId })
+  void chat.send(text, list, { plugin: pluginMeta })
 }
 
 function onPluginPick(info: PluginInfo) {
@@ -137,6 +140,7 @@ function onPasteFiles(files: File[]) {
         @submit="submit"
         @paste-files="onPasteFiles"
         @plugin-pick="onPluginPick"
+        @plugin-clear="clearPlugin"
       />
     </div>
 

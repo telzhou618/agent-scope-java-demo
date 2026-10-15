@@ -18,6 +18,7 @@ const emit = defineEmits<{
   submit: []
   'paste-files': [files: File[]]
   'plugin-pick': [info: PluginInfo]
+  'plugin-clear': []
 }>()
 
 const agents = useAgentsStore()
@@ -280,6 +281,15 @@ function onEditorClick(event: MouseEvent) {
 
 function onKeydown(event: KeyboardEvent) {
   if (event.isComposing) return
+  if (event.key === 'Backspace' && props.pluginActive) {
+    const el = editorRef.value
+    const text = el ? stringifySegments(domSegments(el)) : ''
+    if (text.trim() === '') {
+      event.preventDefault()
+      emit('plugin-clear')
+      return
+    }
+  }
   if (pluginPopupOpen.value) {
     if (event.key === 'ArrowDown') {
       event.preventDefault()

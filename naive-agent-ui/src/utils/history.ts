@@ -5,7 +5,7 @@ import {
   isToolResultBlock,
   isToolUseBlock,
 } from '../api/types'
-import type { AssistantTurn, ToolBlockModel, Turn, UserAttachment, UserTurn } from './model'
+import type { AssistantTurn, PluginMeta, ToolBlockModel, Turn, UserAttachment, UserTurn } from './model'
 import { fileExt } from './attachments'
 import { prettyJson } from './format'
 
@@ -62,13 +62,12 @@ export function toTurns(messages: Msg[]): Turn[] {
 
   for (const message of messages) {
     if (message.role === 'USER' || message.role === 'SYSTEM') {
-      const plugin = (message.metadata?.plugin as string | undefined) || undefined
-      const pluginArgs = (message.metadata?.pluginArgs as string | undefined) ?? ''
-      let text = plugin ? pluginArgs : ''
+      const pluginMeta = (message.metadata?.plugin as PluginMeta | undefined) || undefined
+      let text = pluginMeta ? (pluginMeta.args ?? '') : ''
       const attachments: UserAttachment[] = []
       for (const block of message.content ?? []) {
-        if (plugin) {
-          // 插件消息：正文是改写后的内部文案，历史只展示原始参数（metadata.pluginArgs）；附件仍还原
+        if (pluginMeta) {
+          // 插件消息：正文是改写后的内部文案，历史只展示原始消息（metadata.plugin.args）；附件仍还原
           const image = imageAttachment(block, seq)
           if (image) attachments.push(image)
           continue
@@ -87,14 +86,14 @@ export function toTurns(messages: Msg[]): Turn[] {
         const image = imageAttachment(block, seq)
         if (image) attachments.push(image)
       }
-      if (!text.trim() && attachments.length === 0 && !plugin) continue
+      if (!text.trim() && attachments.length === 0 && !pluginMeta) continue
       const turn: UserTurn = {
         kind: 'user',
         id: message.id || `user-${seq++}`,
         text,
         timestamp: message.timestamp ?? '',
       }
-      if (plugin) turn.plugin = plugin
+      if (pluginMeta) turn.plugin = pluginMeta
       if (attachments.length) turn.attachments = attachments.map((item) => ({ ...item }))
       turns.push(turn)
       current = null

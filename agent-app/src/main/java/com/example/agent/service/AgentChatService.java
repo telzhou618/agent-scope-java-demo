@@ -11,6 +11,7 @@ import com.example.agent.plugin.Plugin;
 import com.example.agent.plugin.PluginContext;
 import com.example.agent.plugin.PluginRegistry;
 import com.example.agent.vo.DatasourceVO;
+import com.example.agent.vo.PluginMeta;
 import com.example.agent.vo.PluginVO;
 import com.example.agent.vo.SkillVO;
 import io.agentscope.core.agent.RuntimeContext;
@@ -81,16 +82,16 @@ public class AgentChatService {
             // 工具确认恢复：消息文本仅作会话记录，真正的确认结果在 metadata 里（框架约定）
             userMessage = buildConfirmMessage(request.getConfirmResults());
         } else {
-            String params = chatMessageFactory.effectiveMessage(request);
             Plugin plugin = StringUtils.hasText(request.getPlugin()) ? resolvePlugin(request.getPlugin()) : null;
+            String params = plugin != null
+                    ? (request.getMessage() == null ? "" : request.getMessage())
+                    : chatMessageFactory.effectiveMessage(request);
 
             String message;
-            String pluginId = null;
-            String pluginArgs = null;
+            PluginMeta pluginMeta = null;
             if (plugin != null) {
-                // 插件优先：插件改写提示词后走原 Agent 流；原始参数写入 metadata 供历史回显
-                pluginId = plugin.id();
-                pluginArgs = params;
+                // 插件优先：插件改写提示词后走原 Agent 流；插件对象写入 metadata 供历史回显
+                pluginMeta = new PluginMeta(plugin.id(), plugin.name(), plugin.description(), params);
                 message = plugin.process(new PluginContext(userId, request.getAgentName(), params, request.getAttachments()));
             } else {
                 // @ 技能/@数据源 原样透传，不解析改写
@@ -104,7 +105,7 @@ public class AgentChatService {
                 sessionTitleService.generateAndUpdateAsync(userId, request.getSessionId(), titleHint);
             }
             userMessage = chatMessageFactory.buildUserMessage(userId, request.getSessionId(), message,
-                    request.getAttachments(), pluginId, pluginArgs);
+                    request.getAttachments(), pluginMeta);
         }
         RuntimeContext context = RuntimeContext.builder()
                 .sessionId(request.getSessionId())

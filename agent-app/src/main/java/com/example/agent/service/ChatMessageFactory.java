@@ -4,6 +4,7 @@ import cn.hutool.core.collection.CollUtil;
 import com.example.agent.dto.AgentChatRequest;
 import com.example.agent.dto.ChatAttachment;
 import com.example.agent.error.BizException;
+import com.example.agent.vo.PluginMeta;
 import io.agentscope.core.message.ContentBlock;
 import io.agentscope.core.message.DataBlock;
 import io.agentscope.core.message.TextBlock;
@@ -28,10 +29,8 @@ import java.util.Map;
 @RequiredArgsConstructor
 public class ChatMessageFactory {
 
-    /** 消息 metadata 键：插件 id */
+    /** 消息 metadata 键：插件回显对象（PluginMeta） */
     public static final String METADATA_PLUGIN = "plugin";
-    /** 消息 metadata 键：用户输入的原始参数（供历史回显，LLM 不感知） */
-    public static final String METADATA_PLUGIN_ARGS = "pluginArgs";
 
     private final FileStorageService fileStorageService;
     private final DocumentTextExtractor documentTextExtractor;
@@ -52,15 +51,14 @@ public class ChatMessageFactory {
 
     public UserMessage buildUserMessage(String userId, String sessionId, String text,
                                         List<ChatAttachment> attachments) {
-        return buildUserMessage(userId, sessionId, text, attachments, null, null);
+        return buildUserMessage(userId, sessionId, text, attachments, null);
     }
 
     public UserMessage buildUserMessage(String userId, String sessionId, String text,
-                                        List<ChatAttachment> attachments, String pluginId, String pluginArgs) {
+                                        List<ChatAttachment> attachments, PluginMeta pluginMeta) {
         Map<String, Object> metadata = new LinkedHashMap<>();
-        if (StringUtils.hasText(pluginId)) {
-            metadata.put(METADATA_PLUGIN, pluginId);
-            metadata.put(METADATA_PLUGIN_ARGS, pluginArgs == null ? "" : pluginArgs);
+        if (pluginMeta != null) {
+            metadata.put(METADATA_PLUGIN, pluginMeta);
         }
         if (attachments == null || attachments.isEmpty()) {
             return UserMessage.builder().textContent(text).metadata(metadata).build();

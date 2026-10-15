@@ -53,13 +53,22 @@ export interface UserAttachment {
   url?: string
 }
 
+/** 插件消息回显对象（后端 metadata["plugin"] / 发送时带入 UserTurn） */
+export interface PluginMeta {
+  id: string
+  name: string
+  description: string
+  /** 用户输入的原始消息 */
+  args: string
+}
+
 export interface UserTurn {
   kind: 'user'
   id: string
   text: string
   timestamp: string
-  /** 选中插件的 id（/ 唤起，优先执行） */
-  plugin?: string
+  /** 选中插件的回显对象（/ 唤起，优先执行） */
+  plugin?: PluginMeta
   attachments?: UserAttachment[]
 }
 

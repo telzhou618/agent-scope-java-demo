@@ -15,7 +15,7 @@ import type { AgentSession } from '../api/types'
 import { chatStream, type StreamHandle } from '../sse/chatStream'
 import { toTurns } from '../utils/history'
 import { createLiveTurn, type LiveTurn } from '../utils/stream'
-import type { AssistantTurn, ConfirmBlockModel, ToolBlockModel, Turn, UserAttachment, UserTurn } from '../utils/model'
+import type { AssistantTurn, ConfirmBlockModel, PluginMeta, ToolBlockModel, Turn, UserAttachment, UserTurn } from '../utils/model'
 import { useAgentsStore } from './agents'
 
 function toMessage(error: unknown): string {
@@ -262,8 +262,8 @@ export const useChatStore = defineStore('chat', () => {
   interface SendOptions {
     /** 重试失败回合：复用已存在的用户气泡，不再 push 新的用户回合 */
     reuseUserTurn?: boolean
-    /** 选中插件的 id（/ 唤起，优先执行） */
-    plugin?: string
+    /** 选中插件的回显对象（/ 唤起，优先执行） */
+    plugin?: PluginMeta
   }
 
   async function send(text: string, attachments?: UserAttachment[], options?: SendOptions) {
@@ -312,7 +312,7 @@ export const useChatStore = defineStore('chat', () => {
         sessionId,
         agentName,
         requestId,
-        plugin: options?.plugin,
+        plugin: options?.plugin?.id,
         attachments: attachments
           ?.filter((item) => item.id)
           .map((item) => ({ id: item.id ?? '', name: item.name, ext: item.ext, size: item.size })),
