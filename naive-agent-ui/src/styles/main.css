@@ -202,3 +202,12 @@ html[data-theme='dark'] {
   background: var(--mention-plugin-bg);
   border-color: var(--mention-plugin-border);
 }
+
+/* 统计/额度卡片渐变底色（明暗自适应） */
+:root {
+  --card-bg: linear-gradient(180deg, #fbfbff, #f7f8fd);
+}
+
+html[data-theme='dark'] {
+  --card-bg: linear-gradient(180deg, rgba(129, 140, 248, 0.08), rgba(129, 140, 248, 0.02));
+}

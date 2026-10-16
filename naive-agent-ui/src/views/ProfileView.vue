@@ -251,54 +251,54 @@ const recentColumns: DataTableColumns<RecentRequestItem> = [
 
 <template>
   <div class="p-4 pb-12 md:p-6 md:pb-12">
-    <div class="mx-auto flex flex-col gap-4" :class="wide ? 'max-w-[1200px]' : 'max-w-[800px]'">
-      <!-- 身份卡 -->
-      <NCard>
-        <div class="flex items-center gap-4 flex-wrap">
-          <NAvatar round :size="56" :src="auth.user?.avatar || undefined" />
-          <div class="min-w-0 flex-1">
-            <div class="flex items-center gap-2">
-              <span class="text-lg font-600 truncate">{{ displayName }}</span>
-              <span v-if="auth.user?.isAdmin" class="badge">管理员</span>
-            </div>
-            <NText depth="3" class="text-sm">@{{ auth.user?.username }} · {{ auth.user?.email || '—' }}</NText>
+    <div class="mx-auto flex flex-col gap-5" :class="wide ? 'max-w-[1200px]' : 'max-w-[800px]'">
+      <!-- 身份（Hero） -->
+      <div class="hero">
+        <span class="hero-avatar">
+          <NAvatar round :size="64" :src="auth.user?.avatar || undefined" />
+        </span>
+        <div class="min-w-0">
+          <div class="flex items-center gap-2 flex-wrap">
+            <span class="hero-name truncate">{{ displayName }}</span>
+            <span v-if="auth.user?.isAdmin" class="badge">管理员</span>
           </div>
-          <div class="flex gap-2">
-            <NButton secondary @click="editProfileOpen = true">
-              <template #icon>
-                <NIcon><PersonOutline /></NIcon>
-              </template>
-              编辑资料
-            </NButton>
-            <NButton secondary @click="passwordOpen = true">
-              <template #icon>
-                <NIcon><KeyOutline /></NIcon>
-              </template>
-              修改密码
-            </NButton>
-          </div>
+          <div class="hero-meta">@{{ auth.user?.username }} · {{ auth.user?.email || '—' }}</div>
         </div>
-      </NCard>
+        <span class="flex-1" />
+        <div class="hero-actions">
+          <NButton size="small" secondary @click="passwordOpen = true">
+            <template #icon>
+              <NIcon><KeyOutline /></NIcon>
+            </template>
+            修改密码
+          </NButton>
+          <NButton size="small" type="primary" @click="editProfileOpen = true">
+            <template #icon>
+              <NIcon><PersonOutline /></NIcon>
+            </template>
+            编辑资料
+          </NButton>
+        </div>
+      </div>
 
       <EditProfileDialog v-model:show="editProfileOpen" />
       <PasswordDialog v-model:show="passwordOpen" />
 
       <!-- 本月 Token 额度 -->
-      <NCard>
-        <div class="flex items-center gap-3 flex-wrap mb-4">
+      <NCard bordered>
+        <div class="section-head">
           <div>
-            <div class="text-base font-600">本月 Token 额度</div>
-            <NText depth="3" class="text-xs">{{ quota?.month || '—' }}</NText>
+            <div class="section-title">本月 Token 额度</div>
+            <div class="section-sub">{{ quota?.month || '' }}</div>
           </div>
-          <span class="flex-1" />
-          <div class="flex items-center gap-6 text-right">
-            <div>
-              <div class="text-xs op-45">本月总消耗</div>
-              <div class="text-base font-700">{{ formatTokens(quota?.totalTokens ?? 0) }}</div>
+          <div class="flex items-center gap-6">
+            <div class="stat-inline">
+              <div class="stat-inline-label">本月总消耗</div>
+              <div class="stat-inline-value">{{ formatTokens(quota?.totalTokens ?? 0) }}</div>
             </div>
-            <div>
-              <div class="text-xs op-45">总 Token 额度</div>
-              <div class="text-base font-700">{{ totalQuotaText }}</div>
+            <div class="stat-inline">
+              <div class="stat-inline-label">总 Token 额度</div>
+              <div class="stat-inline-value">{{ totalQuotaText }}</div>
             </div>
           </div>
         </div>
@@ -336,26 +336,27 @@ const recentColumns: DataTableColumns<RecentRequestItem> = [
         <div v-else class="text-sm op-45 py-2">暂无额度信息</div>
       </NCard>
 
-      <!-- 用量统计 -->
-      <NCard>
-        <div class="flex items-center gap-3 flex-wrap mb-4">
-          <span class="text-base font-600">用量与费用</span>
-          <span class="flex-1" />
-          <NDatePicker
-            v-if="rangeKey === 'custom'"
-            v-model:value="custom"
-            type="daterange"
-            size="small"
-            clearable
-            class="max-w-60"
-          />
-          <NSelect
-            v-model:value="rangeKey"
-            :options="rangeOptions"
-            size="small"
-            class="w-32"
-            :consistent-menu-width="false"
-          />
+      <!-- 用量与费用 -->
+      <NCard bordered>
+        <div class="section-head">
+          <div class="section-title">用量与费用</div>
+          <div class="flex items-center gap-2">
+            <NDatePicker
+              v-if="rangeKey === 'custom'"
+              v-model:value="custom"
+              type="daterange"
+              size="small"
+              clearable
+              class="max-w-60"
+            />
+            <NSelect
+              v-model:value="rangeKey"
+              :options="rangeOptions"
+              size="small"
+              class="w-32"
+              :consistent-menu-width="false"
+            />
+          </div>
         </div>
 
         <div v-if="loadingUsage && !usage" class="flex justify-center py-10">
@@ -419,7 +420,10 @@ const recentColumns: DataTableColumns<RecentRequestItem> = [
       </NCard>
 
       <!-- 最近请求 -->
-      <NCard title="最近请求记录">
+      <NCard bordered>
+        <div class="section-head">
+          <div class="section-title">最近请求记录</div>
+        </div>
         <NDataTable
           remote
           :columns="recentColumns"
@@ -443,20 +447,98 @@ const recentColumns: DataTableColumns<RecentRequestItem> = [
 </template>
 
 <style scoped>
+.hero {
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  gap: 22px;
+  flex-wrap: wrap;
+  padding: 26px 28px;
+  border-radius: 18px;
+  border: 1px solid var(--divider);
+  background:
+    radial-gradient(120% 170% at 0% 0%, rgba(99, 102, 241, 0.13), rgba(99, 102, 241, 0) 58%),
+    radial-gradient(120% 170% at 100% 10%, rgba(168, 85, 247, 0.12), rgba(168, 85, 247, 0) 56%),
+    var(--surface);
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+}
+
+.hero-avatar {
+  display: inline-flex;
+  border-radius: 50%;
+  box-shadow:
+    0 0 0 5px var(--brand-ring),
+    0 10px 26px rgba(99, 102, 241, 0.3);
+}
+
+.hero-name {
+  font-size: 21px;
+  font-weight: 700;
+  letter-spacing: -0.5px;
+}
+
+.hero-meta {
+  font-size: 13px;
+  color: var(--text-2, #5a6474);
+  margin-top: 4px;
+}
+
+.hero-actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.section-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
+}
+
+.section-title {
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.section-sub {
+  font-size: 12px;
+  opacity: 0.5;
+  margin-top: 2px;
+}
+
+.stat-inline {
+  text-align: right;
+}
+
+.stat-inline-label {
+  font-size: 12px;
+  opacity: 0.5;
+}
+
+.stat-inline-value {
+  font-size: 14px;
+  font-weight: 600;
+  margin-top: 2px;
+}
+
 .stat-card {
-  padding: 14px 16px;
-  border-radius: 12px;
-  background: var(--brand-soft);
+  padding: 16px 18px;
+  border-radius: 14px;
+  background: var(--card-bg, linear-gradient(180deg, #fbfbff, #f7f8fd));
   border: 1px solid var(--divider);
   transition:
-    border-color 0.15s ease,
-    box-shadow 0.15s ease,
-    transform 0.15s ease;
+    border-color 0.18s ease,
+    box-shadow 0.18s ease,
+    transform 0.18s ease;
 }
 
 .stat-card:hover {
   border-color: var(--brand-border);
-  box-shadow: var(--shadow-float);
+  box-shadow: 0 8px 22px rgba(15, 23, 42, 0.07);
   transform: translateY(-1px);
 }
 
@@ -467,8 +549,9 @@ const recentColumns: DataTableColumns<RecentRequestItem> = [
 }
 
 .stat-value {
-  font-size: 22px;
+  font-size: 24px;
   font-weight: 700;
+  letter-spacing: -0.5px;
 }
 
 .stat-unit {

@@ -11,12 +11,12 @@ export const themeOverrides: GlobalThemeOverrides = {
     primaryColorHover: '#818cf8',
     primaryColorPressed: '#4f46e5',
     primaryColorSuppl: '#6366f1',
-    borderRadius: '8px',
+    borderRadius: '10px',
   },
   Button: {
-    borderRadiusMedium: '8px',
+    borderRadiusMedium: '10px',
   },
   Card: {
-    borderRadius: '12px',
+    borderRadius: '16px',
   },
 }
