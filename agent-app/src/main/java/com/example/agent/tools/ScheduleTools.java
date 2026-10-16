@@ -32,11 +32,12 @@ public class ScheduleTools {
     }
 
     @Tool(name = "create_schedule", description = "创建定时任务：当用户要求定期/周期性执行某件事时使用。"
-            + "title 写一个简短可读的任务标题；执行周期写入 cron 字段，到点要做的具体事情写入 description 字段；description 只写任务本身，不要包含时间、频率、周期、定时等字眼。"
+            + "title 写一个简短可读的任务标题；执行周期写入 cron 字段；到点要做的具体事情写入 description 字段，description 用 Markdown 格式写清楚要做什么（目标、步骤、产出、输出格式），只写任务本身，"
+            + "禁止出现任何执行频次、执行时间、周期、定时、cron 等字眼（如「每天」「每周一」「定期」「几点」），周期一律由 cron 表达。"
             + "cron 为 Quartz 6 段表达式（秒 分 时 日 月 周），例如每周一 9 点是 0 0 9 ? * MON，每天 8 点是 0 0 8 * * ?")
     public Map<String, Object> createSchedule(
             @ToolParam(name = "title", description = "简短可读的任务标题，例如「每周运营报告」") String title,
-            @ToolParam(name = "description", description = "到点时要执行的具体任务内容（做什么、产出什么）。只写任务本身，禁止包含任何时间、频率、周期、定时相关字眼（如「每天」「每周一」「定期」），执行周期由 cron 表达。") String description,
+            @ToolParam(name = "description", description = "到点后要执行的具体任务内容，用 Markdown 格式写清楚（做什么、步骤、产出、输出格式）。只写任务本身，禁止出现任何执行频次、执行时间、周期、定时、cron 等字眼（如「每天」「每周一」「定期」「几点」），周期由 cron 表达。") String description,
             @ToolParam(name = "cron", description = "Quartz 6 段 cron 表达式（秒 分 时 日 月 周）") String cron,
             RuntimeContext context) {
         Long userId = loginUserId(context);
@@ -72,11 +73,11 @@ public class ScheduleTools {
     }
 
     @Tool(name = "update_schedule", description = "修改定时任务的标题、执行内容或执行周期（cron），先用 list_schedules 拿到任务 id。"
-            + "只传需要改的字段；修改 description 时同样只写任务本身、不要包含时间、频率、周期、定时等字眼；cron 非空时校验合法性并重排触发器")
+            + "只传需要改的字段；修改 description 时用 Markdown 格式写任务内容，禁止出现任何执行频次、执行时间、周期、定时、cron 等字眼，周期由 cron 表达；cron 非空时校验合法性并重排触发器")
     public Map<String, Object> updateSchedule(
             @ToolParam(name = "id", description = "任务 ID") long id,
             @ToolParam(name = "title", required = false, description = "修改后的简短任务标题，不传则不修改") String title,
-            @ToolParam(name = "description", required = false, description = "修改后的具体任务内容（做什么、产出什么）。只写任务本身，禁止包含时间、频率、周期、定时相关字眼，执行周期由 cron 表达；不传则不修改。") String description,
+            @ToolParam(name = "description", required = false, description = "修改后的具体任务内容，用 Markdown 格式写清楚（做什么、步骤、产出、输出格式）。只写任务本身，禁止出现任何执行频次、执行时间、周期、定时、cron 等字眼，周期由 cron 表达；不传则不修改。") String description,
             @ToolParam(name = "cron", required = false, description = "新的 Quartz 6 段 cron 表达式，不传则不修改") String cron,
             RuntimeContext context) {
         Long userId = loginUserId(context);
