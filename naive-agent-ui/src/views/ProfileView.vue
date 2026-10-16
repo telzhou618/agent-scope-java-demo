@@ -306,27 +306,30 @@ const recentColumns: DataTableColumns<RecentRequestItem> = [
         <div v-if="loadingQuota" class="flex justify-center py-6">
           <NSpin size="small" />
         </div>
-        <div v-else-if="quota" class="flex flex-col gap-4">
-          <div v-for="item in quota.agents" :key="item.name" class="flex items-center gap-3">
-            <NAvatar round :size="32" :src="item.avatar || undefined" />
-            <div class="w-28 shrink-0 text-sm font-600">{{ item.displayName }}</div>
-            <div class="flex-1 min-w-0">
-              <NProgress
-                v-if="item.quotaTokens > 0"
-                type="line"
-                :percentage="quotaPercent(item)"
-                :color="quotaColor(item)"
-                :height="8"
-                :show-indicator="false"
-              />
-              <div v-else class="text-xs op-45">不限</div>
+        <div v-else-if="quota" class="grid grid-cols-3 gap-3">
+          <div v-for="item in quota.agents" :key="item.name" class="stat-card">
+            <div class="flex items-center gap-3 mb-3">
+              <NAvatar round :size="36" :src="item.avatar || undefined" />
+              <div class="min-w-0">
+                <div class="text-sm font-600 truncate">{{ item.displayName }}</div>
+                <div class="text-xs op-45">{{ item.name }}</div>
+              </div>
             </div>
-            <div class="w-36 shrink-0 text-right text-xs" style="font-variant-numeric: tabular-nums">
-              <template v-if="item.quotaTokens > 0">
-                <div class="font-600" :style="{ color: quotaColor(item) }">{{ quotaPercent(item) }}%</div>
-                <div class="op-45">{{ formatTokens(item.usedTokens) }} / {{ formatTokens(item.quotaTokens) }}</div>
-              </template>
-              <template v-else>不限</template>
+            <NProgress
+              v-if="item.quotaTokens > 0"
+              type="line"
+              :percentage="quotaPercent(item)"
+              :color="quotaColor(item)"
+              :height="8"
+              :show-indicator="false"
+              :border-radius="4"
+              class="mb-2"
+            />
+            <div v-else class="text-xs op-45 mb-2">不限</div>
+            <div class="flex items-baseline justify-between gap-2" style="font-variant-numeric: tabular-nums">
+              <span v-if="item.quotaTokens > 0" class="font-700" :style="{ color: quotaColor(item) }">{{ quotaPercent(item) }}%</span>
+              <span v-else class="font-700">不限</span>
+              <span class="text-xs op-45">{{ item.quotaTokens > 0 ? `${formatTokens(item.usedTokens)} / ${formatTokens(item.quotaTokens)}` : '' }}</span>
             </div>
           </div>
         </div>
@@ -359,7 +362,7 @@ const recentColumns: DataTableColumns<RecentRequestItem> = [
           <NSpin />
         </div>
         <template v-else-if="usage">
-          <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-6">
+          <div class="grid grid-cols-3 gap-3 mb-6">
             <div class="stat-card">
               <div class="stat-label">消费金额</div>
               <div class="stat-value">{{ formatMoney(usage.totals.cost) }}<span class="stat-unit">CNY</span></div>
