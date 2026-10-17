@@ -11,6 +11,7 @@ import {
   ShieldCheckmarkOutline,
 } from '@vicons/ionicons5'
 import { copyText, flashLabel } from '../utils/clipboard'
+import { toolTitle } from '../utils/toolText'
 import type { ToolBlockModel, ToolStatus } from '../utils/model'
 
 const props = defineProps<{ block: ToolBlockModel }>()
@@ -45,6 +46,10 @@ function pretty(value: string): string {
 const prettyArgs = computed(() => pretty(props.block.args))
 const prettyOutput = computed(() => pretty(props.block.output))
 
+const title = computed(() => toolTitle(props.block))
+/** 标题本地化后，用悬浮提示保留原始工具名 */
+const nameHint = computed(() => (title.value === props.block.name ? undefined : props.block.name))
+
 async function onCopy(event: MouseEvent, text: string) {
   const button = event.currentTarget as HTMLElement
   if (!text) return
@@ -63,7 +68,7 @@ function toggle() {
       <span class="tool-badge">
         <NIcon size="14"><ConstructOutline /></NIcon>
       </span>
-      <span class="tool-name">{{ props.block.name }}</span>
+      <span class="tool-name" :title="nameHint">{{ title }}</span>
       <span v-if="shortId" class="tool-id" :title="`调用 ID：${props.block.id}`">#{{ shortId }}</span>
       <span class="tool-head-spacer" />
       <NTag size="tiny" :bordered="false" :type="status.type" round class="shrink-0">
