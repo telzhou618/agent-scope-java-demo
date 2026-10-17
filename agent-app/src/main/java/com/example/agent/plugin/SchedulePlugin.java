@@ -4,7 +4,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 /**
- * 创建定时任务插件：改写提示词，引导 Agent 使用 create_schedule 工具
+ * 创建定时任务插件：改写提示词，引导 Agent 加载「定时任务」技能，由技能指引调用定时任务工具
  */
 @Component
 public class SchedulePlugin implements Plugin {
@@ -39,6 +39,7 @@ public class SchedulePlugin implements Plugin {
 
     @Override
     public String process(PluginContext context) {
-        return "请使用定时任务工具（create_schedule）完成以下需求：" + context.message();
+        return "请创建定时任务：加载「定时任务」技能（schedule），按技能指引调用定时任务工具完成以下需求——"
+                + context.message();
     }
 }

@@ -21,6 +21,12 @@ import java.util.Map;
 @Slf4j
 public class ScheduleTools {
 
+    /**
+     * 运行时上下文标记键：本轮由定时任务触发的任务 ID（ScheduledTaskJob 写入）。
+     * 命中时禁止再创建/修改定时任务，避免定时任务执行过程中不断派生子任务
+     */
+    public static final String SCHEDULED_TASK_RUN_KEY = "scheduledTaskId";
+
     private final ScheduleService scheduleService;
     private final String agentName;
     private final UserPermissionService userPermissionService;
@@ -46,6 +52,9 @@ public class ScheduleTools {
         }
         if (!userPermissionService.hasPermission(userId, UserPermission.SCHEDULE)) {
             return fail("无「定时任务」权限");
+        }
+        if (inScheduledTaskRun(context)) {
+            return fail("定时任务执行过程中不能再创建定时任务");
         }
         try {
             LocalDateTime nextRunAt = scheduleService.create(userId, agentName, title, description, cron);
@@ -86,6 +95,9 @@ public class ScheduleTools {
         }
         if (!userPermissionService.hasPermission(userId, UserPermission.SCHEDULE)) {
             return fail("无「定时任务」权限");
+        }
+        if (inScheduledTaskRun(context)) {
+            return fail("定时任务执行过程中不能再修改定时任务");
         }
         try {
             LocalDateTime nextRunAt = scheduleService.update(userId, id, null, title, description, cron);
@@ -150,6 +162,13 @@ public class ScheduleTools {
         } catch (NumberFormatException e) {
             return null;
         }
+    }
+
+    /**
+     * 当前是否在定时任务的执行轮次中：本轮上下文带 ScheduledTaskJob 写入的任务 ID 标记
+     */
+    private boolean inScheduledTaskRun(RuntimeContext context) {
+        return context != null && context.get(SCHEDULED_TASK_RUN_KEY) != null;
     }
 
     private Map<String, Object> ok() {

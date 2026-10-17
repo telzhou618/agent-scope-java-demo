@@ -21,6 +21,8 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 
+import static com.example.agent.tools.ScheduleTools.SCHEDULED_TASK_RUN_KEY;
+
 /**
  * 定时任务执行体：按任务创建时的档位在后台跑一次完整 Agent 会话，产出的正文写入消息中心。
  * 执行记录为独立后台会话（task-<id>-<时间戳>），不写 session_meta，不出现在侧栏会话列表。
@@ -98,6 +100,8 @@ public class ScheduledTaskJob extends QuartzJobBean {
                 .userId(String.valueOf(task.getUserId()))
                 .sessionId(sessionId)
                 .put("requestId", sessionId)
+                // 标记本轮由定时任务触发：工具侧据此拒绝执行期间再建/改定时任务，避免任务自我裂变
+                .put(SCHEDULED_TASK_RUN_KEY, task.getId())
                 .build();
         StringBuilder result = new StringBuilder();
         agentRegistry.getAgent(task.getAgentName())
