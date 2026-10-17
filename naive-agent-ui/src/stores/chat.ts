@@ -15,7 +15,7 @@ import type { AgentSession } from '../api/types'
 import { chatStream, type StreamHandle } from '../sse/chatStream'
 import { toTurns } from '../utils/history'
 import { createLiveTurn, type LiveTurn } from '../utils/stream'
-import type { AssistantTurn, Turn, UserAttachment, UserTurn } from '../utils/model'
+import type { AssistantTurn, ConfirmBlockModel, PluginMeta, ToolBlockModel, Turn, UserAttachment, UserTurn } from '../utils/model'
 import { useAgentsStore } from './agents'
 
 function toMessage(error: unknown): string {
@@ -262,11 +262,13 @@ export const useChatStore = defineStore('chat', () => {
   interface SendOptions {
     /** 重试失败回合：复用已存在的用户气泡，不再 push 新的用户回合 */
     reuseUserTurn?: boolean
+    /** 选中插件的回显对象（/ 唤起，优先执行） */
+    plugin?: PluginMeta
   }
 
   async function send(text: string, attachments?: UserAttachment[], options?: SendOptions) {
     const message = text.trim()
-    if ((!message && !attachments?.length) || state.streaming) return
+    if ((!message && !attachments?.length && !options?.plugin) || state.streaming) return
 
     const sessionId = state.currentSessionId ?? pendingSessionId ?? crypto.randomUUID()
     const isNew = !state.currentSessionId
@@ -276,7 +278,11 @@ export const useChatStore = defineStore('chat', () => {
     if (isNew) {
       cancelTitleRetry()
       try {
-        await createSession({ sessionId, message: message || '请查看我发送的文件', agentName })
+        await createSession({
+          sessionId,
+          message: message || (options?.plugin ? '插件任务' : '请查看我发送的文件'),
+          agentName,
+        })
       } catch (error) {
         state.messagesError = toMessage(error)
         return
@@ -291,6 +297,7 @@ export const useChatStore = defineStore('chat', () => {
     // 闭包持有当前会话的 turns：流式中途切走后，事件仍累积进这个数组
     const turns = state.turns
     const userTurn: UserTurn = { kind: 'user', id: newId('user'), text: message, timestamp: '' }
+    if (options?.plugin) userTurn.plugin = options.plugin
     if (attachments?.length) userTurn.attachments = attachments.map((item) => ({ ...item }))
     if (!options?.reuseUserTurn) turns.push(userTurn)
 
@@ -305,6 +312,7 @@ export const useChatStore = defineStore('chat', () => {
         sessionId,
         agentName,
         requestId,
+        plugin: options?.plugin?.id,
         attachments: attachments
           ?.filter((item) => item.id)
           .map((item) => ({ id: item.id ?? '', name: item.name, ext: item.ext, size: item.size })),
@@ -342,13 +350,94 @@ export const useChatStore = defineStore('chat', () => {
     if (pending) await pending
   }
 
+  /**
+   * 工具确认卡片提交：逐项审批结果（ConfirmResult）随新流回传，Agent 从挂起处恢复执行。
+   * 被批准的工具卡片从旧回合挪进新回合（同一卡片继续累积执行结果，不开重复卡片）；
+   * 推一条「确认执行/部分确认/取消执行」用户回合，与历史里恢复的 metadata 消息文本保持一致。
+   */
+  function respondConfirm(block: ConfirmBlockModel) {
+    if (state.streaming || block.status !== 'pending') return
+    const sessionId = state.currentSessionId
+    if (!sessionId) return
+    // 逐项审批必须全部勾选后才能提交
+    if (block.toolCalls.some((call) => !call.decision)) return
+    block.status = 'done'
+
+    const turns = state.turns
+    // 找到确认卡片所在回合里的待确认工具块
+    let ownerTurn: AssistantTurn | undefined
+    for (let i = turns.length - 1; i >= 0; i -= 1) {
+      const t = turns[i]
+      if (t.kind === 'assistant' && t.blocks.includes(block)) {
+        ownerTurn = t
+        break
+      }
+    }
+    const approvedTools: ToolBlockModel[] = []
+    if (ownerTurn) {
+      for (const call of block.toolCalls) {
+        const tool = ownerTurn.blocks.find(
+          (b): b is ToolBlockModel => b.kind === 'tool' && b.id === call.id && b.confirm === 'pending',
+        )
+        if (!tool) continue
+        tool.confirm = call.decision === 'approved' ? 'confirmed' : 'rejected'
+        if (call.decision === 'approved') approvedTools.push(tool)
+        else tool.status = 'denied'
+      }
+    }
+
+    const approvedCount = block.toolCalls.filter((c) => c.decision === 'approved').length
+    const text =
+      approvedCount === block.toolCalls.length
+        ? '确认执行'
+        : approvedCount === 0
+          ? '取消执行'
+          : `确认执行其中 ${approvedCount} 项`
+    turns.push({ kind: 'user', id: newId('user'), text, timestamp: '' })
+    const live = createLiveTurn(newId('live'), approvedTools.length ? approvedTools : undefined)
+    turns.push(live.turn)
+    state.streaming = true
+    state.messagesError = ''
+    liveTurn = live
+
+    // 批准的工具挪进新回合继续执行
+    if (ownerTurn) {
+      for (const tool of approvedTools) {
+        ownerTurn.blocks.splice(ownerTurn.blocks.indexOf(tool), 1)
+        tool.status = 'running'
+      }
+    }
+
+    const stream = chatStream(
+      {
+        message: text,
+        sessionId,
+        agentName: agentsStore.state.current,
+        requestId: crypto.randomUUID(),
+        confirmResults: block.toolCalls.map((call) => ({
+          toolCallId: call.id,
+          toolName: call.name,
+          toolInput: call.input,
+          toolContent: call.content,
+          confirmed: call.decision === 'approved',
+        })),
+      },
+      {
+        onEvent: (event) => live.handle(event),
+        onError: (error) => live.fail(error),
+      },
+    )
+    handle = stream
+    void stream.done.then(() => finishStream(sessionId, turns, live))
+  }
+
   /** 重新生成：重发最后一条用户消息 */
   function regenerate() {
     if (state.streaming) return
     for (let index = state.turns.length - 1; index >= 0; index -= 1) {
       const turn = state.turns[index]
       if (turn.kind === 'user') {
-        void send(turn.text, turn.attachments)
+        void send(turn.text, turn.attachments, { plugin: turn.plugin })
         return
       }
     }
@@ -372,7 +461,7 @@ export const useChatStore = defineStore('chat', () => {
     }
     if (!userTurn) return
     state.turns.splice(index, 1)
-    void send(userTurn.text, userTurn.attachments, { reuseUserTurn: true })
+    void send(userTurn.text, userTurn.attachments, { reuseUserTurn: true, plugin: userTurn.plugin })
   }
 
   /** 反馈落库：先乐观更新本地，接口失败则回滚 */
@@ -450,6 +539,7 @@ export const useChatStore = defineStore('chat', () => {
     togglePin,
     send,
     stop,
+    respondConfirm,
     regenerate,
     retryFailed,
     setFeedback,

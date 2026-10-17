@@ -1,9 +1,9 @@
 package com.example.agent.tools;
 
+import com.example.agent.datasource.MysqlDatasourceRegistry;
 import io.agentscope.core.tool.Tool;
 import io.agentscope.core.tool.ToolParam;
 import lombok.RequiredArgsConstructor;
-import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -11,41 +11,45 @@ import java.util.Map;
 import java.util.regex.Pattern;
 
 /**
- * 数据库自由查询工具：表列表、表结构、只读 SQL 查询。
- * 使用当前 MySQL 数据源，无表白名单，仅通过 SqlValidator 做只读/注入校验。
+ * 数据库自由查询工具：表列表、表结构、只读 SQL 查询，支持多数据源。
+ * 通过 dataSourceId 指定数据源，无表白名单，仅通过 SqlValidator 做只读/注入校验。
  */
 @Service
 @RequiredArgsConstructor
 public class MysqlQueryTools {
+
     /**
      * SELECT/WITH 查询未显式 LIMIT 时自动追加的上限，防止结果集过大
      */
     private static final int DEFAULT_ROW_LIMIT = 100;
 
     private static final Pattern LIMIT_CLAUSE = Pattern.compile("\\blimit\\b", Pattern.CASE_INSENSITIVE);
-    private final JdbcTemplate jdbcTemplate;
+    private final MysqlDatasourceRegistry registry;
 
-    @Tool(name = "list_tables", description = "查询数据库中所有的表及其注释")
-    public List<Map<String, Object>> listTables() {
+    @Tool(name = "list_tables", description = "查询指定数据源中所有的表及其注释。执行前先用 read_data_source_spec 读取该数据源使用规范。")
+    public List<Map<String, Object>> listTables(
+            @ToolParam(name = "dataSourceId", description = "数据源 id，来自 list_data_sources") String dataSourceId) {
         String sql = "SELECT TABLE_NAME, TABLE_COMMENT FROM information_schema.tables WHERE TABLE_SCHEMA = DATABASE()";
-        return jdbcTemplate.queryForList(sql);
+        return registry.template(dataSourceId).queryForList(sql);
     }
 
-    @Tool(name = "get_table_info", description = "获取指定数据表的详细结构信息（字段、类型、注释等）")
+    @Tool(name = "get_table_info", description = "获取指定数据源中某张表的详细结构信息（字段、类型、注释等）。执行前先用 read_data_source_spec 读取该数据源使用规范。")
     public List<Map<String, Object>> getTableInfo(
+            @ToolParam(name = "dataSourceId", description = "数据源 id，来自 list_data_sources") String dataSourceId,
             @ToolParam(name = "tableName", description = "数据表名称") String tableName) {
         if (!SqlValidator.isValidIdentifier(tableName)) {
             throw new IllegalArgumentException("安全限制：非法的表名 " + tableName);
         }
-        return jdbcTemplate.queryForList("SHOW FULL COLUMNS FROM " + tableName);
+        return registry.template(dataSourceId).queryForList("SHOW FULL COLUMNS FROM " + tableName);
     }
 
-    @Tool(name = "execute_query", description = "执行只读的 SQL 查询语句（SELECT），返回结果集；未加 LIMIT 时默认最多返回 "
-            + DEFAULT_ROW_LIMIT + " 行")
+    @Tool(name = "execute_query", description = "在指定数据源执行只读的 SQL 查询语句（SELECT），返回结果集；未加 LIMIT 时默认最多返回 "
+            + DEFAULT_ROW_LIMIT + " 行。执行前先用 read_data_source_spec 读取该数据源使用规范。")
     public List<Map<String, Object>> executeQuery(
+            @ToolParam(name = "dataSourceId", description = "数据源 id，来自 list_data_sources") String dataSourceId,
             @ToolParam(name = "sql", description = "要执行的 SELECT 查询语句") String sql) {
         String validated = SqlValidator.validateReadonlyQuery(sql);
-        return jdbcTemplate.queryForList(applyDefaultLimit(validated));
+        return registry.template(dataSourceId).queryForList(applyDefaultLimit(validated));
     }
 
     private String applyDefaultLimit(String sql) {

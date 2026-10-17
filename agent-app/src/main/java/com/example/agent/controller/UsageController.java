@@ -1,8 +1,11 @@
 package com.example.agent.controller;
 
 import cn.dev33.satoken.stp.StpUtil;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.example.agent.dto.Result;
+import com.example.agent.service.TokenQuotaService;
 import com.example.agent.service.TokenUsageService;
+import com.example.agent.vo.MonthlyQuotaVO;
 import com.example.agent.vo.RecentRequestVO;
 import com.example.agent.vo.UsageSummaryVO;
 import io.swagger.v3.oas.annotations.Operation;
@@ -10,10 +13,8 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
-
-import java.time.LocalDate;
-import java.util.List;
 
 /**
  * token 消耗统计接口（用户身份从 token 解析）
@@ -25,18 +26,25 @@ import java.util.List;
 public class UsageController {
 
     private final TokenUsageService usageService;
+    private final TokenQuotaService quotaService;
 
     @GetMapping("/summary")
     @Operation(summary = "按区间统计 token 消耗（total / 分桶）")
     public Result<UsageSummaryVO> summary(String start, String end, String granularity) {
-        long userId = StpUtil.getLoginIdAsLong();
-        return Result.okData(usageService.summary(userId, LocalDate.parse(start), LocalDate.parse(end), granularity));
+        return Result.okData(usageService.summary(StpUtil.getLoginIdAsLong(), start, end, granularity));
     }
 
     @GetMapping("/recent")
-    @Operation(summary = "最近请求记录（区间内最近 10 条）")
-    public Result<List<RecentRequestVO>> recent(String start, String end) {
-        long userId = StpUtil.getLoginIdAsLong();
-        return Result.okData(usageService.recent(userId, LocalDate.parse(start), LocalDate.parse(end)));
+    @Operation(summary = "最近请求记录（区间内按时间倒序分页）")
+    public Result<Page<RecentRequestVO>> recent(String start, String end,
+                                                @RequestParam(defaultValue = "1") long page,
+                                                @RequestParam(defaultValue = "10") long size) {
+        return Result.okData(usageService.recent(StpUtil.getLoginIdAsLong(), start, end, page, size));
+    }
+
+    @GetMapping("/month-quota")
+    @Operation(summary = "本月 token 限额与每个 Agent 消耗")
+    public Result<MonthlyQuotaVO> monthQuota() {
+        return Result.okData(quotaService.monthlyUsage(StpUtil.getLoginIdAsLong()));
     }
 }

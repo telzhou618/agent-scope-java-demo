@@ -109,3 +109,105 @@ body {
 .hover-scroll::-webkit-scrollbar-track {
   background: transparent;
 }
+/* @ 技能/数据源 标签：聊天框与历史消息共用，保持一致 */
+:root {
+  --mention-skill-fg: #4f46e5;
+  --mention-skill-bg: #eef2ff;
+  --mention-skill-border: #c7d2fe;
+  --mention-ds-fg: #047857;
+  --mention-ds-bg: #ecfdf5;
+  --mention-ds-border: #a7f3d0;
+}
+
+html[data-theme='dark'] {
+  --mention-skill-fg: #a5b4fc;
+  --mention-skill-bg: rgba(129, 140, 248, 0.16);
+  --mention-skill-border: rgba(129, 140, 248, 0.4);
+  --mention-ds-fg: #6ee7b7;
+  --mention-ds-bg: rgba(16, 185, 129, 0.16);
+  --mention-ds-border: rgba(16, 185, 129, 0.4);
+}
+
+.mention-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin: 0 2px;
+  padding: 0 8px;
+  height: 22px;
+  box-sizing: border-box;
+  border-radius: 999px;
+  border: 1px solid transparent;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1;
+  white-space: nowrap;
+  vertical-align: middle;
+  user-select: none;
+}
+
+.mention-tag--skill {
+  color: var(--mention-skill-fg);
+  background: var(--mention-skill-bg);
+  border-color: var(--mention-skill-border);
+}
+
+.mention-tag--ds {
+  color: var(--mention-ds-fg);
+  background: var(--mention-ds-bg);
+  border-color: var(--mention-ds-border);
+}
+
+.mention-tag-x {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 15px;
+  height: 15px;
+  margin-left: 1px;
+  margin-right: -3px;
+  border-radius: 50%;
+  font-size: 13px;
+  line-height: 1;
+  opacity: 0.55;
+  cursor: pointer;
+}
+
+.mention-tag-x:hover {
+  opacity: 1;
+}
+
+.mention-icon {
+  display: block;
+  width: 12px;
+  height: 12px;
+  flex-shrink: 0;
+}
+
+/* 插件标签颜色 */
+:root {
+  --mention-plugin-fg: #b45309;
+  --mention-plugin-bg: #fffbeb;
+  --mention-plugin-border: #fcd34d;
+}
+
+html[data-theme='dark'] {
+  --mention-plugin-fg: #fbbf24;
+  --mention-plugin-bg: rgba(245, 158, 11, 0.16);
+  --mention-plugin-border: rgba(245, 158, 11, 0.4);
+}
+
+.mention-tag--plugin {
+  color: var(--mention-plugin-fg);
+  background: var(--mention-plugin-bg);
+  border-color: var(--mention-plugin-border);
+}
+
+/* 统计/额度卡片渐变底色（明暗自适应） */
+:root {
+  --card-bg: linear-gradient(180deg, #fbfbff, #f7f8fd);
+}
+
+html[data-theme='dark'] {
+  --card-bg: linear-gradient(180deg, rgba(129, 140, 248, 0.08), rgba(129, 140, 248, 0.02));
+}

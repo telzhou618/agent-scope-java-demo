@@ -109,6 +109,8 @@ export interface ChatRequest {
   sessionId: string
   agentName: string
   requestId?: string
+  /** 技能名（/skill:<name> 快捷指令选中的技能），独立传参 */
+  skill?: string
   attachments?: ChatAttachment[]
 }
 

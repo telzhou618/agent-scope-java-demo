@@ -1,6 +1,6 @@
 import { reactive } from 'vue'
 import type { AgentSseEvent } from '../api/types'
-import type { AssistantTurn, TextBlockModel, ThinkingBlockModel, ToolBlockModel } from './model'
+import type { AssistantTurn, ConfirmBlockModel, TextBlockModel, ThinkingBlockModel, ToolBlockModel } from './model'
 import { prettyJson } from './format'
 
 export interface LiveTurn {
@@ -15,7 +15,7 @@ export interface LiveTurn {
  * turn 与其中每个块都用 reactive 包装：组件是通过响应式代理读取它们的，
  * 只有经由代理写入才会触发重渲染。
  */
-export function createLiveTurn(id: string): LiveTurn {
+export function createLiveTurn(id: string, adopted?: ToolBlockModel[]): LiveTurn {
   const turn = reactive<AssistantTurn>({
     kind: 'assistant',
     id,
@@ -26,6 +26,11 @@ export function createLiveTurn(id: string): LiveTurn {
   })
 
   const tools = new Map<string, ToolBlockModel>()
+  // 确认恢复时认领的工具卡片：继续在同一卡片上累积结果，不新开重复卡片
+  for (const tool of adopted ?? []) {
+    tools.set(tool.id, tool)
+    turn.blocks.push(tool)
+  }
   /**
    * 当前正在累积的块。只有紧跟其后的同类型增量才追加进去；
    * 一旦来了别的类型（或流结束），这一段就收尾，之后再收到该类型时另起一个条目。
@@ -127,8 +132,8 @@ export function createLiveTurn(id: string): LiveTurn {
         const call = event.toolCall
         if (!call) return
         const tool = tools.get(call.toolCallId) ?? addTool(call.toolCallId, call.toolName ?? 'tool', '')
-        // 工具结果落定即收尾：success 为成功，其余（error/interrupted/denied）为失败
-        tool.status = call.state === 'success' ? 'ok' : 'error'
+        // 工具结果落定即收尾：success 成功，denied 用户拒绝，其余（error/interrupted）失败
+        tool.status = call.state === 'success' ? 'ok' : call.state === 'denied' ? 'denied' : 'error'
         break
       }
       case 'agent_result': {
@@ -142,6 +147,31 @@ export function createLiveTurn(id: string): LiveTurn {
       }
       case 'notice': {
         if (event.content) turn.notice = event.content
+        break
+      }
+      case 'require_confirm': {
+        // 工具调用待确认：对应工具卡片标记「待确认」（未执行前不得显示成功），并推一张确认卡片
+        if (!event.toolCalls?.length) return
+        endRun()
+        for (const call of event.toolCalls) {
+          const tool =
+            tools.get(call.toolCallId) ??
+            addTool(call.toolCallId, call.toolName ?? 'tool', prettyJson(JSON.stringify(call.toolInput ?? {})))
+          tool.status = 'confirming'
+          tool.confirm = 'pending'
+          tool.open = true
+        }
+        const block = reactive<ConfirmBlockModel>({
+          kind: 'confirm',
+          toolCalls: event.toolCalls.map((call) => ({
+            id: call.toolCallId,
+            name: call.toolName ?? 'tool',
+            input: call.toolInput,
+            content: call.toolContent,
+          })),
+          status: 'pending',
+        })
+        turn.blocks.push(block)
         break
       }
       default:

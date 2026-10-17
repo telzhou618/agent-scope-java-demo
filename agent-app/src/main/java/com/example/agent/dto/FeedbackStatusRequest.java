@@ -22,4 +22,10 @@ public class FeedbackStatusRequest {
     @Max(value = 1, message = "状态只能是 0 或 1")
     @Schema(description = "状态：0待处理 1已处理", requiredMode = Schema.RequiredMode.REQUIRED)
     private Integer status;
+
+    @Schema(description = "处理结果（可选，标记已处理时填写）")
+    private String result;
+
+    @Schema(description = "标记已处理时是否给提交用户发系统通知（默认 false）")
+    private Boolean notify;
 }

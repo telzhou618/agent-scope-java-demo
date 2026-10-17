@@ -154,6 +154,21 @@ html[data-theme='dark'] .md-body {
   color: var(--md-muted);
 }
 
+/* 分享页：链接降级为纯文本（禁跳转/下载） */
+.md-link-disabled {
+  color: inherit;
+  cursor: text;
+  text-decoration: none;
+}
+
+/* 操作按钮组（复制/下载/运行）成组靠右 */
+.md-code-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: auto;
+}
+
 .md-code-copy {
   display: inline-flex;
   align-items: center;

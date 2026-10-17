@@ -12,7 +12,7 @@ const SHORTCUTS: { keys: string[]; label: string }[] = [
   { keys: ['Esc'], label: '停止生成' },
   { keys: ['Enter'], label: '发送消息' },
   { keys: ['Shift', 'Enter'], label: '换行' },
-  { keys: ['/'], label: '唤起技能选择器' },
+  { keys: ['@'], label: '选择技能/数据源' },
 ]
 </script>
 

@@ -1,8 +1,10 @@
 package com.example.agent.agent;
 
 import com.example.agent.tools.DataExportTools;
+import com.example.agent.tools.DataSourceTools;
 import com.example.agent.tools.MysqlQueryTools;
-import com.example.agent.tools.ReportTools;
+import com.example.agent.tools.SearchTools;
+import com.example.agent.tools.WeatherTools;
 import io.agentscope.core.tool.Toolkit;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -10,7 +12,7 @@ import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
 
 /**
- * 旗舰档：qwen3.7-max，开思考、带工具/MCP、挂技能市场、支持附件，注册数据库查询/导出/报告工具
+ * 旗舰档：qwen3.7-max，开思考、带工具/MCP、挂技能市场、支持附件，注册数据库查询/导出工具
  */
 @Order(3)
 @Component
@@ -19,6 +21,9 @@ public class MaxAgentFactory extends AbstractAgentFactory {
     @Value("${agents.max.model}")
     private String model;
 
+    @Value("${agents.max.monthly-token-quota:1000000}")
+    private Long monthlyTokenQuota;
+
     @Autowired
     private MysqlQueryTools mysqlQueryTools;
 
@@ -26,7 +31,13 @@ public class MaxAgentFactory extends AbstractAgentFactory {
     private DataExportTools dataExportTools;
 
     @Autowired
-    private ReportTools reportTools;
+    private DataSourceTools dataSourceTools;
+
+    @Autowired
+    private SearchTools searchTools;
+
+    @Autowired
+    private WeatherTools weatherTools;
 
     @Override
     protected String name() {
@@ -39,6 +50,11 @@ public class MaxAgentFactory extends AbstractAgentFactory {
     }
 
     @Override
+    protected String avatar() {
+        return buildAvatar("M", "#a78bfa", "#7c3aed");
+    }
+
+    @Override
     protected String description() {
         return "旗舰档，开思考，支持 MCP 工具、技能市场与附件";
     }
@@ -46,6 +62,11 @@ public class MaxAgentFactory extends AbstractAgentFactory {
     @Override
     protected String modelName() {
         return model;
+    }
+
+    @Override
+    protected Long monthlyTokenQuota() {
+        return monthlyTokenQuota;
     }
 
     @Override
@@ -69,9 +90,16 @@ public class MaxAgentFactory extends AbstractAgentFactory {
     }
 
     @Override
+    protected boolean scheduleEnabled() {
+        return true;
+    }
+
+    @Override
     protected void registerLocalTools(Toolkit toolkit) {
+        toolkit.registerTool(dataSourceTools);
         toolkit.registerTool(mysqlQueryTools);
         toolkit.registerTool(dataExportTools);
-        toolkit.registerTool(reportTools);
+        toolkit.registerTool(searchTools);
+        toolkit.registerTool(weatherTools);
     }
 }

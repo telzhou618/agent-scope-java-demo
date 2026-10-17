@@ -1,5 +1,10 @@
 package com.example.agent.agent;
 
+import com.example.agent.tools.DataExportTools;
+import com.example.agent.tools.DataSourceTools;
+import com.example.agent.tools.MysqlQueryTools;
+import io.agentscope.core.tool.Toolkit;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
@@ -14,6 +19,18 @@ public class FlashAgentFactory extends AbstractAgentFactory {
     @Value("${agents.flash.model}")
     private String model;
 
+    @Value("${agents.flash.monthly-token-quota:1000000}")
+    private Long monthlyTokenQuota;
+
+    @Autowired
+    private MysqlQueryTools mysqlQueryTools;
+
+    @Autowired
+    private DataExportTools dataExportTools;
+
+    @Autowired
+    private DataSourceTools dataSourceTools;
+
     @Override
     protected String name() {
         return "flash";
@@ -25,13 +42,23 @@ public class FlashAgentFactory extends AbstractAgentFactory {
     }
 
     @Override
+    protected String avatar() {
+        return buildAvatar("F", "#22d3ee", "#0284c7");
+    }
+
+    @Override
     protected String description() {
-        return "轻量快速档，适合简单问答，不支持工具、技能与附件";
+        return "轻量快速档，不开启思考，适合简单问答";
     }
 
     @Override
     protected String modelName() {
         return model;
+    }
+
+    @Override
+    protected Long monthlyTokenQuota() {
+        return monthlyTokenQuota;
     }
 
     @Override
@@ -41,12 +68,12 @@ public class FlashAgentFactory extends AbstractAgentFactory {
 
     @Override
     protected boolean toolsEnabled() {
-        return false;
+        return true;
     }
 
     @Override
     protected boolean skillsEnabled() {
-        return false;
+        return true;
     }
 
     @Override
@@ -57,5 +84,17 @@ public class FlashAgentFactory extends AbstractAgentFactory {
     @Override
     protected boolean defaultAgent() {
         return true;
+    }
+
+    @Override
+    protected boolean scheduleEnabled() {
+        return false;
+    }
+
+    @Override
+    protected void registerLocalTools(Toolkit toolkit) {
+        toolkit.registerTool(dataSourceTools);
+        toolkit.registerTool(mysqlQueryTools);
+        toolkit.registerTool(dataExportTools);
     }
 }

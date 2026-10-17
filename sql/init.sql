@@ -26,6 +26,7 @@ CREATE TABLE IF NOT EXISTS t_user (
   status        TINYINT      NOT NULL DEFAULT 1  COMMENT '状态：1正常 0禁用',
   is_admin      TINYINT      NOT NULL DEFAULT 0  COMMENT '1=管理员',
   agents        VARCHAR(200) NOT NULL DEFAULT '' COMMENT '逗号分隔agent名，空=无权限',
+  permissions   VARCHAR(100) NOT NULL DEFAULT '' COMMENT '逗号分隔权限码，空=无权限',
   created_by    VARCHAR(50)  NOT NULL DEFAULT '' COMMENT '创建人',
   updated_by    VARCHAR(50)  NOT NULL DEFAULT '' COMMENT '更新人',
   register_time DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '注册时间',
@@ -144,12 +145,47 @@ CREATE TABLE IF NOT EXISTS t_operation_log (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='操作日志';
 
 -- ------------------------------------------------------------
+-- OAuth 第三方登录绑定表（渠道 openId 与本地用户一一对应）
+-- ------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS t_user_oauth (
+  id          BIGINT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '主键ID',
+  user_id     BIGINT       NOT NULL COMMENT '本地用户ID',
+  channel     VARCHAR(32)  NOT NULL COMMENT '渠道：github 等',
+  open_id     VARCHAR(64)  NOT NULL COMMENT '渠道侧用户唯一标识',
+  create_time DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '绑定时间',
+  PRIMARY KEY (id),
+  UNIQUE KEY uk_channel_open (channel, open_id),
+  KEY idx_user_id (user_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='OAuth 第三方登录绑定';
+
+-- ------------------------------------------------------------
+-- 用户文件（元数据；文件本体在 OSS）
+-- ------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS t_file (
+  id           BIGINT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '主键ID',
+  user_id      BIGINT       NOT NULL COMMENT '上传人',
+  file_name    VARCHAR(255) NOT NULL COMMENT '原文件名',
+  ext          VARCHAR(16)  NOT NULL COMMENT '扩展名',
+  size         BIGINT       NOT NULL COMMENT '字节数',
+  oss_key      VARCHAR(500) NOT NULL COMMENT 'OSS 对象 key',
+  content_type VARCHAR(128) NOT NULL DEFAULT '' COMMENT 'MIME 类型',
+  session_id   VARCHAR(64)  NULL COMMENT '来源会话ID',
+  create_time  DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '上传时间',
+  PRIMARY KEY (id),
+  KEY idx_user_time (user_id, create_time)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='用户文件';
+
+-- ------------------------------------------------------------
 -- 已有库升级（用户管理 + 权限控制新增列/表），已初始化过的库请手工执行：
 --
 --   USE agent_demo;
 --   ALTER TABLE t_user ADD COLUMN is_admin TINYINT NOT NULL DEFAULT 0 COMMENT '1=管理员' AFTER status;
 --   ALTER TABLE t_user ADD COLUMN agents VARCHAR(200) NOT NULL DEFAULT '' COMMENT '逗号分隔agent名，空=无权限' AFTER is_admin;
---   ALTER TABLE t_user ADD COLUMN created_by VARCHAR(50) NOT NULL DEFAULT '' COMMENT '创建人' AFTER agents;
+--   ALTER TABLE t_user ADD COLUMN permissions VARCHAR(100) NOT NULL DEFAULT '' COMMENT '逗号分隔权限码，空=无权限' AFTER agents;
+--   ALTER TABLE t_user ADD COLUMN created_by VARCHAR(50) NOT NULL DEFAULT '' COMMENT '创建人' AFTER permissions;
 --   ALTER TABLE t_user ADD COLUMN updated_by VARCHAR(50) NOT NULL DEFAULT '' COMMENT '更新人' AFTER created_by;
 --   UPDATE t_user SET is_admin = 1 WHERE username = 'admin';
+--
+--   -- OAuth 登录（新增表）
+--   -- 见上方 t_user_oauth 建表语句，已初始化过的库手动执行该段即可。
 -- ------------------------------------------------------------

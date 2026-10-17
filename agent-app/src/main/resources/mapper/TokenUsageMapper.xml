@@ -26,6 +26,13 @@
         ORDER BY bucket
     </select>
 
+    <select id="sumCurrentMonthByAgent" resultType="com.example.agent.vo.AgentUsageRow">
+        SELECT agent_name AS agentName, SUM(input_tokens + output_tokens) AS tokens
+        FROM t_token_usage
+        WHERE user_id = #{userId} AND create_time &gt;= #{start}
+        GROUP BY agent_name
+    </select>
+
     <select id="selectRecent" resultType="com.example.agent.entity.TokenUsage">
         SELECT id,
                user_id          AS userId,
@@ -44,7 +51,6 @@
         FROM t_token_usage
         WHERE user_id = #{userId} AND create_time &gt;= #{start} AND create_time &lt; #{end}
         ORDER BY create_time DESC, id DESC
-        LIMIT 10
     </select>
 
 </mapper>

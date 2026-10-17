@@ -2,8 +2,10 @@
 import { h, onMounted, ref, watch } from 'vue'
 import {
   NButton,
+  NCheckbox,
   NDataTable,
   NInput,
+  NModal,
   NSelect,
   NTag,
   useMessage,
@@ -76,12 +78,51 @@ const TYPE_TAG: Record<string, 'error' | 'info' | 'default'> = { bug: 'error', i
 
 const toggling = ref<number | null>(null)
 
+/* ---- 标记已处理弹框：处理结果（选填）+ 是否通知用户 ---- */
+const doneDialogOpen = ref(false)
+const doneTarget = ref<FeedbackItem | null>(null)
+const doneResult = ref('')
+const doneNotify = ref(true)
+const doneSubmitting = ref(false)
+
+function openDoneDialog(item: FeedbackItem) {
+  doneTarget.value = item
+  doneResult.value = ''
+  doneNotify.value = true
+  doneDialogOpen.value = true
+}
+
+async function submitDone() {
+  const item = doneTarget.value
+  if (!item) return
+  doneSubmitting.value = true
+  try {
+    await setFeedbackStatus({
+      id: item.id,
+      status: 1,
+      result: doneResult.value.trim() || undefined,
+      notify: doneNotify.value,
+    })
+    message.success('已标记为已处理')
+    doneDialogOpen.value = false
+    void load()
+  } catch (error) {
+    message.error(error instanceof Error ? error.message : '操作失败，请稍后重试')
+  } finally {
+    doneSubmitting.value = false
+  }
+}
+
 async function toggleStatus(item: FeedbackItem) {
-  const next = item.status === 1 ? 0 : 1
+  // 标记为已处理走弹框（处理结果 + 是否通知用户）；改回待处理直接调接口
+  if (item.status !== 1) {
+    openDoneDialog(item)
+    return
+  }
   toggling.value = item.id
   try {
-    await setFeedbackStatus({ id: item.id, status: next })
-    message.success(next === 1 ? '已标记为已处理' : '已标记为待处理')
+    await setFeedbackStatus({ id: item.id, status: 0 })
+    message.success('已标记为待处理')
     void load()
   } catch (error) {
     message.error(error instanceof Error ? error.message : '操作失败，请稍后重试')
@@ -192,5 +233,53 @@ onMounted(() => void load())
       }"
       :scroll-x="860"
     />
+
+    <!-- 标记已处理：处理结果（选填）+ 是否通知用户 -->
+    <NModal
+      v-model:show="doneDialogOpen"
+      preset="card"
+      title="标记为已处理"
+      style="width: min(440px, calc(100vw - 32px))"
+    >
+      <div class="done-dialog">
+        <div class="done-quote">{{ doneTarget?.content }}</div>
+        <NInput
+          v-model:value="doneResult"
+          type="textarea"
+          :autosize="{ minRows: 3, maxRows: 6 }"
+          placeholder="处理结果（选填），勾选通知用户时将随系统消息发给对方"
+        />
+        <NCheckbox v-model:checked="doneNotify">发送系统消息通知该用户</NCheckbox>
+        <div class="done-actions">
+          <NButton size="small" @click="doneDialogOpen = false">取消</NButton>
+          <NButton size="small" type="primary" :loading="doneSubmitting" @click="submitDone">
+            确认已处理
+          </NButton>
+        </div>
+      </div>
+    </NModal>
   </div>
 </template>
+
+<style scoped>
+.done-dialog {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.done-quote {
+  padding: 8px 12px;
+  border-left: 3px solid var(--brand-border);
+  background: var(--brand-soft);
+  border-radius: 0 8px 8px 0;
+  font-size: 12.5px;
+  opacity: 0.75;
+}
+
+.done-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+</style>

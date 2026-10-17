@@ -1,17 +1,14 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
-import { NAvatar, NIcon, NTag } from 'naive-ui'
-import {
-  ChevronDownOutline,
-  DocumentOutline,
-  FlashOutline,
-} from '@vicons/ionicons5'
+import { NAvatar, NIcon } from 'naive-ui'
+import { ChevronDownOutline, DocumentOutline } from '@vicons/ionicons5'
 import { formatSize } from '../utils/attachments'
 import { useLightbox } from '../composables/useLightbox'
 import { useAuthStore } from '../stores/auth'
-import type { UserAttachment } from '../utils/model'
+import { mentionIconSvg, parseMentions } from '../utils/mentions'
+import type { PluginMeta, UserAttachment } from '../utils/model'
 
-const props = defineProps<{ text: string; attachments?: UserAttachment[] }>()
+const props = defineProps<{ text: string; attachments?: UserAttachment[]; plugin?: PluginMeta }>()
 
 const { open: openImage } = useLightbox()
 
@@ -20,11 +17,8 @@ const displayName = computed(() => auth.user?.nickname || auth.user?.username ||
 const userAvatar = computed(() => auth.user?.avatar || '')
 const userInitial = computed(() => (displayName.value || 'U').charAt(0).toUpperCase())
 
-/** 技能前缀（/skill:<name>）解析成标签，与正文区分展示 */
-const skillName = computed(() => /^\/skill:([\w-]+)/.exec(props.text)?.[1] ?? null)
-const restText = computed(() =>
-  skillName.value ? props.text.replace(/^\/skill:[\w-]+\s*/, '') : props.text,
-)
+/** 正文按 @skill:<name> / @ds:<id> 分段，技能/数据源渲染为只读标签 */
+const segments = computed(() => parseMentions(props.text))
 
 /** 折叠态最大高度（约 6 行），明显超出才显示展开/收起按钮 */
 const COLLAPSED_HEIGHT = 164
@@ -72,15 +66,25 @@ onBeforeUnmount(() => observer?.disconnect())
           </span>
         </template>
       </div>
-      <div v-if="skillName" class="mb-1">
-        <NTag size="small" :bordered="false" class="skill-tag">
-          <template #icon>
-            <NIcon size="12"><FlashOutline /></NIcon>
-          </template>
-          /skill:{{ skillName }}
-        </NTag>
+      <div v-if="props.plugin" class="mb-1.5">
+        <span class="mention-tag mention-tag--plugin">
+          <span class="mention-icon" v-html="mentionIconSvg('plugin')"></span>
+          <span>{{ props.plugin.name }}</span>
+        </span>
       </div>
-      <span v-if="restText" class="whitespace-pre-wrap break-words">{{ restText }}</span>
+      <div class="msg-text">
+        <template v-for="(seg, i) in segments" :key="i">
+          <span v-if="seg.type === 'skill'" class="mention-tag mention-tag--skill">
+            <span class="mention-icon" v-html="mentionIconSvg('skill')"></span>
+            <span>skill:{{ seg.name }}</span>
+          </span>
+          <span v-else-if="seg.type === 'ds'" class="mention-tag mention-tag--ds">
+            <span class="mention-icon" v-html="mentionIconSvg('ds')"></span>
+            <span>ds:{{ seg.id }}</span>
+          </span>
+          <template v-else>{{ seg.text }}</template>
+        </template>
+      </div>
       <button
         v-if="collapsible"
         type="button"
@@ -94,9 +98,7 @@ onBeforeUnmount(() => observer?.disconnect())
       </button>
       </div>
     </div>
-    <NAvatar round :size="28" :src="userAvatar || undefined" class="user-avatar">
-      {{ userInitial }}
-    </NAvatar>
+    <NAvatar round :size="28" :src="userAvatar || undefined" class="user-avatar" />
   </div>
 </template>
 
@@ -142,6 +144,11 @@ onBeforeUnmount(() => observer?.disconnect())
   overflow: hidden;
 }
 
+.msg-text {
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
 .attach-thumb {
   max-width: 180px;
   max-height: 120px;
@@ -157,11 +164,6 @@ onBeforeUnmount(() => observer?.disconnect())
   border-radius: 6px;
   background: rgba(255, 255, 255, 0.2);
   font-size: 12px;
-}
-
-.skill-tag {
-  background: rgba(255, 255, 255, 0.2);
-  color: #fff;
 }
 
 .bubble-toggle {

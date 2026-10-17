@@ -1,4 +1,4 @@
-export type ToolStatus = 'running' | 'ok' | 'error' | 'none'
+export type ToolStatus = 'running' | 'ok' | 'error' | 'none' | 'confirming' | 'denied'
 
 export interface ThinkingBlockModel {
   kind: 'thinking'
@@ -17,6 +17,8 @@ export interface ToolBlockModel {
   args: string
   output: string
   status: ToolStatus
+  /** 人工确认状态：pending 等待用户选择（confirm-tools 名单内的工具） */
+  confirm?: 'pending' | 'confirmed' | 'rejected'
   open: boolean
 }
 
@@ -25,7 +27,23 @@ export interface TextBlockModel {
   markdown: string
 }
 
-export type AssistantBlock = ThinkingBlockModel | ToolBlockModel | TextBlockModel
+/** 工具调用待确认卡片（agent.confirm-tools 名单内的工具触发） */
+/** 工具调用待确认卡片（agent.confirm-tools 名单内的工具触发）：逐项审批后底部统一提交 */
+export interface ConfirmBlockModel {
+  kind: 'confirm'
+  toolCalls: {
+    id: string
+    name: string
+    input?: Record<string, unknown>
+    content?: string
+    /** 用户逐项审批的勾选结果；提交前为 undefined */
+    decision?: 'approved' | 'rejected'
+  }[]
+  /** pending 等待逐项审批；done 已提交；历史会话里无此块，仅实时出现 */
+  status: 'pending' | 'done'
+}
+
+export type AssistantBlock = ThinkingBlockModel | ToolBlockModel | TextBlockModel | ConfirmBlockModel
 
 export interface UserAttachment {
   id?: string
@@ -35,11 +53,22 @@ export interface UserAttachment {
   url?: string
 }
 
+/** 插件消息回显对象（后端 metadata["plugin"] / 发送时带入 UserTurn） */
+export interface PluginMeta {
+  id: string
+  name: string
+  description: string
+  /** 用户输入的原始消息 */
+  args: string
+}
+
 export interface UserTurn {
   kind: 'user'
   id: string
   text: string
   timestamp: string
+  /** 选中插件的回显对象（/ 唤起，优先执行） */
+  plugin?: PluginMeta
   attachments?: UserAttachment[]
 }
 

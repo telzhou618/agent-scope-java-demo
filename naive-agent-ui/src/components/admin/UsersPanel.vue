@@ -77,6 +77,13 @@ function applySearch() {
 /* ---- Agent 选项（管理员拿到的是全量列表） ---- */
 const agentOptions = ref<AgentInfo[]>([])
 
+/* ---- 权限码中文标签 ---- */
+const PERMISSION_LABELS: Record<string, string> = { schedule: '定时任务', upload_file: '上传文件' }
+
+function permissionLabel(code: string) {
+  return PERMISSION_LABELS[code] ?? code
+}
+
 /* ---- 新建 / 编辑弹窗 ---- */
 interface UserForm {
   id: number | null
@@ -88,6 +95,7 @@ interface UserForm {
   status: number
   isAdmin: boolean
   agents: string[]
+  permissions: string[]
 }
 
 const dialogOpen = ref(false)
@@ -104,6 +112,7 @@ const form = reactive<UserForm>({
   status: 1,
   isAdmin: false,
   agents: [],
+  permissions: [],
 })
 
 const formRules = computed<FormRules>(() => ({
@@ -125,6 +134,7 @@ function resetForm() {
   form.status = 1
   form.isAdmin = false
   form.agents = []
+  form.permissions = []
 }
 
 function openCreate() {
@@ -144,6 +154,7 @@ function openEdit(item: UserManageItem) {
   form.status = item.status
   form.isAdmin = item.isAdmin
   form.agents = [...(item.agents ?? [])]
+  form.permissions = [...(item.permissions ?? [])]
   dialogOpen.value = true
 }
 
@@ -165,6 +176,7 @@ async function submitForm() {
       status: form.status,
       isAdmin: form.isAdmin,
       agents: [...form.agents],
+      permissions: [...form.permissions],
     }
     if (editing.value) {
       payload.id = form.id ?? undefined
@@ -189,6 +201,9 @@ async function submitForm() {
 /* ---- 行操作 ---- */
 /** 当前登录账号本人所在行不允许禁用/删除 */
 const isSelf = (item: UserManageItem) => item.id === auth.user?.id
+
+/** 内置 admin 账号不允许被禁用 */
+const isBuiltinAdminAccount = (item: UserManageItem) => item.username === 'admin'
 
 async function toggleStatus(item: UserManageItem) {
   const next = item.status === 1 ? 0 : 1
@@ -244,6 +259,24 @@ const columns: DataTableColumns<UserManageItem> = [
     },
   },
   {
+    title: '权限',
+    key: 'permissions',
+    width: 120,
+    render: (row) => {
+      if (row.isAdmin) return h(NTag, { size: 'small', type: 'primary', bordered: false }, { default: () => '全部' })
+      if (row.permissions?.length) {
+        return h(
+          'div',
+          { class: 'flex flex-wrap gap-1' },
+          row.permissions.map((code) =>
+            h(NTag, { key: code, size: 'small', bordered: false }, { default: () => permissionLabel(code) }),
+          ),
+        )
+      }
+      return h('span', { class: 'op-45' }, '无')
+    },
+  },
+  {
     title: '状态',
     key: 'status',
     width: 80,
@@ -288,7 +321,7 @@ const columns: DataTableColumns<UserManageItem> = [
                   size: 'tiny',
                   quaternary: true,
                   type: row.status === 1 ? 'warning' : 'success',
-                  disabled: isSelf(row),
+                  disabled: isSelf(row) || (isBuiltinAdminAccount(row) && row.status === 1),
                 },
                 { default: () => (row.status === 1 ? '禁用' : '启用') },
               ),
@@ -371,7 +404,7 @@ onMounted(() => {
           load()
         },
       }"
-      :scroll-x="900"
+      :scroll-x="1000"
     />
 
     <NModal
@@ -435,6 +468,15 @@ onMounted(() => {
             </NCheckboxGroup>
             <span v-if="!agentOptions.length" class="text-xs op-50">暂无可用 Agent</span>
             <span v-else-if="form.isAdmin" class="text-xs op-50">管理员拥有全部 Agent 权限</span>
+          </div>
+        </NFormItem>
+        <NFormItem label="权限">
+          <div class="flex flex-col gap-1">
+            <NCheckboxGroup v-model:value="form.permissions" :disabled="form.isAdmin">
+              <NCheckbox value="schedule">定时任务</NCheckbox>
+              <NCheckbox value="upload_file">上传文件</NCheckbox>
+            </NCheckboxGroup>
+            <span v-if="form.isAdmin" class="text-xs op-50">管理员拥有全部权限</span>
           </div>
         </NFormItem>
       </NForm>

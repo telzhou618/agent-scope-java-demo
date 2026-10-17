@@ -1,7 +1,10 @@
 package com.example.agent.mapper;
 
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
+import com.baomidou.mybatisplus.core.metadata.IPage;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.example.agent.entity.TokenUsage;
+import com.example.agent.vo.AgentUsageRow;
 import com.example.agent.vo.UsageBucketRow;
 import org.apache.ibatis.annotations.Param;
 
@@ -23,10 +26,15 @@ public interface TokenUsageMapper extends BaseMapper<TokenUsage> {
             @Param("start") LocalDateTime start,
             @Param("end") LocalDateTime end);
 
+    List<AgentUsageRow> sumCurrentMonthByAgent(
+            @Param("userId") Long userId,
+            @Param("start") LocalDateTime start);
+
     /**
-     * 区间内按请求时间倒序取最近 10 条
+     * 区间内请求记录，按请求时间倒序分页
      */
-    List<TokenUsage> selectRecent(
+    IPage<TokenUsage> selectRecent(
+            Page<TokenUsage> page,
             @Param("userId") Long userId,
             @Param("start") LocalDateTime start,
             @Param("end") LocalDateTime end);

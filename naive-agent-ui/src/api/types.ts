@@ -25,6 +25,8 @@ export interface UserInfo {
   isAdmin: boolean
   /** 当前用户可用的 Agent 名称列表；管理员为全量 */
   agents: string[]
+  /** 权限码列表（如 schedule）；管理员自动拥有全部 */
+  permissions: string[]
 }
 
 export interface AgentSession {
@@ -53,7 +55,26 @@ export interface AgentInfo {
   mcp: boolean
   skills: boolean
   attachments: boolean
+  /** 是否支持定时任务 */
+  schedule: boolean
   defaultAgent: boolean
+}
+
+/** 本月 token 限额：每个 Agent 的限额与消耗 */
+export interface AgentQuotaItem {
+  name: string
+  displayName: string
+  avatar: string
+  /** 0 = 不限 */
+  quotaTokens: number
+  usedTokens: number
+}
+
+export interface MonthlyQuotaSummary {
+  /** 如 2026-10 */
+  month: string
+  totalTokens: number
+  agents: AgentQuotaItem[]
 }
 
 export type MessageRole = 'USER' | 'ASSISTANT' | 'TOOL' | 'SYSTEM'
@@ -112,10 +133,36 @@ export interface ChatAttachment {
   size: number
 }
 
-/** 已安装技能（/skill:<name> 快捷指令） */
+/** 我的文件 */
+export interface UserFileItem {
+  id: number
+  fileName: string
+  ext: string
+  size: number
+  createTime: string
+  /** OSS 签名下载地址（列表返回时新生成） */
+  downloadUrl: string
+}
+
+/** 已安装技能（@skill:<name>） */
 export interface SkillInfo {
   name: string
   description: string
+}
+
+/** 可查询数据源（@ds:<id>） */
+export interface DatasourceInfo {
+  id: string
+  name: string
+  description: string
+}
+
+/** 插件（/ 唤起，单选） */
+export interface PluginInfo {
+  id: string
+  name: string
+  description: string
+  placeholder: string
 }
 
 export interface ChatRequest {
@@ -123,7 +170,40 @@ export interface ChatRequest {
   sessionId: string
   agentName: string
   requestId?: string
+  /** 插件 id，命中时优先执行插件 */
+  plugin?: string
+  /** 工具确认结果：响应 require_confirm 事件时携带 */
+  confirmResults?: ConfirmResultItem[]
   attachments?: ChatAttachment[]
+}
+
+/** 消息中心条目（列表不含 content，详情含） */
+export interface MessageItem {
+  id: number
+  /** report 定时报告 / system 系统通知 */
+  type: 'report' | 'system'
+  /** 发送方 Agent 名；系统消息为空串 */
+  sender: string
+  title: string
+  content?: string
+  isRead: boolean
+  runStatus: 'success' | 'failed'
+  createTime: string
+}
+
+/** 定时任务 */
+export interface ScheduleTaskItem {
+  id: number
+  agentName: string
+  /** 任务标题（老数据可能为空串） */
+  title: string
+  description: string
+  cron: string
+  /** 1 启用 / 0 停用 */
+  status: number
+  lastRunAt?: string
+  nextRunAt?: string
+  createTime: string
 }
 
 export interface ToolCallInfo {
@@ -133,6 +213,19 @@ export interface ToolCallInfo {
   toolResults?: string
   /** tool_end 时携带：success/error/interrupted/denied */
   state?: string
+  /** require_confirm 时携带：结构化入参（确认后原样回传） */
+  toolInput?: Record<string, unknown>
+  /** require_confirm 时携带：ToolUseBlock 原始 content（确认后原样回传，框架校验需要） */
+  toolContent?: string
+}
+
+/** 工具确认结果（响应 require_confirm 事件） */
+export interface ConfirmResultItem {
+  toolCallId: string
+  toolName: string
+  toolInput?: Record<string, unknown>
+  toolContent?: string
+  confirmed: boolean
 }
 
 export type SseEventType =
@@ -146,6 +239,8 @@ export type SseEventType =
   | 'agent_end'
   /** 轻量提示（如达到最大执行步数） */
   | 'notice'
+  /** 工具调用待用户确认（agent.confirm-tools 名单内） */
+  | 'require_confirm'
 
 export interface AgentSseEvent {
   type: SseEventType
@@ -154,6 +249,8 @@ export interface AgentSseEvent {
   /** agent_result 时携带：最终 Assistant 消息 ID（反馈锚点） */
   messageId?: string
   toolCall?: ToolCallInfo
+  /** require_confirm 时携带：待确认的工具调用列表 */
+  toolCalls?: ToolCallInfo[]
 }
 
 export const isTextBlock = (block: ContentBlock): block is TextBlock =>

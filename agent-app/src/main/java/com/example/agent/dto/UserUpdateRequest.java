@@ -35,6 +35,9 @@ public class UserUpdateRequest {
     @Schema(description = "可用 Agent 名列表，空=无权限；管理员强制为空")
     private List<String> agents;
 
+    @Schema(description = "权限码列表（如 schedule），空=无权限；管理员强制为空")
+    private List<String> permissions;
+
     @Schema(description = "新密码（明文），不填则不修改")
     private String password;
 }

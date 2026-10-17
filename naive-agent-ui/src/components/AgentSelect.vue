@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
-import { NButton, NEmpty, NIcon, NPopover, NTag } from 'naive-ui'
+import { NAvatar, NButton, NEmpty, NIcon, NPopover, NTag } from 'naive-ui'
 import {
   AttachOutline,
   CheckmarkOutline,
@@ -10,6 +10,7 @@ import {
   FlashOutline,
   HardwareChipOutline,
   SparklesOutline,
+  TimeOutline,
 } from '@vicons/ionicons5'
 import { useAgentsStore } from '../stores/agents'
 import { useChatStore } from '../stores/chat'
@@ -22,12 +23,13 @@ const chat = useChatStore()
 const open = ref(false)
 
 /** 能力徽章：支持则实色，不支持灰显 */
-const CAPABILITIES: { key: 'thinking' | 'tools' | 'mcp' | 'skills' | 'attachments'; label: string; icon: typeof SparklesOutline }[] = [
+const CAPABILITIES: { key: 'thinking' | 'tools' | 'mcp' | 'skills' | 'attachments' | 'schedule'; label: string; icon: typeof SparklesOutline }[] = [
   { key: 'thinking', label: '思考', icon: SparklesOutline },
   { key: 'tools', label: '工具', icon: ConstructOutline },
   { key: 'mcp', label: 'MCP', icon: HardwareChipOutline },
   { key: 'skills', label: '技能', icon: FlashOutline },
   { key: 'attachments', label: '附件', icon: AttachOutline },
+  { key: 'schedule', label: '定时任务', icon: TimeOutline },
 ]
 
 /** 主动切换 Agent：回写偏好并开新会话 */
@@ -44,12 +46,13 @@ function onSelect(agent: AgentInfo) {
   <NPopover v-model:show="open" trigger="click" placement="bottom-start" :width="360" raw>
     <template #trigger>
       <NButton size="small" secondary>
-        {{ agents.currentAgent?.displayName || agents.state.current }}
-        <template #icon>
+        <div class="flex items-center gap-1.5">
+          <NAvatar round :size="20" :src="agents.currentAgent?.avatar || undefined" />
+          <span>{{ agents.currentAgent?.displayName || agents.state.current }}</span>
           <NIcon class="transition-transform" :class="{ 'rotate-180': open }">
             <ChevronDownOutline />
           </NIcon>
-        </template>
+        </div>
       </NButton>
     </template>
     <div class="agent-panel">
@@ -63,6 +66,7 @@ function onSelect(agent: AgentInfo) {
         @click="onSelect(agent)"
       >
         <div class="flex items-center gap-2">
+          <NAvatar round size="small" :src="agent.avatar || undefined" />
           <span class="text-sm font-600">{{ agent.displayName || agent.name }}</span>
           <span class="text-xs op-45">{{ agent.model }}</span>
           <NIcon

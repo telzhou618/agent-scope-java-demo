@@ -1,5 +1,5 @@
 import { API_BASE, http } from './http'
-import type { AgentInfo, AgentSession, ChatAttachment, Msg, Result, SkillInfo } from './types'
+import type { AgentInfo, AgentSession, ChatAttachment, Msg, PageResult, Result, SkillInfo } from './types'
 import type { RecentRequestItem, UsageSummary } from '../utils/usage'
 
 /** 可用 Agent 列表（顶栏选择器） */
@@ -31,9 +31,9 @@ export const interrupt = (sessionId: string, agentName: string) =>
 export const getUsageSummary = (params: { start: string; end: string; granularity: 'hour' | 'day' }) =>
   http.get<Result<UsageSummary>>(`${API_BASE}/usage/summary`, { params }).then((r) => r.data.data)
 
-/** 最近请求记录（区间内最近 10 条，按时间倒序） */
-export const getRecentRequests = (params: { start: string; end: string }) =>
-  http.get<Result<RecentRequestItem[]>>(`${API_BASE}/usage/recent`, { params }).then((r) => r.data.data)
+/** 最近请求记录（区间内按时间倒序分页） */
+export const getRecentRequests = (params: { start: string; end: string; page: number; size: number }) =>
+  http.get<Result<PageResult<RecentRequestItem>>>(`${API_BASE}/usage/recent`, { params }).then((r) => r.data.data)
 
 /** 上传附件：按 <userId>/<sessionId>/ 归档，删会话时后端级联删除 */
 export const uploadFile = (file: File, sessionId: string) => {

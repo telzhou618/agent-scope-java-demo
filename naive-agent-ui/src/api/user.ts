@@ -16,6 +16,8 @@ export interface UserManageItem {
   status: number
   isAdmin: boolean
   agents: string[]
+  /** 权限码列表（如 schedule） */
+  permissions: string[]
   createdBy: string
   updatedBy: string
   registerTime: string
@@ -34,6 +36,7 @@ export interface UserSavePayload {
   status?: number
   isAdmin?: boolean
   agents?: string[]
+  permissions?: string[]
 }
 
 /** 用户分页（管理员）；keyword 匹配用户名/昵称/邮箱 */
@@ -95,6 +98,6 @@ export const pageLogs = (params: { page: number; size: number; keyword?: string 
 export const pageFeedbacks = (params: { page: number; size: number; status?: number; keyword?: string }) =>
   http.get<Result<PageResult<FeedbackItem>>>('/user/manage/feedbacks/page', { params }).then((r) => r.data.data)
 
-/** 标记反馈处理状态 */
-export const setFeedbackStatus = (payload: { id: number; status: number }) =>
+/** 标记反馈处理状态；标为已处理时可附带处理结果并选择是否通知用户 */
+export const setFeedbackStatus = (payload: { id: number; status: number; result?: string; notify?: boolean }) =>
   http.post<Result<void>>('/user/manage/feedbacks/status', payload).then((r) => r.data.data)

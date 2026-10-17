@@ -1,41 +1,44 @@
 <script setup lang="ts">
 import { computed, nextTick, ref, watch } from 'vue'
-import { NButton, NIcon, NInput, NTooltip, useMessage } from 'naive-ui'
+import { NButton, NIcon, NTooltip, useMessage } from 'naive-ui'
 import {
   AttachOutline,
+  BulbOutline,
   CloseOutline,
   DocumentOutline,
-  FlashOutline,
   SendOutline,
   StopOutline,
 } from '@vicons/ionicons5'
+import MentionEditor from './MentionEditor.vue'
 import { useComposer } from '../composables/useComposer'
 import { useChatStore } from '../stores/chat'
 import { useAgentsStore } from '../stores/agents'
-import { getSkills } from '../api/agent'
-import type { SkillInfo } from '../api/types'
+import { useAuthStore } from '../stores/auth'
+import { mentionIconSvg } from '../utils/mentions'
+import type { PluginInfo } from '../api/types'
 import { ATTACHMENT_ACCEPT, formatSize } from '../utils/attachments'
 
 const message = useMessage()
 const chat = useChatStore()
 const agents = useAgentsStore()
+const auth = useAuthStore()
 const {
   draft,
   focusToken,
-  skill,
+  plugin,
   attachments,
   uploading,
   uploadError,
   clear,
-  setSkill,
-  clearSkill,
+  setPlugin,
+  clearPlugin,
   attachFiles,
   removeAttachment,
   resetAttachments,
   allUploaded,
 } = useComposer()
 
-const inputRef = ref<InstanceType<typeof NInput> | null>(null)
+const editorRef = ref<InstanceType<typeof MentionEditor> | null>(null)
 const fileInput = ref<HTMLInputElement | null>(null)
 
 // 上传/校验错误统一走全局 message
@@ -45,15 +48,26 @@ watch(uploadError, (value) => {
 
 watch(focusToken, async () => {
   await nextTick()
-  inputRef.value?.focus()
+  editorRef.value?.focus()
 })
+
+const attachmentsEnabled = computed(
+  () =>
+    agents.currentAgent?.attachments !== false &&
+    (auth.user?.isAdmin === true || auth.user?.permissions?.includes('upload_file')),
+)
+/** 思考模式标识：仅当前 Agent 显式开启时展示，纯只读 */
+const thinkingEnabled = computed(() => agents.currentAgent?.thinking === true)
+
+const DEFAULT_PLACEHOLDER = '给 Agent 发消息，输入 / 唤起插件，@ 选择技能和数据源…'
+const placeholderText = computed(() => (plugin.value ? plugin.value.placeholder : DEFAULT_PLACEHOLDER))
 
 const canSend = computed(
   () =>
     !chat.state.streaming &&
     uploading.value === 0 &&
     allUploaded() &&
-    (draft.value.trim().length > 0 || attachments.value.length > 0 || !!skill.value),
+    (draft.value.trim().length > 0 || attachments.value.length > 0 || !!plugin.value),
 )
 
 /** 只有附件没有文字时随附件一起走的默认文案 */
@@ -62,14 +76,20 @@ const DEFAULT_ATTACHMENT_MESSAGE = '请帮我分析这些附件'
 function submit() {
   if (chat.state.streaming || uploading.value > 0) return
   const raw = draft.value.trim()
-  // 选中技能时拼回 /skill:<name> 前缀，后端据此提示 Agent 使用该技能
-  const text = skill.value ? `/skill:${skill.value}${raw ? ' ' + raw : ''}` : raw
-  if (!text && attachments.value.length === 0) return
+  if (!raw && attachments.value.length === 0 && !plugin.value) return
   const list = attachments.value.map((item) => ({ ...item }))
+  const text = raw || (list.length > 0 ? DEFAULT_ATTACHMENT_MESSAGE : '')
+  const selected = plugin.value
+  const pluginMeta = selected
+    ? { id: selected.id, name: selected.name, description: selected.description, args: text }
+    : undefined
   clear()
-  clearSkill()
   resetAttachments()
-  void chat.send(text || DEFAULT_ATTACHMENT_MESSAGE, list)
+  void chat.send(text, list, { plugin: pluginMeta })
+}
+
+function onPluginPick(info: PluginInfo) {
+  setPlugin(info)
 }
 
 function pickFiles() {
@@ -82,141 +102,13 @@ function onPicked(event: Event) {
   target.value = ''
 }
 
-/** 支持直接粘贴剪贴板中的文件（截图、资源管理器里复制的文档等），格式/大小校验交给 attachFiles */
-function onPaste(event: ClipboardEvent) {
-  if (!attachmentsEnabled.value) return
-  const files = Array.from(event.clipboardData?.files ?? [])
-  if (!files.length) return
-  event.preventDefault()
-  attachFiles(files)
-}
-
-/* ---------- 技能快捷指令：输入 / 唤出 ---------- */
-
-/** 能力开关：列表未加载到时按「全部可用」处理，只有显式 false 才隐藏入口 */
-const skillsEnabled = computed(() => agents.currentAgent?.skills !== false)
-const attachmentsEnabled = computed(() => agents.currentAgent?.attachments !== false)
-
-const skills = ref<SkillInfo[]>([])
-let skillsRequested = false
-
-/** 首次输入 / 时才拉取技能列表，之后本地过滤；技能按当前 agent 过滤 */
-async function ensureSkills() {
-  if (skillsRequested) return
-  skillsRequested = true
-  try {
-    skills.value = (await getSkills(agents.state.current || undefined)) ?? []
-  } catch {
-    skillsRequested = false
-  }
-}
-
-// 切换 Agent 后技能缓存作废（不同 agent 的技能集可能不同）；不支持技能时清掉已选技能
-watch(
-  () => agents.state.current,
-  () => {
-    skillsRequested = false
-    skills.value = []
-    if (!skillsEnabled.value) clearSkill()
-  },
-)
-
-/** 正在输入指令：以 / 开头且还没输入空格；已选中技能或当前 agent 不支持技能时不再弹出 */
-const commandQuery = computed(() => {
-  if (!skillsEnabled.value || skill.value) return null
-  const value = draft.value
-  return value.startsWith('/') && !/\s/.test(value) ? value : null
-})
-
-const matchedSkills = computed(() => {
-  const query = commandQuery.value
-  if (query === null) return []
-  // 去掉前导 /（及可选的 skill:），对名称和描述做任意位置子串匹配
-  const needle = query.toLowerCase().replace(/^\//, '').replace(/^skill:/, '')
-  return skills.value.filter(
-    (item) =>
-      item.name.toLowerCase().includes(needle) ||
-      item.description.toLowerCase().includes(needle),
-  )
-})
-
-const activeIndex = ref(0)
-/** ESC 关闭后到下一次按键前不再弹出 */
-const dismissed = ref(false)
-const popupOpen = computed(() => !dismissed.value && matchedSkills.value.length > 0)
-
-watch(commandQuery, (query) => {
-  activeIndex.value = 0
-  if (query !== null) void ensureSkills()
-})
-
-watch(draft, () => {
-  dismissed.value = false
-})
-
-function pickSkill(skillInfo: SkillInfo) {
-  setSkill(skillInfo.name)
-  void nextTick(() => inputRef.value?.focus())
-}
-
-function onKeydown(event: KeyboardEvent) {
-  // 光标在输入框最前面时按退格：整体移除技能标签，而不是逐字母删除
-  if (event.key === 'Backspace' && skill.value) {
-    const el = event.target as HTMLTextAreaElement
-    if (el && el.selectionStart === 0 && el.selectionEnd === 0) {
-      event.preventDefault()
-      clearSkill()
-      return
-    }
-  }
-  if (popupOpen.value) {
-    if (event.key === 'ArrowDown') {
-      event.preventDefault()
-      activeIndex.value = (activeIndex.value + 1) % matchedSkills.value.length
-      return
-    }
-    if (event.key === 'ArrowUp') {
-      event.preventDefault()
-      activeIndex.value =
-        (activeIndex.value - 1 + matchedSkills.value.length) % matchedSkills.value.length
-      return
-    }
-    if (event.key === 'Escape') {
-      event.preventDefault()
-      dismissed.value = true
-      return
-    }
-    if ((event.key === 'Enter' || event.key === 'Tab') && !event.isComposing) {
-      event.preventDefault()
-      pickSkill(matchedSkills.value[activeIndex.value])
-      return
-    }
-  }
-  if (event.key === 'Enter' && !event.shiftKey && !event.isComposing) {
-    event.preventDefault()
-    submit()
-  }
+function onPasteFiles(files: File[]) {
+  if (attachmentsEnabled.value) attachFiles(files)
 }
 </script>
 
 <template>
   <div class="composer">
-    <div v-if="popupOpen" class="skill-popup" role="listbox" aria-label="技能列表">
-      <div
-        v-for="(item, i) in matchedSkills"
-        :key="item.name"
-        class="skill-item"
-        :class="{ active: i === activeIndex }"
-        role="option"
-        :aria-selected="i === activeIndex"
-        @mousedown.prevent="pickSkill(item)"
-        @mouseenter="activeIndex = i"
-      >
-        <span class="skill-cmd">/skill:{{ item.name }}</span>
-        <span class="skill-desc">{{ item.description }}</span>
-      </div>
-    </div>
-
     <div v-if="attachments.length" class="mb-2 flex flex-wrap gap-2">
       <div v-for="a in attachments" :key="a.key" class="attach-chip" :title="a.name">
         <img v-if="a.url" class="chip-thumb" :src="a.url" :alt="a.name" />
@@ -230,27 +122,28 @@ function onKeydown(event: KeyboardEvent) {
       </div>
     </div>
 
-    <div v-if="skill" class="mb-1.5">
-      <span class="skill-tag">
-        <NIcon size="12"><FlashOutline /></NIcon>
-        /skill:{{ skill }}
-        <button class="skill-tag-x" type="button" aria-label="移除技能" @click="clearSkill">
-          <NIcon size="11"><CloseOutline /></NIcon>
-        </button>
+    <div class="composer-input-row">
+      <span v-if="plugin" class="plugin-prefix">
+        <span class="mention-tag mention-tag--plugin">
+          <span class="mention-icon" v-html="mentionIconSvg('plugin')"></span>
+          <span>{{ plugin.name }}</span>
+          <span class="mention-tag-x" role="button" aria-label="移除插件" @click="clearPlugin">×</span>
+        </span>
+        <span class="plugin-colon">：</span>
       </span>
+      <MentionEditor
+        ref="editorRef"
+        v-model="draft"
+        class="flex-1"
+        :placeholder="placeholderText"
+        :plugin-active="!!plugin"
+        @submit="submit"
+        @paste-files="onPasteFiles"
+        @plugin-pick="onPluginPick"
+        @plugin-clear="clearPlugin"
+      />
     </div>
 
-    <!-- 文本区通栏在顶行，按钮收到底行：文本起始 x 与附件图标左缘对齐 -->
-    <NInput
-      ref="inputRef"
-      v-model:value="draft"
-      class="composer-input"
-      type="textarea"
-      :autosize="{ minRows: 2, maxRows: 12 }"
-      placeholder="给 Agent 发消息，输入 / 唤起技能…"
-      @keydown="onKeydown"
-      @paste="onPaste"
-    />
     <div class="composer-bar">
       <NTooltip v-if="attachmentsEnabled">
         <template #trigger>
@@ -261,6 +154,15 @@ function onKeydown(event: KeyboardEvent) {
           </NButton>
         </template>
         添加文件（支持粘贴）
+      </NTooltip>
+      <NTooltip v-if="thinkingEnabled">
+        <template #trigger>
+          <span class="thinking-badge">
+            <NIcon size="13"><BulbOutline /></NIcon>
+            已开启思考
+          </span>
+        </template>
+        当前 Agent 已开启思考模式
       </NTooltip>
       <span class="flex-1" />
       <NTooltip v-if="chat.state.streaming">
@@ -318,21 +220,24 @@ function onKeydown(event: KeyboardEvent) {
     0 6px 20px rgba(15, 23, 42, 0.06);
 }
 
-/* 输入框自身不要再来一层边框/阴影/底色，视觉统一由外层卡片负责 */
-.composer :deep(.n-input) {
-  --n-border: none !important;
-  --n-border-hover: none !important;
-  --n-border-focus: none !important;
-  --n-box-shadow-focus: none !important;
-  --n-color: transparent !important;
-  --n-color-focus: transparent !important;
-  --n-caret-color: var(--brand) !important;
+.composer-input-row {
+  display: flex;
+  align-items: flex-start;
 }
 
-/* 文本起始 x = 卡片内边距（12px），去掉 textarea 自带的左 padding */
-.composer :deep(.composer-input .n-input-wrapper) {
-  padding-left: 0;
-  padding-right: 0;
+.plugin-prefix {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+  margin-right: 4px;
+  padding-top: 2px;
+  font-size: 14px;
+}
+
+.plugin-colon {
+  color: var(--text-faint, #94a3b8);
+  flex-shrink: 0;
 }
 
 .composer-bar {
@@ -345,47 +250,6 @@ function onKeydown(event: KeyboardEvent) {
 /* 圆形按钮图标居中，左移 8px 让图标左缘与上方文本起始线对齐 */
 .bar-btn-left {
   margin-left: -8px;
-}
-
-.skill-popup {
-  position: absolute;
-  left: 8px;
-  right: 8px;
-  bottom: calc(100% + 6px);
-  max-height: 260px;
-  overflow-y: auto;
-  border: 1px solid var(--brand-border);
-  border-radius: 10px;
-  background: var(--surface-elevated);
-  box-shadow: var(--shadow-float);
-  z-index: 20;
-}
-
-.skill-item {
-  display: flex;
-  align-items: baseline;
-  gap: 10px;
-  padding: 8px 12px;
-  cursor: pointer;
-  font-size: 13px;
-}
-
-.skill-item.active {
-  background: var(--brand-soft-strong);
-}
-
-.skill-cmd {
-  font-weight: 600;
-  color: var(--brand);
-  flex-shrink: 0;
-}
-
-.skill-desc {
-  opacity: 0.6;
-  font-size: 12px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }
 
 .attach-chip {
@@ -446,30 +310,19 @@ function onKeydown(event: KeyboardEvent) {
   opacity: 1;
 }
 
-.skill-tag {
+/* 「已开启思考」只读标识 */
+.thinking-badge {
   display: inline-flex;
   align-items: center;
-  gap: 5px;
-  padding: 3px 10px;
+  gap: 4px;
+  margin-left: 6px;
+  padding: 2px 9px;
   border-radius: 999px;
   background: var(--brand-soft-strong);
   color: var(--brand);
-  font-size: 12.5px;
-  font-weight: 600;
-}
-
-.skill-tag-x {
-  display: inline-flex;
-  align-items: center;
-  border: 0;
-  background: transparent;
-  color: inherit;
-  cursor: pointer;
-  padding: 1px;
-  opacity: 0.7;
-}
-
-.skill-tag-x:hover {
-  opacity: 1;
+  font-size: 12px;
+  white-space: nowrap;
+  user-select: none;
+  cursor: default;
 }
 </style>

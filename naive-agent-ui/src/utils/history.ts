@@ -5,7 +5,7 @@ import {
   isToolResultBlock,
   isToolUseBlock,
 } from '../api/types'
-import type { AssistantTurn, ToolBlockModel, Turn, UserAttachment, UserTurn } from './model'
+import type { AssistantTurn, PluginMeta, ToolBlockModel, Turn, UserAttachment, UserTurn } from './model'
 import { fileExt } from './attachments'
 import { prettyJson } from './format'
 
@@ -28,13 +28,20 @@ const toolArgs = (content?: string, input?: Record<string, unknown>): string => 
   return ''
 }
 
-/** 历史 USER 消息里的 ImageBlock → 气泡附件；data 缺失则忽略 */
+/** 历史 USER 消息里的图片块（OSS 签名 URL 优先，兼容 base64）→ 气泡附件 */
 function imageAttachment(block: ContentBlock, seq: number): UserAttachment | null {
-  if (block.type !== 'image') return null
-  const source = (block as { source?: { mediaType?: string; data?: string } }).source
-  const data = typeof source?.data === 'string' ? source.data : ''
+  const source = (block as {
+    source?: { url?: string; mime_type?: string; media_type?: string; data?: string }
+  }).source
+  if (!source) return null
+  if (typeof source.url === 'string' && source.url) {
+    const mediaType = typeof source.mime_type === 'string' ? source.mime_type : 'image/png'
+    const ext = mediaType.replace(/^image\//, '').split(';')[0] || 'png'
+    return { name: `图片-${seq}.${ext}`, ext, size: 0, url: source.url }
+  }
+  const data = typeof source.data === 'string' ? source.data : ''
   if (!data) return null
-  const mediaType = typeof source?.mediaType === 'string' ? source.mediaType : 'image/png'
+  const mediaType = typeof source.media_type === 'string' ? source.media_type : 'image/png'
   const ext = mediaType.replace(/^image\//, '').split(';')[0] || 'png'
   return { name: `图片-${seq}.${ext}`, ext, size: 0, url: `data:${mediaType};base64,${data}` }
 }
@@ -55,9 +62,16 @@ export function toTurns(messages: Msg[]): Turn[] {
 
   for (const message of messages) {
     if (message.role === 'USER' || message.role === 'SYSTEM') {
-      let text = ''
+      const pluginMeta = (message.metadata?.plugin as PluginMeta | undefined) || undefined
+      let text = pluginMeta ? (pluginMeta.args ?? '') : ''
       const attachments: UserAttachment[] = []
       for (const block of message.content ?? []) {
+        if (pluginMeta) {
+          // 插件消息：正文是改写后的内部文案，历史只展示原始消息（metadata.plugin.args）；附件仍还原
+          const image = imageAttachment(block, seq)
+          if (image) attachments.push(image)
+          continue
+        }
         if (isTextBlock(block)) {
           // 附件文本块（【附件：文件名】\n内容）还原成文件 chip，与首次发送的展示一致；
           // 大小未存库传 0，chip 自动不显示大小
@@ -72,13 +86,14 @@ export function toTurns(messages: Msg[]): Turn[] {
         const image = imageAttachment(block, seq)
         if (image) attachments.push(image)
       }
-      if (!text.trim() && attachments.length === 0) continue
+      if (!text.trim() && attachments.length === 0 && !pluginMeta) continue
       const turn: UserTurn = {
         kind: 'user',
         id: message.id || `user-${seq++}`,
         text,
         timestamp: message.timestamp ?? '',
       }
+      if (pluginMeta) turn.plugin = pluginMeta
       if (attachments.length) turn.attachments = attachments.map((item) => ({ ...item }))
       turns.push(turn)
       current = null

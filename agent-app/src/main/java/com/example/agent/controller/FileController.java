@@ -1,21 +1,18 @@
 package com.example.agent.controller;
 
+import cn.dev33.satoken.annotation.SaCheckPermission;
 import cn.dev33.satoken.stp.StpUtil;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.example.agent.annotation.OperationLog;
 import com.example.agent.dto.ChatAttachment;
 import com.example.agent.dto.Result;
-import com.example.agent.error.BizException;
-import com.example.agent.service.DownloadSignService;
 import com.example.agent.service.FileStorageService;
+import com.example.agent.vo.UserFileVO;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.core.io.FileSystemResource;
-import org.springframework.core.io.Resource;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.MediaType;
-import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -24,20 +21,19 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.net.URLEncoder;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Path;
-
+/**
+ * 聊天文件：上传走 OSS，下载统一走 OSS 签名链接（见 FileStorageService）。
+ * 权限：仅拥有「上传文件」权限的用户可访问。
+ */
 @Slf4j
 @RestController
 @AllArgsConstructor
 @RequestMapping("/agent/scope/files")
+@SaCheckPermission("upload_file")
 @Tag(name = "聊天文件")
 public class FileController {
 
     private final FileStorageService fileStorageService;
-
-    private final DownloadSignService downloadSignService;
 
     @Operation(summary = "上传聊天附件")
     @PostMapping("/upload")
@@ -48,23 +44,18 @@ public class FileController {
         return Result.okData(fileStorageService.store(file, userId, sessionId));
     }
 
-    @Operation(summary = "下载数据导出文件（签名链接，有效期内免登录）")
-    @GetMapping("/download/{fileName}")
-    public ResponseEntity<Resource> download(@PathVariable String fileName,
-                                             @RequestParam long expires,
-                                             @RequestParam String sign) {
-        if (!downloadSignService.verify(fileName, expires, sign)) {
-            throw new BizException("下载链接无效或已过期");
-        }
-        Path path = fileStorageService.exportFile(fileName);
-        String encoded = URLEncoder.encode(fileName, StandardCharsets.UTF_8).replace("+", "%20");
-        String mediaType = fileName.toLowerCase().endsWith(".docx")
-                ? "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-                : "text/csv";
-        return ResponseEntity.ok()
-                .contentType(MediaType.parseMediaType(mediaType))
-                .header(HttpHeaders.CONTENT_DISPOSITION,
-                        "attachment; filename=\"" + encoded + "\"; filename*=UTF-8''" + encoded)
-                .body(new FileSystemResource(path));
+    @Operation(summary = "我的文件列表（分页）")
+    @GetMapping("/my/list")
+    public Result<Page<UserFileVO>> myFiles(@RequestParam(defaultValue = "1") long page,
+                                            @RequestParam(defaultValue = "10") long size) {
+        return Result.okData(fileStorageService.pageMine(StpUtil.getLoginIdAsLong(), page, size));
+    }
+
+    @Operation(summary = "删除我的文件")
+    @DeleteMapping("/{id}")
+    @OperationLog("删除文件")
+    public Result<Void> delete(@PathVariable Long id) {
+        fileStorageService.deleteMine(StpUtil.getLoginIdAsLong(), id);
+        return Result.ok();
     }
 }

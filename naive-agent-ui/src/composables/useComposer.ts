@@ -2,16 +2,16 @@ import { ref } from 'vue'
 import { uploadFile } from '../api/agent'
 import { ApiError } from '../api/http'
 import { useChatStore } from '../stores/chat'
-import type { ChatAttachment } from '../api/types'
+import type { ChatAttachment, PluginInfo } from '../api/types'
 import { MAX_ATTACHMENTS, MAX_FILE_SIZE, attachmentKind, fileExt, isAllowedExt, type ComposerAttachment } from '../utils/attachments'
 
 const draft = ref('')
 const focusToken = ref(0)
-/** 当前选中的技能名（/skill:<name>），发送时拼回消息前缀 */
-const skill = ref<string | null>(null)
 const attachments = ref<ComposerAttachment[]>([])
 const uploading = ref(0)
 const uploadError = ref('')
+/** 当前选中的插件（/ 唤起，单选） */
+const plugin = ref<PluginInfo | null>(null)
 
 let keySeq = 0
 
@@ -27,7 +27,9 @@ function upload(item: ComposerAttachment, file: File) {
   // 后端按 <userId>/<sessionId>/ 归档；新会话还没发首条消息时用 store 预生成的 pending id
   uploadFile(file, useChatStore().ensureSessionId())
     .then((res) => {
-      item.id = res.id
+      // 必须通过响应式数组里的代理回填：直接改闭包里的原始对象不会触发视图更新，进度圈会一直转
+      const stored = attachments.value.find((a) => a.key === item.key)
+      if (stored) stored.id = res.id
     })
     .catch((error) => {
       const index = attachments.value.indexOf(item)
@@ -44,18 +46,10 @@ export function useComposer() {
   return {
     draft,
     focusToken,
-    skill,
+    plugin,
     attachments,
     uploading,
     uploadError,
-    /** 选中技能：输入框只保留参数文本，技能以标签形式展示 */
-    setSkill(name: string) {
-      skill.value = name
-      draft.value = ''
-    },
-    clearSkill() {
-      skill.value = null
-    },
     /** 由推荐卡片填入输入框并聚焦 */
     fill(text: string) {
       draft.value = text
@@ -65,8 +59,15 @@ export function useComposer() {
     focus() {
       focusToken.value += 1
     },
+    setPlugin(info: PluginInfo) {
+      plugin.value = info
+    },
+    clearPlugin() {
+      plugin.value = null
+    },
     clear() {
       draft.value = ''
+      plugin.value = null
     },
     attachFiles(list: FileList | File[]) {
       const files = Array.from(list)

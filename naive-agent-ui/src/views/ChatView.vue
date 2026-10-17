@@ -1,20 +1,44 @@
 <script setup lang="ts">
-import { nextTick, ref, watch } from 'vue'
+import { computed, nextTick, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
-import { NAlert, NButton, NEmpty, NIcon, NSpin } from 'naive-ui'
-import { ArrowDownOutline, ChatbubblesOutline } from '@vicons/ionicons5'
+import { NAlert, NAvatar, NButton, NIcon, NSpin, NTag } from 'naive-ui'
+import {
+  ArrowDownOutline,
+  AttachOutline,
+  ConstructOutline,
+  FlashOutline,
+  HardwareChipOutline,
+  SparklesOutline,
+  TimeOutline,
+} from '@vicons/ionicons5'
 import AssistantTurn from '../components/AssistantTurn.vue'
 import ChatActionRail from '../components/ChatActionRail.vue'
 import ChatComposer from '../components/ChatComposer.vue'
 import UserBubble from '../components/UserBubble.vue'
 import { useChatStore } from '../stores/chat'
+import { useAgentsStore } from '../stores/agents'
 import { useWideMode } from '../composables/useWideMode'
 
 const route = useRoute()
 const chat = useChatStore()
+const agents = useAgentsStore()
 const { wide } = useWideMode()
 
 const listRef = ref<HTMLElement | null>(null)
+
+/** 能力徽章：欢迎页展示当前 Agent 的能力（支持实色，不支持灰显） */
+const CAPABILITIES: { key: 'thinking' | 'tools' | 'mcp' | 'skills' | 'attachments' | 'schedule'; label: string; icon: typeof SparklesOutline }[] = [
+  { key: 'thinking', label: '思考', icon: SparklesOutline },
+  { key: 'tools', label: '工具', icon: ConstructOutline },
+  { key: 'mcp', label: 'MCP', icon: HardwareChipOutline },
+  { key: 'skills', label: '技能', icon: FlashOutline },
+  { key: 'attachments', label: '附件', icon: AttachOutline },
+  { key: 'schedule', label: '定时任务', icon: TimeOutline },
+]
+
+const agentInitial = computed(() =>
+  (agents.currentAgent?.displayName || agents.state.current || 'A').charAt(0).toUpperCase(),
+)
 
 /**
  * 流式跟随：following=true 时每次回合更新都滚到底；
@@ -90,21 +114,36 @@ watch(
       <NAlert v-else-if="chat.state.messagesError" type="error" :bordered="false" class="my-4">
         {{ chat.state.messagesError }}
       </NAlert>
-      <NEmpty
-        v-else-if="chat.state.turns.length === 0"
-        class="py-24"
-        description="开始一段新对话吧"
-      >
-        <template #icon>
-          <NIcon size="48" :depth="3"><ChatbubblesOutline /></NIcon>
-        </template>
-      </NEmpty>
+      <div v-else-if="chat.state.turns.length === 0" class="welcome">
+        <NAvatar round :size="64" :src="agents.currentAgent?.avatar || undefined" />
+        <div class="welcome-name">{{ agents.currentAgent?.displayName || agents.state.current || 'Agent' }}</div>
+        <div v-if="agents.currentAgent?.description" class="welcome-desc">
+          {{ agents.currentAgent.description }}
+        </div>
+        <div v-if="agents.currentAgent" class="welcome-caps">
+          <NTag
+            v-for="cap in CAPABILITIES"
+            :key="cap.key"
+            size="small"
+            round
+            :bordered="false"
+            :type="agents.currentAgent?.[cap.key] ? 'primary' : 'default'"
+            :disabled="!agents.currentAgent?.[cap.key]"
+          >
+            <template #icon>
+              <NIcon size="13"><component :is="cap.icon" /></NIcon>
+            </template>
+            {{ cap.label }}
+          </NTag>
+        </div>
+      </div>
 
       <div v-else class="flex flex-col gap-5">
         <template v-for="turn in chat.state.turns" :key="turn.id">
           <UserBubble
             v-if="turn.kind === 'user'"
             :text="turn.text"
+            :plugin="turn.plugin"
             :attachments="turn.attachments"
           />
           <AssistantTurn v-else :turn="turn" />
@@ -138,6 +177,33 @@ watch(
 </template>
 
 <style scoped>
+.welcome {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 64px 24px;
+  text-align: center;
+}
+
+.welcome-name {
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.welcome-desc {
+  font-size: 13px;
+  opacity: 0.6;
+  max-width: 420px;
+}
+
+.welcome-caps {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  justify-content: center;
+}
+
 .back-to-bottom {
   position: fixed;
   right: 20px;

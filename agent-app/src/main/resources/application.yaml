@@ -21,6 +21,19 @@ spring:
       max-file-size: 10MB
       max-request-size: 20MB
 
+  # Quartz 定时任务：JDBC JobStore 持久化到 MySQL（表结构见 sql/schedule.sql），单实例不集群
+  quartz:
+    job-store-type: jdbc
+    jdbc:
+      initialize-schema: never
+    properties:
+      org:
+        quartz:
+          scheduler:
+            instanceName: agent-demo
+          jobStore:
+            isClustered: false
+
   ai:
     dashscope:
       api-key: ${YOKA_DASHSCOPE_API_KEY}
@@ -29,10 +42,13 @@ spring:
 agents:
   flash:
     model: ${AGENT_FLASH_MODEL:qwen3.7-flash}
+    monthly-token-quota: ${AGENT_FLASH_MONTHLY_QUOTA:1000000}
   plus:
     model: ${AGENT_PLUS_MODEL:qwen3.7-plus}
+    monthly-token-quota: ${AGENT_PLUS_MONTHLY_QUOTA:1000000}
   max:
     model: ${AGENT_MAX_MODEL:qwen3.7-max}
+    monthly-token-quota: ${AGENT_MAX_MONTHLY_QUOTA:1000000}
 
 # MCP Server 连接配置
 mcp:
@@ -63,22 +79,54 @@ usage:
   output-price-per-million: 24
   price:
     qwen3.7-flash:
-      input: 1
-      output: 4
+      input: 1.2
+      output: 4.8
     qwen3.7-plus:
       input: 6
       output: 24
     qwen3.7-max:
-      input: 24
-      output: 96
+      input: 12
+      output: 36
 
-# 聊天附件存储目录
+# 文件存储（阿里云 OSS，私有桶 + 签名访问）
 agent:
-  upload:
-    dir: ./files-uploads
-  # 导出文件下载链接签名密钥，生产环境用环境变量覆盖
-  download:
-    secret: ${DOWNLOAD_SIGN_SECRET:dev-download-secret}
+  # 可查询的业务数据源（多数据源）：数据库工具按 id 选择数据源查询，密码用环境变量占位
+  datasources:
+    - id: agent-demo
+      name: 应用主库
+      description: agent_demo 主库的示例数据源，包含用户、消息、定时任务等表
+      driver-class-name: com.mysql.cj.jdbc.Driver
+      url: jdbc:mysql://localhost:3306/agent_demo?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai&useSSL=false&allowPublicKeyRetrieval=true
+      username: root
+      password: ${MYSQL_PASSWORD:root}
+  storage:
+    oss:
+      endpoint: ${OSS_ENDPOINT:}
+      access-key-id: ${OSS_ACCESS_KEY_ID:}
+      access-key-secret: ${OSS_ACCESS_KEY_SECRET:}
+      bucket: ${OSS_BUCKET:}
+      # 私有对象签名下载链接有效期（秒），默认 7 天
+      presign-seconds: ${OSS_PRESIGN_SECONDS:604800}
+      # 公开读对象的固定访问地址（头像等），不加签名
+      public-base-url: ${OSS_PUBLIC_BASE_URL:https://cf-resources.sanguosha.cn}
+  # 需要人工确认的工具名单，这些工具被调用时 Agent 挂起，前端弹确认卡，用户确认后才执行
+  confirm-tools: ${AGENT_CONFIRM_TOOLS:delete_schedule,trigger_schedule}
+  # / 插件：各插件独立开关
+  plugins:
+    schedule:
+      enabled: ${PLUGIN_SCHEDULE_ENABLED:true}
+    monthly-quota:
+      enabled: ${PLUGIN_MONTHLY_QUOTA_ENABLED:true}
+    export-csv:
+      enabled: ${PLUGIN_EXPORT_CSV_ENABLED:true}
+  # 第三方 OAuth 登录：各渠道独立开关，未开启的渠道不注册、不暴露
+  oauth:
+    frontend-redirect: ${OAUTH_FRONTEND_REDIRECT:http://localhost:5177}
+    github:
+      enabled: ${OAUTH_GITHUB_ENABLED:true}
+      client-id: ${GITHUB_CLIENT_ID:}
+      client-secret: ${GITHUB_CLIENT_SECRET:}
+      redirect-uri: ${OAUTH_GITHUB_REDIRECT_URI:http://localhost:8082/auth/oauth/github/callback}
 
 
 # 接口分组配置
@@ -88,3 +136,9 @@ springdoc:
       display-name: 'Agent'
       paths-to-match: '/**'
       packages-to-scan: 'com.example.agent.controller'
+
+# 日志配置
+logging:
+  level:
+    root: INFO
+    com.example: DEBUG

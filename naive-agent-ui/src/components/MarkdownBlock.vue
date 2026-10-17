@@ -1,13 +1,17 @@
 <script setup lang="ts">
 import { onBeforeUnmount, ref, watch } from 'vue'
-import { renderMarkdown } from '../utils/markdown'
+import { renderMarkdown, renderMarkdownForShare } from '../utils/markdown'
 import { copyText, flashLabel } from '../utils/clipboard'
 import { useLightbox } from '../composables/useLightbox'
 import ChartBlock from './ChartBlock.vue'
 
-const props = defineProps<{ markdown: string; streaming?: boolean }>()
+const props = defineProps<{ markdown: string; streaming?: boolean; noLinks?: boolean }>()
 
 const { open: openImage } = useLightbox()
+
+/** 分享页模式：链接降级为纯文本，禁止跳转/下载 */
+const renderMd = (markdown: string) =>
+  props.noLinks ? renderMarkdownForShare(markdown) : renderMarkdown(markdown)
 
 let timer: number | null = null
 
@@ -19,19 +23,19 @@ type Segment = { kind: 'html'; html: string } | { kind: 'chart'; config: string 
 
 const ECHARTS_FENCE = /```echarts[^\S\n]*\n([\s\S]*?)(?:\n```|$)/g
 
-function splitSegments(markdown: string): Segment[] {
+function splitSegments(markdown: string, render: (md: string) => string): Segment[] {
   const segments: Segment[] = []
   let last = 0
   for (const match of markdown.matchAll(ECHARTS_FENCE)) {
     const index = match.index ?? 0
     if (index > last) {
-      segments.push({ kind: 'html', html: renderMarkdown(markdown.slice(last, index)) })
+      segments.push({ kind: 'html', html: render(markdown.slice(last, index)) })
     }
     segments.push({ kind: 'chart', config: match[1].trim() })
     last = index + match[0].length
   }
   if (last < markdown.length) {
-    segments.push({ kind: 'html', html: renderMarkdown(markdown.slice(last)) })
+    segments.push({ kind: 'html', html: render(markdown.slice(last)) })
   }
   return segments
 }
@@ -76,17 +80,17 @@ let cache: { prefix: string; segments: Segment[] } = { prefix: '', segments: [] 
 
 function render(markdown: string): Segment[] {
   const fenceStart = unclosedFenceStart(markdown)
-  if (fenceStart <= 0) return splitSegments(markdown)
+  if (fenceStart <= 0) return splitSegments(markdown, renderMd)
   const prefix = markdown.slice(0, fenceStart)
   const tail = markdown.slice(fenceStart)
-  if (REF_DEFINITION.test(tail)) return splitSegments(markdown)
+  if (REF_DEFINITION.test(tail)) return splitSegments(markdown, renderMd)
   if (cache.prefix !== prefix) {
-    cache = { prefix, segments: splitSegments(prefix) }
+    cache = { prefix, segments: splitSegments(prefix, renderMd) }
   }
-  return [...cache.segments, ...splitSegments(tail)]
+  return [...cache.segments, ...splitSegments(tail, renderMd)]
 }
 
-const rendered = ref<Segment[]>(splitSegments(props.markdown))
+const rendered = ref<Segment[]>(splitSegments(props.markdown, renderMd))
 
 // 流式增量很密，节流到 50ms 再跑一次 Markdown 解析
 watch(
@@ -110,7 +114,7 @@ watch(
       timer = null
     }
     cache = { prefix: '', segments: [] }
-    rendered.value = splitSegments(props.markdown)
+    rendered.value = splitSegments(props.markdown, renderMd)
   },
 )
 
@@ -118,11 +122,44 @@ onBeforeUnmount(() => {
   if (timer !== null) window.clearTimeout(timer)
 })
 
+/** 取按钮所在代码卡的源码文本（DOM 自动反转义） */
+function codeTextOf(button: HTMLElement): string {
+  return button.closest('.md-code')?.querySelector('code')?.textContent ?? ''
+}
+
+/** 在新标签页运行 html：blob URL + noopener；延时回收，给新标签页加载留时间 */
+function runHtml(code: string) {
+  if (!code) return
+  const url = URL.createObjectURL(new Blob([code], { type: 'text/html' }))
+  window.open(url, '_blank', 'noopener')
+  window.setTimeout(() => URL.revokeObjectURL(url), 60_000)
+}
+
+function downloadHtml(code: string) {
+  if (!code) return
+  const url = URL.createObjectURL(new Blob([code], { type: 'text/html' }))
+  const link = document.createElement('a')
+  link.href = url
+  link.download = `agent-${Date.now()}.html`
+  link.click()
+  window.setTimeout(() => URL.revokeObjectURL(url), 60_000)
+}
+
 function onClick(event: MouseEvent) {
   const target = event.target as HTMLElement | null
   // 正文里的图片：点击弹层放大查看
   if (target instanceof HTMLImageElement && target.src) {
     openImage(target.src, target.alt)
+    return
+  }
+  const runButton = target?.closest<HTMLElement>('[data-run]')
+  if (runButton) {
+    runHtml(codeTextOf(runButton))
+    return
+  }
+  const downloadButton = target?.closest<HTMLElement>('[data-download-html]')
+  if (downloadButton) {
+    downloadHtml(codeTextOf(downloadButton))
     return
   }
   const button = target?.closest<HTMLElement>('[data-copy]')

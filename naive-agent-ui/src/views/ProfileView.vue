@@ -1,6 +1,5 @@
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue'
-import { useRouter } from 'vue-router'
+import { computed, onMounted, ref, watch } from 'vue'
 import {
   NAvatar,
   NButton,
@@ -9,6 +8,7 @@ import {
   NDatePicker,
   NEmpty,
   NIcon,
+  NProgress,
   NSelect,
   NSpin,
   NText,
@@ -20,8 +20,11 @@ import {
 } from '@vicons/ionicons5'
 import EditProfileDialog from '../components/EditProfileDialog.vue'
 import PasswordDialog from '../components/PasswordDialog.vue'
+import { useWideMode } from '../composables/useWideMode'
 import { useAuthStore } from '../stores/auth'
-import { getRecentRequests, getUsageSummary } from '../api/agent'
+import { agentShortLabel, useAgentsStore } from '../stores/agents'
+import type { AgentQuotaItem, MonthlyQuotaSummary } from '../api/types'
+import { getMonthlyQuota, getRecentRequests, getUsageSummary } from '../api/agent'
 import { formatInt, formatMoney, formatTokens } from '../utils/format'
 import {
   RANGE_OPTIONS,
@@ -35,12 +38,16 @@ import {
 } from '../utils/usage'
 
 const auth = useAuthStore()
-const router = useRouter()
+const { wide } = useWideMode()
 
 const displayName = computed(() => auth.user?.nickname || auth.user?.username || '未登录')
 
 const editProfileOpen = ref(false)
 const passwordOpen = ref(false)
+
+/* ---- 本月 token 额度 ---- */
+const quota = ref<MonthlyQuotaSummary | null>(null)
+const loadingQuota = ref(false)
 
 /* ---- 用量统计 ---- */
 const rangeKey = ref<RangeKey>('thisMonth')
@@ -48,7 +55,11 @@ const custom = ref<[number, number] | null>(defaultCustomRange())
 const usage = ref<UsageSummary | null>(null)
 const loadingUsage = ref(false)
 
+/* ---- 最近请求记录（服务端分页） ---- */
+const RECENT_PAGE_SIZE = 10
 const recent = ref<RecentRequestItem[]>([])
+const recentPage = ref(1)
+const recentTotal = ref(0)
 const loadingRecent = ref(false)
 
 const rangeOptions = RANGE_OPTIONS.map((option) => ({ label: option.label, value: option.key }))
@@ -73,17 +84,68 @@ async function loadRecent() {
   const { start, end } = resolveBounds(rangeKey.value, custom.value)
   loadingRecent.value = true
   try {
-    recent.value = (await getRecentRequests({ start: toDateInput(start), end: toDateInput(end) })) ?? []
+    const result = await getRecentRequests({
+      start: toDateInput(start),
+      end: toDateInput(end),
+      page: recentPage.value,
+      size: RECENT_PAGE_SIZE,
+    })
+    recent.value = result?.records ?? []
+    recentTotal.value = result?.total ?? 0
+    const totalPages = Math.max(1, Math.ceil(recentTotal.value / RECENT_PAGE_SIZE))
+    if (recentPage.value > totalPages) {
+      recentPage.value = totalPages
+      return loadRecent()
+    }
   } catch {
     recent.value = []
+    recentTotal.value = 0
   } finally {
     loadingRecent.value = false
   }
 }
 
+async function loadQuota() {
+  loadingQuota.value = true
+  try {
+    quota.value = await getMonthlyQuota()
+  } catch {
+    quota.value = null
+  } finally {
+    loadingQuota.value = false
+  }
+}
+
+function quotaPercent(item: AgentQuotaItem): number {
+  if (!item.quotaTokens || item.quotaTokens <= 0) return 0
+  return Math.min(100, Math.round((item.usedTokens / item.quotaTokens) * 100))
+}
+
+const totalQuota = computed(() => {
+  const agents = quota.value?.agents ?? []
+  if (agents.some((item) => !item.quotaTokens || item.quotaTokens <= 0)) return null
+  return agents.reduce((sum, item) => sum + item.quotaTokens, 0)
+})
+
+const totalQuotaText = computed(() =>
+  totalQuota.value === null ? '不限' : formatTokens(totalQuota.value),
+)
+
+function quotaColor(item: AgentQuotaItem): string {
+  const percent = quotaPercent(item)
+  if (percent >= 85) return '#e5484d'
+  if (percent >= 60) return '#f0a020'
+  return '#18a058'
+}
+
+onMounted(() => {
+  void loadQuota()
+})
+
 watch(
   [rangeKey, custom],
   () => {
+    recentPage.value = 1
     void loadUsage()
     void loadRecent()
   },
@@ -127,6 +189,12 @@ const axisLabels = computed(() => {
 })
 
 /* ---- 最近请求表 ---- */
+const agentsStore = useAgentsStore()
+function agentNameLabel(name?: string): string {
+  if (!name) return '—'
+  return agentsStore.state.agents.find((item) => item.name === name)?.displayName || agentShortLabel(name)
+}
+
 /** createTime 是 ISO LocalDateTime（含 T），只展示到秒 */
 const formatTime = (value: string) => value.replace('T', ' ').slice(0, 19)
 
@@ -136,6 +204,12 @@ const recentColumns: DataTableColumns<RecentRequestItem> = [
     key: 'createTime',
     width: 165,
     render: (row) => formatTime(row.createTime),
+  },
+  {
+    title: 'Agent',
+    key: 'agentName',
+    width: 120,
+    render: (row) => agentNameLabel(row.agentName),
   },
   {
     title: '请求 ID',
@@ -173,79 +247,123 @@ const recentColumns: DataTableColumns<RecentRequestItem> = [
     render: (row) => formatMoney(row.cost),
   },
 ]
-
-/** 行点击：跳到对应会话（没有 sessionId 的行不可点） */
-function rowProps(row: RecentRequestItem) {
-  return {
-    style: row.sessionId ? 'cursor: pointer;' : '',
-    title: row.sessionId ? '打开对应会话' : undefined,
-    onClick: () => {
-      if (row.sessionId) void router.push(`/chat/${row.sessionId}`)
-    },
-  }
-}
 </script>
 
 <template>
   <div class="p-4 pb-12 md:p-6 md:pb-12">
-    <div class="max-w-4xl mx-auto flex flex-col gap-4">
-      <!-- 身份卡 -->
-      <NCard>
-        <div class="flex items-center gap-4 flex-wrap">
-          <NAvatar round :size="56" :src="auth.user?.avatar || undefined">
-            {{ displayName.charAt(0) }}
-          </NAvatar>
-          <div class="min-w-0 flex-1">
-            <div class="text-lg font-600 truncate">{{ displayName }}</div>
-            <NText depth="3" class="text-sm">@{{ auth.user?.username }} · {{ auth.user?.email || '—' }}</NText>
+    <div class="mx-auto flex flex-col gap-5" :class="wide ? 'max-w-[1200px]' : 'max-w-[800px]'">
+      <!-- 身份（Hero） -->
+      <div class="hero">
+        <span class="hero-avatar">
+          <NAvatar round :size="64" :src="auth.user?.avatar || undefined" />
+        </span>
+        <div class="min-w-0">
+          <div class="flex items-center gap-2 flex-wrap">
+            <span class="hero-name truncate">{{ displayName }}</span>
+            <span v-if="auth.user?.isAdmin" class="badge">管理员</span>
           </div>
-          <div class="flex gap-2">
-            <NButton secondary @click="editProfileOpen = true">
-              <template #icon>
-                <NIcon><PersonOutline /></NIcon>
-              </template>
-              编辑资料
-            </NButton>
-            <NButton secondary @click="passwordOpen = true">
-              <template #icon>
-                <NIcon><KeyOutline /></NIcon>
-              </template>
-              修改密码
-            </NButton>
-          </div>
+          <div class="hero-meta">@{{ auth.user?.username }} · {{ auth.user?.email || '—' }}</div>
         </div>
-      </NCard>
+        <span class="flex-1" />
+        <div class="hero-actions">
+          <NButton size="small" secondary @click="passwordOpen = true">
+            <template #icon>
+              <NIcon><KeyOutline /></NIcon>
+            </template>
+            修改密码
+          </NButton>
+          <NButton size="small" type="primary" @click="editProfileOpen = true">
+            <template #icon>
+              <NIcon><PersonOutline /></NIcon>
+            </template>
+            编辑资料
+          </NButton>
+        </div>
+      </div>
 
       <EditProfileDialog v-model:show="editProfileOpen" />
       <PasswordDialog v-model:show="passwordOpen" />
 
-      <!-- 用量统计 -->
-      <NCard>
-        <div class="flex items-center gap-3 flex-wrap mb-4">
-          <span class="text-base font-600">用量与费用</span>
-          <span class="flex-1" />
-          <NDatePicker
-            v-if="rangeKey === 'custom'"
-            v-model:value="custom"
-            type="daterange"
-            size="small"
-            clearable
-            class="max-w-60"
-          />
-          <NSelect
-            v-model:value="rangeKey"
-            :options="rangeOptions"
-            size="small"
-            class="w-32"
-            :consistent-menu-width="false"
-          />
+      <!-- 本月 Token 额度 -->
+      <NCard bordered>
+        <div class="section-head">
+          <div>
+            <div class="section-title">本月 Token 额度</div>
+            <div class="section-sub">{{ quota?.month || '' }}</div>
+          </div>
+          <div class="flex items-center gap-6">
+            <div class="stat-inline">
+              <div class="stat-inline-label">本月总消耗</div>
+              <div class="stat-inline-value">{{ formatTokens(quota?.totalTokens ?? 0) }}</div>
+            </div>
+            <div class="stat-inline">
+              <div class="stat-inline-label">总 Token 额度</div>
+              <div class="stat-inline-value">{{ totalQuotaText }}</div>
+            </div>
+          </div>
+        </div>
+
+        <div v-if="loadingQuota" class="flex justify-center py-6">
+          <NSpin size="small" />
+        </div>
+        <div v-else-if="quota" class="grid grid-cols-3 gap-3">
+          <div v-for="item in quota.agents" :key="item.name" class="stat-card">
+            <div class="flex items-center gap-3 mb-3">
+              <NAvatar round :size="36" :src="item.avatar || undefined" />
+              <div class="min-w-0">
+                <div class="text-sm font-600 truncate">{{ item.displayName }}</div>
+                <div class="text-xs op-45">{{ item.name }}</div>
+              </div>
+            </div>
+            <NProgress
+              v-if="item.quotaTokens > 0"
+              type="line"
+              :percentage="quotaPercent(item)"
+              :color="quotaColor(item)"
+              :height="8"
+              :show-indicator="false"
+              :border-radius="4"
+              class="mb-2"
+            />
+            <div v-else class="text-xs op-45 mb-2">不限</div>
+            <div class="flex items-baseline justify-between gap-2" style="font-variant-numeric: tabular-nums">
+              <span v-if="item.quotaTokens > 0" class="font-700" :style="{ color: quotaColor(item) }">{{ quotaPercent(item) }}%</span>
+              <span v-else class="font-700">不限</span>
+              <span class="text-xs op-45">{{ item.quotaTokens > 0 ? `${formatTokens(item.usedTokens)} / ${formatTokens(item.quotaTokens)}` : '' }}</span>
+            </div>
+          </div>
+        </div>
+        <div v-else class="text-sm op-45 py-2">暂无额度信息</div>
+      </NCard>
+
+      <!-- 用量与费用 -->
+      <NCard bordered>
+        <div class="section-head">
+          <div class="section-title">用量与费用</div>
+          <div class="flex items-center gap-2">
+            <NDatePicker
+              v-if="rangeKey === 'custom'"
+              v-model:value="custom"
+              type="daterange"
+              size="small"
+              clearable
+              class="max-w-60"
+            />
+            <NSelect
+              v-model:value="rangeKey"
+              :options="rangeOptions"
+              size="small"
+              class="w-32"
+              :consistent-menu-width="false"
+            />
+          </div>
         </div>
 
         <div v-if="loadingUsage && !usage" class="flex justify-center py-10">
           <NSpin />
         </div>
         <template v-else-if="usage">
-          <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-6">
+          <div class="grid grid-cols-3 gap-3 mb-6">
             <div class="stat-card">
               <div class="stat-label">消费金额</div>
               <div class="stat-value">{{ formatMoney(usage.totals.cost) }}<span class="stat-unit">CNY</span></div>
@@ -302,14 +420,26 @@ function rowProps(row: RecentRequestItem) {
       </NCard>
 
       <!-- 最近请求 -->
-      <NCard title="最近请求记录">
+      <NCard bordered>
+        <div class="section-head">
+          <div class="section-title">最近请求记录</div>
+        </div>
         <NDataTable
+          remote
           :columns="recentColumns"
           :data="recent"
           :loading="loadingRecent"
-          :row-props="rowProps"
           :bordered="false"
           size="small"
+          :pagination="{
+            page: recentPage,
+            pageSize: RECENT_PAGE_SIZE,
+            itemCount: recentTotal,
+            onUpdatePage: (next: number) => {
+              recentPage = next
+              loadRecent()
+            },
+          }"
         />
       </NCard>
     </div>
@@ -317,20 +447,98 @@ function rowProps(row: RecentRequestItem) {
 </template>
 
 <style scoped>
+.hero {
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  gap: 22px;
+  flex-wrap: wrap;
+  padding: 26px 28px;
+  border-radius: 18px;
+  border: 1px solid var(--divider);
+  background:
+    radial-gradient(120% 170% at 0% 0%, rgba(99, 102, 241, 0.13), rgba(99, 102, 241, 0) 58%),
+    radial-gradient(120% 170% at 100% 10%, rgba(168, 85, 247, 0.12), rgba(168, 85, 247, 0) 56%),
+    var(--surface);
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+}
+
+.hero-avatar {
+  display: inline-flex;
+  border-radius: 50%;
+  box-shadow:
+    0 0 0 5px var(--brand-ring),
+    0 10px 26px rgba(99, 102, 241, 0.3);
+}
+
+.hero-name {
+  font-size: 21px;
+  font-weight: 700;
+  letter-spacing: -0.5px;
+}
+
+.hero-meta {
+  font-size: 13px;
+  color: var(--text-2, #5a6474);
+  margin-top: 4px;
+}
+
+.hero-actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.section-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
+}
+
+.section-title {
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.section-sub {
+  font-size: 12px;
+  opacity: 0.5;
+  margin-top: 2px;
+}
+
+.stat-inline {
+  text-align: right;
+}
+
+.stat-inline-label {
+  font-size: 12px;
+  opacity: 0.5;
+}
+
+.stat-inline-value {
+  font-size: 14px;
+  font-weight: 600;
+  margin-top: 2px;
+}
+
 .stat-card {
-  padding: 14px 16px;
-  border-radius: 12px;
-  background: var(--brand-soft);
+  padding: 16px 18px;
+  border-radius: 14px;
+  background: var(--card-bg, linear-gradient(180deg, #fbfbff, #f7f8fd));
   border: 1px solid var(--divider);
   transition:
-    border-color 0.15s ease,
-    box-shadow 0.15s ease,
-    transform 0.15s ease;
+    border-color 0.18s ease,
+    box-shadow 0.18s ease,
+    transform 0.18s ease;
 }
 
 .stat-card:hover {
   border-color: var(--brand-border);
-  box-shadow: var(--shadow-float);
+  box-shadow: 0 8px 22px rgba(15, 23, 42, 0.07);
   transform: translateY(-1px);
 }
 
@@ -341,8 +549,9 @@ function rowProps(row: RecentRequestItem) {
 }
 
 .stat-value {
-  font-size: 22px;
+  font-size: 24px;
   font-weight: 700;
+  letter-spacing: -0.5px;
 }
 
 .stat-unit {
@@ -356,6 +565,17 @@ function rowProps(row: RecentRequestItem) {
   font-size: 12px;
   opacity: 0.6;
   margin-top: 2px;
+}
+
+.badge {
+  flex: none;
+  padding: 1px 8px;
+  border-radius: 999px;
+  font-size: 11.5px;
+  line-height: 1.6;
+  color: var(--brand);
+  background: var(--brand-soft);
+  border: 1px solid var(--brand-border);
 }
 
 .chart {

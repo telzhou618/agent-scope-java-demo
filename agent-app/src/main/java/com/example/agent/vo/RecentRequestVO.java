@@ -19,6 +19,11 @@ public class RecentRequestVO {
     private String requestId;
 
     /**
+     * Agent 名称（flash/plus/max）
+     */
+    private String agentName;
+
+    /**
      * 模型名称
      */
     private String modelName;
