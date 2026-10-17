@@ -1,5 +1,6 @@
 package com.example.agent.service;
 
+import cn.dev33.satoken.stp.StpUtil;
 import com.alibaba.fastjson2.JSON;
 import com.example.agent.agent.AgentRegistry;
 import com.example.agent.datasource.MysqlDatasourceRegistry;
@@ -32,6 +33,8 @@ import reactor.core.publisher.Sinks;
 
 import java.util.List;
 import java.util.Map;
+
+import static com.example.agent.tools.DashboardTools.CURRENT_TOKEN_KEY;
 
 /**
  * 聊天流编排：权限校验、@ 技能/数据源改写、会话标题、消息构建、Agent 事件流驱动与 SSE 转换；另含中断与技能/数据源列表
@@ -107,10 +110,12 @@ public class AgentChatService {
             userMessage = chatMessageFactory.buildUserMessage(userId, request.getSessionId(), message,
                     request.getAttachments(), pluginMeta);
         }
+        String currentToken = StpUtil.getTokenValue();
         RuntimeContext context = RuntimeContext.builder()
                 .sessionId(request.getSessionId())
                 .userId(userId)
                 .put("requestId", request.getRequestId() == null ? "" : request.getRequestId())
+                .put(CURRENT_TOKEN_KEY, currentToken == null ? "" : currentToken)
                 .build();
 
         if (log.isDebugEnabled()) {

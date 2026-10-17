@@ -27,6 +27,8 @@ public class SaTokenConfig implements WebMvcConfigurer {
                         "/agent/scope/message/shared",
                         // 会话分享链接走 token 校验，不要求登录态
                         "/agent/scope/share/session",
+                        // 数据看板页面走 URL 里的 token 手动校验，不要求 Header 登录态
+                        "/dashboard/**",
                         // 第三方 OAuth 登录流程免登录（providers/authorize/callback）
                         "/auth/oauth/**",
                         "/error",

@@ -1,9 +1,11 @@
 package com.example.agent.agent;
 
 import com.example.agent.middleware.TokenUsageMiddleware;
+import com.example.agent.service.DashboardService;
 import com.example.agent.service.ScheduleService;
 import com.example.agent.service.TokenUsageService;
 import com.example.agent.service.UserPermissionService;
+import com.example.agent.tools.DashboardTools;
 import com.example.agent.tools.DateTimeTools;
 import com.example.agent.tools.ScheduleTools;
 import io.agentscope.core.model.GenerateOptions;
@@ -72,6 +74,12 @@ public abstract class AbstractAgentFactory {
     protected ScheduleService scheduleService;
 
     @Autowired
+    protected DashboardService dashboardService;
+
+    @Value("${agent.dashboard.public-base-url:http://localhost:8082}")
+    private String dashboardPublicBaseUrl;
+
+    @Autowired
     protected UserPermissionService userPermissionService;
 
     /**
@@ -125,6 +133,13 @@ public abstract class AbstractAgentFactory {
      * 是否支持定时任务，开启才注册 schedule_* 工具；默认关闭
      */
     protected abstract boolean scheduleEnabled();
+
+    /**
+     * 是否支持数据看板，开启才注册 dashboard 工具；当前三档均开启
+     */
+    protected boolean dashboardEnabled() {
+        return true;
+    }
 
     /**
      * 月度 token 限额（0=不限）
@@ -296,6 +311,9 @@ public abstract class AbstractAgentFactory {
         toolkit.registerTool(dateTimeTools);
         if (scheduleEnabled()) {
             toolkit.registerTool(new ScheduleTools(scheduleService, name(), userPermissionService));
+        }
+        if (dashboardEnabled()) {
+            toolkit.registerTool(new DashboardTools(dashboardService, dashboardPublicBaseUrl));
         }
     }
 

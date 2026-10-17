@@ -119,6 +119,11 @@ agent:
       enabled: ${PLUGIN_MONTHLY_QUOTA_ENABLED:true}
     export-csv:
       enabled: ${PLUGIN_EXPORT_CSV_ENABLED:true}
+    dashboard:
+      enabled: ${PLUGIN_DASHBOARD_ENABLED:true}
+  # 数据看板：独立页面与访问链接的对外基址
+  dashboard:
+    public-base-url: ${DASHBOARD_PUBLIC_BASE_URL:http://localhost:8082}
   # 第三方 OAuth 登录：各渠道独立开关，未开启的渠道不注册、不暴露
   oauth:
     frontend-redirect: ${OAUTH_FRONTEND_REDIRECT:http://localhost:5177}

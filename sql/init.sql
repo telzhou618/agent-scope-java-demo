@@ -176,6 +176,23 @@ CREATE TABLE IF NOT EXISTS t_file (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='用户文件';
 
 -- ------------------------------------------------------------
+-- 数据看板（单文件 HTML 页面，按 dkey 访问；创建/维护见 skill dashboard 与 dashboard 插件）
+-- ------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS t_dashboard (
+  id          BIGINT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '主键ID',
+  dkey        VARCHAR(36)  NOT NULL COMMENT '页面唯一标识（UUID 去横杠），作为 URL 使用',
+  user_id     BIGINT       NOT NULL COMMENT '创建人',
+  name        VARCHAR(200) NOT NULL COMMENT '名称',
+  description VARCHAR(500) NOT NULL DEFAULT '' COMMENT '描述',
+  code        LONGTEXT     NOT NULL COMMENT '页面代码（整份 HTML）',
+  create_time DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  update_time DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+  PRIMARY KEY (id),
+  UNIQUE KEY uk_dkey (dkey),
+  KEY idx_user (user_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='数据看板';
+
+-- ------------------------------------------------------------
 -- 已有库升级（用户管理 + 权限控制新增列/表），已初始化过的库请手工执行：
 --
 --   USE agent_demo;
